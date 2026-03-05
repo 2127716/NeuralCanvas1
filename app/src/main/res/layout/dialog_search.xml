@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <!-- 关键词输入 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="关键词："
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/edit_keyword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="输入搜索关键词"
+            android:padding="12dp"
+            android:background="@android:drawable/editbox_background"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 节点类型筛选 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="节点类型："
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <CheckBox
+                android:id="@+id/checkbox_goal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="目标" />
+
+            <CheckBox
+                android:id="@+id/checkbox_task"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="任务" />
+
+            <CheckBox
+                android:id="@+id/checkbox_idea"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="想法" />
+
+            <CheckBox
+                android:id="@+id/checkbox_note"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="笔记" />
+
+            <CheckBox
+                android:id="@+id/checkbox_problem"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="问题" />
+
+            <CheckBox
+                android:id="@+id/checkbox_resource"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="资源" />
+
+            <CheckBox
+                android:id="@+id/checkbox_person"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="人物" />
+
+            <CheckBox
+                android:id="@+id/checkbox_event"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="事件" />
+
+            <CheckBox
+                android:id="@+id/checkbox_decision"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="决策" />
+
+            <CheckBox
+                android:id="@+id/checkbox_risk"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="风险" />
+
+        </LinearLayout>
+
+        <!-- 高亮选项 -->
+        <CheckBox
+            android:id="@+id/checkbox_highlight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="高亮显示搜索结果"
+            android:checked="true" />
+
+    </LinearLayout>
+
+</ScrollView>

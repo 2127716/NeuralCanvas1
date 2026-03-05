@@ -1,0 +1,91 @@
+name: NeuralCanvas Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 手动触发
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
+  JAVA_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Validate Gradle Wrapper
+      uses: gradle/wrapper-validation-action@v1
+      
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      with:
+        build-tools-version: '33.0.0'
+        ndk-version: '25.1.8937393'
+        
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build Debug APK
+      run: |
+        ./gradlew assembleDebug \
+          --no-daemon \
+          --no-build-cache \
+          --stacktrace \
+          --info
+        
+    - name: Build Release APK
+      run: |
+        ./gradlew assembleRelease \
+          --no-daemon \
+          --no-build-cache \
+          --stacktrace \
+          --info
+          
+    - name: List APK files
+      run: find . -name "*.apk" -type f | xargs ls -lh
+      
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: NeuralCanvas-Debug
+        path: app/build/outputs/apk/debug/*.apk
+        retention-days: 7
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: NeuralCanvas-Release  
+        path: app/build/outputs/apk/release/*.apk
+        retention-days: 7
+        
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-logs
+        path: |
+          **/build/reports/
+          **/build/outputs/
+        retention-days: 30

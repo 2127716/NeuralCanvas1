@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NeuralCanvas</string>
+    <string name="action_add_node">添加节点</string>
+    <string name="action_zoom_in">放大</string>
+    <string name="action_zoom_out">缩小</string>
+    <string name="action_reset_view">重置视图</string>
+    <string name="action_clear_all">清除全部</string>
+    <string name="action_search">搜索</string>
+    <string name="action_help">帮助</string>
+</resources>

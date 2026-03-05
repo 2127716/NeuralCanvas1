@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    
+    <item
+        android:id="@+id/action_add_node"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/action_add_node"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_zoom_in"
+        android:icon="@android:drawable/ic_menu_zoom"
+        android:title="@string/action_zoom_in"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_zoom_out"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="@string/action_zoom_out"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_reset_view"
+        android:icon="@android:drawable/ic_menu_revert"
+        android:title="@string/action_reset_view"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_clear_all"
+        android:icon="@android:drawable/ic_menu_delete"
+        android:title="@string/action_clear_all"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_search"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="@string/action_search"
+        app:showAsAction="ifRoom" />
+        
+    <item
+        android:id="@+id/action_help"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="@string/action_help"
+        app:showAsAction="ifRoom" />
+        
+</menu>
