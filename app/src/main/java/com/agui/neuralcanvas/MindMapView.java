@@ -220,6 +220,57 @@ public class MindMapView extends View {
                 // 检查是否点击了节点
                 Node touchedNode = findNodeAt(x, y);
                 if (touchedNode != null) {
+                    // ✅ 优先处理“连接模式”：点另一个节点立刻完成连接
+                    if (connectionMode && 
+                connectionSourceNode != null) {
+                        completeConnection(touchedNode);
+                        // 连接完成后不再进入拖拽
+                        return true;
+                    }
+                    if (creatingConnection && 
+                connectionStartNode != null && 
+                            !
+                touchedNode.getId().equals(connectionStart
+                Node.getId())) {
+
+                        Connection newConnection = new 
+                Connection(
+                connectionStartNode.getId(),
+                                touchedNode.getId(),
+                Connection.ConnectionType.SEQUENCE,
+                                "新连接"
+                        );
+
+                        addConnection(newConnection);
+                        creatingConnection = false;
+                        connectionStartNode = null;
+                        invalidate();
+
+                    } else {
+                        // 选择节点 + 可拖拽
+                        selectNode(touchedNode);
+                        draggingNode = touchedNode;
+                        draggingNode.setDragging(true);
+                    }
+
+                } else {
+                    // ✅ 如果你希望点空白处取消连接模式（推荐）
+                    if (connectionMode) {
+                        cancelConnectionMode();
+                        return true;
+                    }
+
+                    Connection touchedConnection = 
+                findConnectionAt(x, y, 20);
+                    if (touchedConnection != null) {
+                selectConnection(touchedConnection);
+                    } else {
+                        isDragging = true;
+                        clearSelection();
+                    }
+                }
+                Node touchedNode = findNodeAt(x, y);
+                if (touchedNode != null) {
                     if (creatingConnection && connectionStartNode != null && 
                         !touchedNode.getId().equals(connectionStartNode.getId())) {
                         // 完成连接创建
