@@ -15,6 +15,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 关键：自检仓库里是否还有 v3（任何文件）
+      - name: Check deprecated artifact action usage
+        run: |
+          echo "== Search for upload-artifact@v3 in repo =="
+          if grep -RIn "actions/upload-artifact@v3" .github/workflows .github/actions 2>/dev/null; then
+            echo "::error::Found deprecated actions/upload-artifact@v3. Please replace with @v4."
+            exit 1
+          else
+            echo "OK: no actions/upload-artifact@v3 found in .github/"
+          fi
+
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
@@ -30,17 +41,28 @@ jobs:
       - name: Build with Gradle (Debug)
         run: ./gradlew assembleDebug
 
+      # 打印产物路径，避免“找不到apk/报告”只能猜
+      - name: List APK / reports paths
+        if: always()
+        run: |
+          echo "== Find APKs =="
+          find . -type f -name "*.apk" -path "*build/outputs/apk*" -print || true
+          echo "== Find reports dirs =="
+          find . -maxdepth 6 -type d -path "*build/reports*" -print || true
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeuralCanvas-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: NeuralCanvas-APK
+          path: |
+            **/build/outputs/apk/**/*.apk
+          if-no-files-found: error
 
-      - name: Upload build reports
+      - name: Upload build reports (if exist)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-reports
           path: |
-            app/build/reports/
-            build/reports/
+            **/build/reports/**
+          if-no-files-found: ignore
