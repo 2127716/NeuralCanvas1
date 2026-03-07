@@ -632,93 +632,125 @@ public boolean onTouchEvent(MotionEvent event) {
     }
 
     private void showEditConnectionLabelDialog(Node from, Node to) {
-        LinearLayout layout = new LinearLayout(getContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        int padding = (int) dp(18f);
-        layout.setPadding(padding, padding, padding, padding);
+    private void showEditConnectionLabelDialog(Node from, Node to) {
+    LinearLayout layout = new LinearLayout(getContext());
+    layout.setOrientation(LinearLayout.VERTICAL);
+    int padding = (int) dp(18f);
+    layout.setPadding(padding, padding, padding, padding);
 
-        EditText input = new EditText(getContext());
-input.setHint("输入连线文字（可为空）");
-LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-);
-inputParams.bottomMargin = (int) dp(14f);
-input.setLayoutParams(inputParams);
-layout.addView(input);
+    EditText input = new EditText(getContext());
+    input.setHint("输入连线文字（可为空）");
+    LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    inputParams.bottomMargin = (int) dp(14f);
+    input.setLayoutParams(inputParams);
+    layout.addView(input);
 
-Spinner colorSpinner = new Spinner(getContext());
-LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-);
-colorParams.bottomMargin = (int) dp(14f);
-colorSpinner.setLayoutParams(colorParams);
-layout.addView(colorSpinner);
+    Spinner colorSpinner = new Spinner(getContext());
+    LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    colorParams.bottomMargin = (int) dp(14f);
+    colorSpinner.setLayoutParams(colorParams);
 
-Spinner widthSpinner = new Spinner(getContext());
-LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-);
-widthSpinner.setLayoutParams(widthParams);
-layout.addView(widthSpinner);
+    String[] colorNames = {"默认蓝色", "绿色", "红色", "橙色", "黄色", "紫色", "白色"};
+    Integer[] colorValues = {
+            null,
+            Color.parseColor("#57D38C"),
+            Color.parseColor("#FF6B6B"),
+            Color.parseColor("#FFB84D"),
+            Color.parseColor("#FFD54F"),
+            Color.parseColor("#B084F5"),
+            Color.WHITE
+    };
 
-        Connection existing = findConnectionBetween(from.getId(), to.getId());
-        if (existing != null) {
-            input.setText(existing.getLabel() == null ? "" : existing.getLabel());
+    ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            colorNames
+    );
+    colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    colorSpinner.setAdapter(colorAdapter);
+    layout.addView(colorSpinner);
 
-            Integer existingColor = existing.getCustomColor();
-            int colorIndex = 0;
-            for (int i = 0; i < colorValues.length; i++) {
-                Integer value = colorValues[i];
-                if ((value == null && existingColor == null) || (value != null && value.equals(existingColor))) {
-                    colorIndex = i;
-                    break;
-                }
+    Spinner widthSpinner = new Spinner(getContext());
+    LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    widthSpinner.setLayoutParams(widthParams);
+
+    String[] widthNames = {"细", "中", "粗", "超粗"};
+    float[] widthValues = {4f, 6f, 8f, 10f};
+
+    ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            widthNames
+    );
+    widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    widthSpinner.setAdapter(widthAdapter);
+    layout.addView(widthSpinner);
+
+    Connection existing = findConnectionBetween(from.getId(), to.getId());
+    if (existing != null) {
+        input.setText(existing.getLabel() == null ? "" : existing.getLabel());
+
+        Integer existingColor = existing.getCustomColor();
+        int colorIndex = 0;
+        for (int i = 0; i < colorValues.length; i++) {
+            Integer value = colorValues[i];
+            if ((value == null && existingColor == null)
+                    || (value != null && value.equals(existingColor))) {
+                colorIndex = i;
+                break;
             }
-            colorSpinner.setSelection(colorIndex);
-
-            float w = existing.getStrokeWidth();
-            int widthIndex = 0;
-            if (w >= 10f) widthIndex = 3;
-            else if (w >= 8f) widthIndex = 2;
-            else if (w >= 6f) widthIndex = 1;
-            widthSpinner.setSelection(widthIndex);
         }
+        colorSpinner.setSelection(colorIndex);
 
-        new AlertDialog.Builder(getContext())
-                .setTitle("编辑连线")
-                .setView(layout)
-                .setNegativeButton("取消", (d, w) -> cancelPendingAction())
-                .setPositiveButton("确定", (d, w) -> {
-                    String label = input.getText().toString().trim();
-                    Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
-                    float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
-
-                    Connection ex = findConnectionBetween(from.getId(), to.getId());
-                    if (ex != null) {
-                        ex.setLabel(label);
-                        ex.setCustomColor(selectedColor);
-                        ex.setStrokeWidth(selectedWidth);
-                    } else {
-                        Connection c = new Connection(
-                                from.getId(),
-                                to.getId(),
-                                Connection.ConnectionType.SEQUENCE,
-                                label
-                        );
-                        c.setCustomColor(selectedColor);
-                        c.setStrokeWidth(selectedWidth);
-                        addConnection(c);
-                    }
-
-                    cancelPendingAction();
-                    invalidate();
-                    notifyDataChanged();
-                })
-                .show();
+        float w = existing.getStrokeWidth();
+        int widthIndex = 0;
+        if (w >= 10f) widthIndex = 3;
+        else if (w >= 8f) widthIndex = 2;
+        else if (w >= 6f) widthIndex = 1;
+        widthSpinner.setSelection(widthIndex);
     }
+
+    new AlertDialog.Builder(getContext())
+            .setTitle("编辑连线")
+            .setView(layout)
+            .setNegativeButton("取消", (d, w) -> cancelPendingAction())
+            .setPositiveButton("确定", (d, w) -> {
+                String label = input.getText().toString().trim();
+                Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
+                float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
+
+                Connection ex = findConnectionBetween(from.getId(), to.getId());
+                if (ex != null) {
+                    ex.setLabel(label);
+                    ex.setCustomColor(selectedColor);
+                    ex.setStrokeWidth(selectedWidth);
+                } else {
+                    Connection c = new Connection(
+                            from.getId(),
+                            to.getId(),
+                            Connection.ConnectionType.SEQUENCE,
+                            label
+                    );
+                    c.setCustomColor(selectedColor);
+                    c.setStrokeWidth(selectedWidth);
+                    addConnection(c);
+                }
+
+                cancelPendingAction();
+                invalidate();
+                notifyDataChanged();
+            })
+            .show();
+}
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
 
