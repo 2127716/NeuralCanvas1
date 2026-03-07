@@ -191,9 +191,13 @@ public class Node {
         float textTop = bounds.top + 34f * scale;
 
         canvas.drawText(truncateText(safeTitle, 10), textLeft, textTop, titlePaint);
+
+        if (scale >= 0.55f) {
         canvas.drawText(truncateText(safeContent, 8), textLeft, bounds.top + 58f * scale, contentPaint);
+        }
+
         canvas.drawText(safeType, textLeft, bounds.bottom - 14f * scale, typePaint);
-    }
+        }
 
     private RectF getRegularShapeBounds(RectF bounds) {
         switch (getShape()) {
