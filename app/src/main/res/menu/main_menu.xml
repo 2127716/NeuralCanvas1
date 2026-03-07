@@ -26,6 +26,20 @@
             <item
                 android:id="@+id/action_help"
                 android:title="帮助" />
+
+            <!-- 兼容旧 MainActivity，界面隐藏 -->
+            <item
+                android:id="@+id/action_zoom_in"
+                android:title="放大"
+                android:visible="false" />
+            <item
+                android:id="@+id/action_zoom_out"
+                android:title="缩小"
+                android:visible="false" />
+            <item
+                android:id="@+id/action_reset_view"
+                android:title="重置视图"
+                android:visible="false" />
         </menu>
     </item>
 </menu>
