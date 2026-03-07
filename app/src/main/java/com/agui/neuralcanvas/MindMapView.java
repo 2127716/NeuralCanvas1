@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -52,36 +53,35 @@ public class MindMapView extends View {
     private float offsetX = 0f;
     private float offsetY = 0f;
 
-    private float lastTouchX = 0f;
-    private float lastTouchY = 0f;
     private float downX = 0f;
     private float downY = 0f;
+    private float lastTouchX = 0f;
+    private float lastTouchY = 0f;
 
     private boolean isDraggingCanvas = false;
     private boolean isDraggingNode = false;
     private boolean isScaling = false;
-    private boolean hasMovedBeyondTapSlop = false;
+    private boolean movedEnough = false;
 
-    private float touchSlop;
+    private final float minScale = 0.08f;
+    private final float maxScale = 24f;
+    private final int touchSlop;
 
-    private Node touchDownNode = null;
     private Node draggingNode = null;
     private Node selectedNode = null;
-    private Node previewNode = null;
     private Connection selectedConnection = null;
+    private Node previewNode = null;
+    private RectF previewRect = null;
 
     private GestureDetector gestureDetector;
     private ScaleGestureDetector scaleGestureDetector;
 
     private Paint previewCardPaint;
-    private Paint previewShadowPaint;
     private Paint previewBorderPaint;
     private Paint previewTitlePaint;
     private Paint previewContentPaint;
-    private Paint searchPaint;
     private Paint tempLinePaint;
-
-    private RectF previewRect;
+    private Paint gridPaint;
 
     private enum PendingAction {
         NONE,
@@ -95,63 +95,68 @@ public class MindMapView extends View {
 
     public MindMapView(Context context) {
         super(context);
+        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         init();
     }
 
     public MindMapView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         init();
     }
 
     public MindMapView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         init();
     }
 
     private void init() {
+        setLayerType(LAYER_TYPE_HARDWARE, null);
+
         gestureDetector = new GestureDetector(getContext(), new GestureListener());
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
-        touchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewCardPaint.setColor(Color.parseColor("#F8FAFC"));
 
-        previewShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewShadowPaint.setColor(Color.parseColor("#55000000"));
-
         previewBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewBorderPaint.setStyle(Paint.Style.STROKE);
-        previewBorderPaint.setStrokeWidth(3f);
-        previewBorderPaint.setColor(Color.parseColor("#CBD5E1"));
+        previewBorderPaint.setStrokeWidth(dp(1.2f));
+        previewBorderPaint.setColor(Color.parseColor("#D9E2F1"));
 
         previewTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewTitlePaint.setColor(Color.parseColor("#0F172A"));
-        previewTitlePaint.setTextSize(30f);
+        previewTitlePaint.setTextSize(dp(8f));
         previewTitlePaint.setFakeBoldText(true);
 
         previewContentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewContentPaint.setColor(Color.parseColor("#334155"));
-        previewContentPaint.setTextSize(22f);
-
-        searchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        searchPaint.setStyle(Paint.Style.STROKE);
-        searchPaint.setColor(Color.parseColor("#F8FAFC"));
-        searchPaint.setAlpha(180);
+        previewContentPaint.setTextSize(dp(6f));
 
         tempLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         tempLinePaint.setColor(Color.parseColor("#93C5FD"));
         tempLinePaint.setStyle(Paint.Style.STROKE);
-        tempLinePaint.setStrokeWidth(5f);
+        tempLinePaint.setStrokeWidth(dp(2f));
 
-        previewRect = new RectF();
+        gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        gridPaint.setColor(Color.parseColor("#1D2638"));
+        gridPaint.setStrokeWidth(1f);
+    }
 
-        setLayerType(LAYER_TYPE_HARDWARE, null);
+    private float dp(float value) {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                value,
+                getResources().getDisplayMetrics()
+        );
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawColor(Color.parseColor("#081226"));
+        canvas.drawColor(Color.parseColor("#0B1020"));
+        drawGrid(canvas);
 
         for (Connection connection : connections.values()) {
             Node fromNode = nodes.get(connection.getFromNodeId());
@@ -162,15 +167,14 @@ public class MindMapView extends View {
         if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
             float startX = (pendingSourceNode.getX() + offsetX + pendingSourceNode.getWidth() / 2f) * scale;
             float startY = (pendingSourceNode.getY() + offsetY + pendingSourceNode.getHeight() / 2f) * scale;
-            tempLinePaint.setStrokeWidth(Math.max(3f, 4f * (0.85f + scale * 0.35f)));
+            tempLinePaint.setStrokeWidth(Math.max(dp(1.5f), dp(2f) * (0.8f + scale * 0.25f)));
             canvas.drawLine(startX, startY, pendingEndX, pendingEndY, tempLinePaint);
         }
 
         for (Node node : nodes.values()) {
-            boolean isSearchResult = highlightSearchResults && searchResultNodeIds.contains(node.getId());
-            node.draw(canvas, scale, offsetX, offsetY, isSearchResult, highlightSearchResults);
+            node.draw(canvas, scale, offsetX, offsetY);
 
-            if (isSearchResult) {
+            if (highlightSearchResults && searchResultNodeIds.contains(node.getId())) {
                 drawSearchHighlight(canvas, node);
             }
         }
@@ -180,14 +184,37 @@ public class MindMapView extends View {
         }
     }
 
-    private void drawSearchHighlight(Canvas canvas, Node node) {
-        float left = (node.getX() + offsetX) * scale - 12f * scale;
-        float top = (node.getY() + offsetY) * scale - 12f * scale;
-        float right = left + node.getWidth() * scale + 24f * scale;
-        float bottom = top + node.getHeight() * scale + 24f * scale;
+    private void drawGrid(Canvas canvas) {
+        float base = 36f * scale;
+        if (base < 18f) return;
 
-        searchPaint.setStrokeWidth(Math.max(3f, 4f * scale));
-        canvas.drawRoundRect(left, top, right, bottom, 24f * scale, 24f * scale, searchPaint);
+        float width = getWidth();
+        float height = getHeight();
+
+        float startX = ((offsetX * scale) % base + base) % base;
+        float startY = ((offsetY * scale) % base + base) % base;
+
+        for (float x = startX; x < width; x += base) {
+            canvas.drawLine(x, 0, x, height, gridPaint);
+        }
+        for (float y = startY; y < height; y += base) {
+            canvas.drawLine(0, y, width, y, gridPaint);
+        }
+    }
+
+    private void drawSearchHighlight(Canvas canvas, Node node) {
+        float left = (node.getX() + offsetX) * scale - 8f * scale;
+        float top = (node.getY() + offsetY) * scale - 8f * scale;
+        float right = left + node.getWidth() * scale + 16f * scale;
+        float bottom = top + node.getHeight() * scale + 16f * scale;
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(Color.parseColor("#F8FAFC"));
+        p.setAlpha(185);
+        p.setStrokeWidth(Math.max(dp(1.4f), 2.8f * scale));
+
+        canvas.drawRoundRect(new RectF(left, top, right, bottom), 22f * scale, 22f * scale, p);
     }
 
     private void drawPreviewCard(Canvas canvas, Node node) {
@@ -196,64 +223,58 @@ public class MindMapView extends View {
         float nodeWidth = node.getWidth() * scale;
         float nodeHeight = node.getHeight() * scale;
 
-        float cardWidth = Math.max(300f, nodeWidth * 1.15f);
-        float cardHeight = Math.max(170f, nodeHeight * 1.25f);
+        float cardWidth = Math.max(dp(180f), nodeWidth * 1.08f);
+        float cardHeight = Math.max(dp(112f), nodeHeight * 1.05f);
 
         float left = nodeLeft + nodeWidth / 2f - cardWidth / 2f;
         float top = nodeTop + nodeHeight / 2f - cardHeight / 2f;
         float right = left + cardWidth;
         float bottom = top + cardHeight;
 
-        if (left < 18f) {
-            right += (18f - left);
-            left = 18f;
+        float margin = dp(8f);
+        if (left < margin) {
+            right += (margin - left);
+            left = margin;
         }
-        if (right > getWidth() - 18f) {
-            float diff = right - (getWidth() - 18f);
+        if (right > getWidth() - margin) {
+            float diff = right - (getWidth() - margin);
             left -= diff;
             right -= diff;
         }
-        if (top < 18f) {
-            bottom += (18f - top);
-            top = 18f;
+        if (top < margin + dp(52f)) {
+            bottom += (margin + dp(52f) - top);
+            top = margin + dp(52f);
         }
-        if (bottom > getHeight() - 18f) {
-            float diff = bottom - (getHeight() - 18f);
+        if (bottom > getHeight() - margin) {
+            float diff = bottom - (getHeight() - margin);
             top -= diff;
             bottom -= diff;
         }
 
-        previewRect.set(left, top, right, bottom);
+        previewRect = new RectF(left, top, right, bottom);
 
+        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadowPaint.setColor(Color.parseColor("#55000000"));
         canvas.drawRoundRect(
-                left + 8f,
-                top + 10f,
-                right + 8f,
-                bottom + 10f,
-                30f,
-                30f,
-                previewShadowPaint
+                new RectF(left + dp(3f), top + dp(5f), right + dp(3f), bottom + dp(5f)),
+                dp(16f), dp(16f), shadowPaint
         );
 
-        canvas.drawRoundRect(previewRect, 28f, 28f, previewCardPaint);
-        canvas.drawRoundRect(previewRect, 28f, 28f, previewBorderPaint);
+        canvas.drawRoundRect(previewRect, dp(16f), dp(16f), previewCardPaint);
+        canvas.drawRoundRect(previewRect, dp(16f), dp(16f), previewBorderPaint);
 
         String title = node.getTitle() == null ? "" : node.getTitle();
         String content = node.getContent() == null ? "" : node.getContent();
 
-        float paddingX = 24f;
-        float y = top + 40f;
-
-        previewTitlePaint.setTextSize(28f);
-        previewContentPaint.setTextSize(20f);
-
+        float paddingX = dp(16f);
+        float y = top + dp(24f);
         canvas.drawText(truncate(title, 18), left + paddingX, y, previewTitlePaint);
 
-        y += 34f;
-        List<String> lines = splitText(content, 22, 5);
+        y += dp(22f);
+        List<String> lines = splitText(content, 22, 6);
         for (String line : lines) {
             canvas.drawText(line, left + paddingX, y, previewContentPaint);
-            y += 28f;
+            y += dp(16f);
         }
     }
 
@@ -294,60 +315,47 @@ public class MindMapView extends View {
                 downY = y;
                 lastTouchX = x;
                 lastTouchY = y;
-
-                hasMovedBeyondTapSlop = false;
+                movedEnough = false;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
 
-                touchDownNode = findNodeAt(x, y);
-                draggingNode = null;
+                if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
+                    return true;
+                }
 
+                Node touchedNode = findNodeAt(x, y);
                 Connection touchedConnection = findConnectionAt(x, y);
 
-                if (touchDownNode != null) {
-                    clearSelections();
-                    touchDownNode.setSelected(true);
-                    selectedNode = touchDownNode;
+                clearSelections();
+
+                if (touchedNode != null) {
+                    touchedNode.setSelected(true);
+                    selectedNode = touchedNode;
+                    draggingNode = touchedNode;
                     invalidate();
                 } else if (touchedConnection != null) {
-                    clearSelections();
                     touchedConnection.setSelected(true);
                     selectedConnection = touchedConnection;
+                    draggingNode = null;
                     invalidate();
                 } else {
-                    clearSelections();
+                    draggingNode = null;
+                    previewNode = null;
+                    previewRect = null;
                     invalidate();
                 }
                 break;
             }
 
             case MotionEvent.ACTION_MOVE: {
-                if (isScaling) {
-                    lastTouchX = x;
-                    lastTouchY = y;
-                    return true;
-                }
+                float totalDx = x - downX;
+                float totalDy = y - downY;
 
-                float rawDx = x - downX;
-                float rawDy = y - downY;
-
-                if (!hasMovedBeyondTapSlop) {
-                    float dist2 = rawDx * rawDx + rawDy * rawDy;
-                    if (dist2 > touchSlop * touchSlop) {
-                        hasMovedBeyondTapSlop = true;
-
-                        if (touchDownNode != null) {
-                            draggingNode = touchDownNode;
-                            draggingNode.setDragging(true);
-                            isDraggingNode = true;
-                        } else {
-                            isDraggingCanvas = true;
-                        }
+                if (!movedEnough) {
+                    if (Math.hypot(totalDx, totalDy) > touchSlop) {
+                        movedEnough = true;
                     }
                 }
-
-                float dx = (x - lastTouchX) / scale;
-                float dy = (y - lastTouchY) / scale;
 
                 if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
                     pendingEndX = x;
@@ -355,13 +363,22 @@ public class MindMapView extends View {
                     invalidate();
                 }
 
-                if (isDraggingNode && draggingNode != null) {
-                    draggingNode.move(dx, dy);
-                    invalidate();
-                } else if (isDraggingCanvas) {
-                    offsetX += dx;
-                    offsetY += dy;
-                    invalidate();
+                if (!isScaling && movedEnough) {
+                    float dx = (x - lastTouchX) / scale;
+                    float dy = (y - lastTouchY) / scale;
+
+                    if (draggingNode != null) {
+                        isDraggingNode = true;
+                        previewNode = null;
+                        previewRect = null;
+                        draggingNode.move(dx, dy);
+                        invalidate();
+                    } else {
+                        isDraggingCanvas = true;
+                        offsetX += dx;
+                        offsetY += dy;
+                        invalidate();
+                    }
                 }
 
                 lastTouchX = x;
@@ -371,38 +388,14 @@ public class MindMapView extends View {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
-                if (!isScaling && !hasMovedBeyondTapSlop) {
-                    Node tappedNode = findNodeAt(x, y);
-
-                    if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
-                        if (tappedNode != null && !pendingSourceNode.getId().equals(tappedNode.getId())) {
-                            showEditConnectionLabelDialog(pendingSourceNode, tappedNode);
-                            break;
-                        }
-                    }
-
-                    if (tappedNode != null) {
-                        if (previewNode != null && previewNode.getId().equals(tappedNode.getId())) {
-                            previewNode = null;
-                        } else {
-                            previewNode = tappedNode;
-                        }
-                    } else {
-                        previewNode = null;
-                    }
-                    invalidate();
-                }
-
-                if (draggingNode != null) {
+                if (draggingNode != null && isDraggingNode) {
                     draggingNode.setDragging(false);
-                    draggingNode = null;
                     notifyDataChanged();
                 }
 
-                touchDownNode = null;
+                draggingNode = null;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
-                hasMovedBeyondTapSlop = false;
                 break;
             }
         }
@@ -436,7 +429,7 @@ public class MindMapView extends View {
         for (Connection connection : connections.values()) {
             Node from = nodes.get(connection.getFromNodeId());
             Node to = nodes.get(connection.getToNodeId());
-            if (connection.isNear(x, y, from, to, scale, offsetX, offsetY, 18f)) {
+            if (connection.isNear(x, y, from, to, scale, offsetX, offsetY, dp(8f))) {
                 return connection;
             }
         }
@@ -464,6 +457,7 @@ public class MindMapView extends View {
 
             if (previewNode != null && nodeId.equals(previewNode.getId())) {
                 previewNode = null;
+                previewRect = null;
             }
 
             nodes.remove(nodeId);
@@ -506,6 +500,7 @@ public class MindMapView extends View {
         selectedNode = null;
         selectedConnection = null;
         previewNode = null;
+        previewRect = null;
         pendingAction = PendingAction.NONE;
         pendingSourceNode = null;
         searchResultNodeIds.clear();
@@ -523,18 +518,15 @@ public class MindMapView extends View {
 
     public void setNodes(Map<String, Node> map) {
         nodes.clear();
-        if (map != null) {
-            nodes.putAll(map);
-        }
+        if (map != null) nodes.putAll(map);
         previewNode = null;
+        previewRect = null;
         invalidate();
     }
 
     public void setConnections(Map<String, Connection> map) {
         connections.clear();
-        if (map != null) {
-            connections.putAll(map);
-        }
+        if (map != null) connections.putAll(map);
         invalidate();
     }
 
@@ -551,9 +543,7 @@ public class MindMapView extends View {
         }
 
         for (Node node : nodes.values()) {
-            if (!searchTypes.isEmpty() && !searchTypes.contains(node.getType())) {
-                continue;
-            }
+            if (!searchTypes.isEmpty() && !searchTypes.contains(node.getType())) continue;
 
             boolean matches;
             if (!searchKeyword.isEmpty()) {
@@ -603,15 +593,14 @@ public class MindMapView extends View {
 
     public void focusNodeById(String nodeId) {
         Node node = nodes.get(nodeId);
-        if (node != null) {
-            focusNode(node);
-        }
+        if (node != null) focusNode(node);
     }
 
     public void startConnectionMode(Node sourceNode) {
         pendingAction = PendingAction.CREATE_CONNECTION;
         pendingSourceNode = sourceNode;
         previewNode = null;
+        previewRect = null;
         invalidate();
     }
 
@@ -633,7 +622,7 @@ public class MindMapView extends View {
     private void showEditConnectionLabelDialog(Node from, Node to) {
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
-        int padding = 36;
+        int padding = (int) dp(18f);
         layout.setPadding(padding, padding, padding, padding);
 
         EditText input = new EditText(getContext());
@@ -697,10 +686,7 @@ public class MindMapView extends View {
         new AlertDialog.Builder(getContext())
                 .setTitle("编辑连线")
                 .setView(layout)
-                .setNegativeButton("取消", (d, w) -> {
-                    cancelPendingAction();
-                    d.dismiss();
-                })
+                .setNegativeButton("取消", (d, w) -> cancelPendingAction())
                 .setPositiveButton("确定", (d, w) -> {
                     String label = input.getText().toString().trim();
                     Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
@@ -738,13 +724,45 @@ public class MindMapView extends View {
         }
 
         @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            Node node = findNodeAt(e.getX(), e.getY());
+
+            if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
+                if (node != null && !pendingSourceNode.getId().equals(node.getId())) {
+                    showEditConnectionLabelDialog(pendingSourceNode, node);
+                    return true;
+                }
+            }
+
+            if (node != null) {
+                if (previewNode != null && previewNode.getId().equals(node.getId())) {
+                    previewNode = null;
+                    previewRect = null;
+                } else {
+                    previewNode = node;
+                    previewRect = null;
+                }
+                invalidate();
+                return true;
+            } else {
+                if (previewNode != null) {
+                    previewNode = null;
+                    previewRect = null;
+                    invalidate();
+                    return true;
+                }
+            }
+            return super.onSingleTapConfirmed(e);
+        }
+
+        @Override
         public boolean onDoubleTap(MotionEvent e) {
             Node node = findNodeAt(e.getX(), e.getY());
             if (node == null) {
                 float worldX = e.getX() / scale - offsetX;
                 float worldY = e.getY() / scale - offsetY;
 
-                Node newNode = new Node("新节点", "输入内容", worldX - 110f, worldY - 65f, Node.NodeType.CONCEPT);
+                Node newNode = new Node("新节点", "输入内容", worldX - 84f, worldY - 84f, Node.NodeType.CONCEPT);
                 addNode(newNode);
 
                 if (getContext() instanceof MainActivity) {
@@ -757,8 +775,6 @@ public class MindMapView extends View {
 
         @Override
         public void onLongPress(MotionEvent e) {
-            if (hasMovedBeyondTapSlop || isScaling) return;
-
             Node touchedNode = findNodeAt(e.getX(), e.getY());
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
@@ -778,37 +794,31 @@ public class MindMapView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             isScaling = true;
-            isDraggingCanvas = false;
-            isDraggingNode = false;
-            if (draggingNode != null) {
-                draggingNode.setDragging(false);
-                draggingNode = null;
-            }
             return true;
         }
 
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             float oldScale = scale;
-            float newScale = oldScale * detector.getScaleFactor();
+            float factor = detector.getScaleFactor();
 
-            if (newScale < 0.05f) newScale = 0.05f;
-            if (newScale > 50f) newScale = 50f;
+            factor = Math.max(0.92f, Math.min(factor, 1.08f));
+
+            float newScale = oldScale * factor;
+            if (newScale < minScale) newScale = minScale;
+            if (newScale > maxScale) newScale = maxScale;
 
             float focusX = detector.getFocusX();
             float focusY = detector.getFocusY();
 
-            float worldFocusX = (focusX / oldScale) - offsetX;
-            float worldFocusY = (focusY / oldScale) - offsetY;
+            float worldX = focusX / oldScale - offsetX;
+            float worldY = focusY / oldScale - offsetY;
 
             scale = newScale;
+            offsetX = focusX / scale - worldX;
+            offsetY = focusY / scale - worldY;
 
-            offsetX = (focusX / scale) - worldFocusX;
-            offsetY = (focusY / scale) - worldFocusY;
-
-            lastTouchX = focusX;
-            lastTouchY = focusY;
-
+            previewRect = null;
             invalidate();
             return true;
         }
