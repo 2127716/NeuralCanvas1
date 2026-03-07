@@ -1,5 +1,7 @@
 package com.agui.neuralcanvas;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,9 +15,10 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity 
+public class MainActivity extends AppCompatActivity
     implements NodeEditDialog.NodeEditListener,
-               SearchDialog.SearchListener {
+               SearchDialog.SearchListener,
+               MindMapView.OnDataChangeListener {
                
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -25,6 +28,8 @@ public class MainActivity extends AppCompatActivity
     
     private MindMapView mindMapView;
     private SimpleDataManager dataManager;
+    private final Handler autoSaveHandler = new Handler(Looper.getMainLooper());
+    private final Runnable autoSaveRunnable = this::saveCurrentDataSilently;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +40,7 @@ public class MainActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
         
         mindMapView = findViewById(R.id.mindMapView);
+        mindMapView.setOnDataChangeListener(this);
         
         // 初始化简单数据管理器
         dataManager = new SimpleDataManager(getApplication());
@@ -139,6 +145,23 @@ private void saveCurrentData() {
         }
     }
     
+    private void scheduleAutoSave() {
+        autoSaveHandler.removeCallbacks(autoSaveRunnable);
+        autoSaveHandler.postDelayed(autoSaveRunnable, 800);
+    }
+
+    private void saveCurrentDataSilently() {
+        try {
+            Map<String, Node> nodes = mindMapView.getNodes();
+            Map<String, Connection> connections = mindMapView.getConnections();
+
+            if (nodes != null && !nodes.isEmpty()) {
+                dataManager.saveMindMap(nodes, connections);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private void showHelp() {
         String helpText = "使用指南：\n" +
                          "• 双击画布：创建新节点\n" +
@@ -163,11 +186,13 @@ private void saveCurrentData() {
     public void onNodeUpdated(Node node) {
         Toast.makeText(this, "节点已更新", Toast.LENGTH_SHORT).show();
         mindMapView.invalidate();
+        scheduleAutoSave();
     }
-    
+
     @Override
     public void onNodeDeleted(Node node) {
         Toast.makeText(this, "节点已删除", Toast.LENGTH_SHORT).show();
+        scheduleAutoSave();
     }
     
     // SearchListener 接口实现
@@ -181,13 +206,22 @@ private void saveCurrentData() {
             Toast.makeText(this, "未找到匹配节点", Toast.LENGTH_SHORT).show();
         }
     }
+    @Override
+    public void onDataChanged() {
+        scheduleAutoSave();
+    }
     
     @Override
     public void onClearSearch() {
         mindMapView.clearSearch();
         Toast.makeText(this, "搜索已清除", Toast.LENGTH_SHORT).show();
     }
-    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        autoSaveHandler.removeCallbacks(autoSaveRunnable);
+        saveCurrentDataSilently();
+    }
     private void showSearchDialog() {
         DialogFragment dialog = SearchDialog.newInstance(mindMapView);
         dialog.show(getSupportFragmentManager(), "search_dialog");
