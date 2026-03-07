@@ -1,13 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Application theme (NoActionBar to avoid conflict with Toolbar) -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#111827</item>
+        <item name="colorPrimaryVariant">#0F172A</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#67B7FF</item>
+        <item name="colorSecondaryVariant">#4FC3F7</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">#0F172A</item>
+        <item name="materialAlertDialogTheme">@style/RoundedDialogTheme</item>
+    </style>
 
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+    <style name="RoundedDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/RoundedShapeAppearance</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/DialogBodyText</item>
+    </style>
 
+    <style name="RoundedShapeAppearance" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">22dp</item>
+    </style>
+
+    <style name="DialogBodyText" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">#111827</item>
+        <item name="android:textSize">15sp</item>
     </style>
 
 </resources>
