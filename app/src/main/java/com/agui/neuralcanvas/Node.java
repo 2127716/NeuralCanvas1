@@ -13,21 +13,43 @@ import java.util.UUID;
 public class Node {
 
     public enum NodeType {
-        CONCEPT("#4FC3F7", "概念"),
-        IDEA("#FFCA28", "想法"),
-        QUESTION("#EF5350", "问题"),
-        RESOURCE("#66BB6A", "资源"),
-        TASK("#AB47BC", "任务"),
-        GOAL("#26A69A", "目标"),
-        NOTE("#FFA726", "笔记"),
-        DECISION("#5C6BC0", "决策");
+        CONCEPT("#4FC3F7", "概念", 0),
+        IDEA("#FFCA28", "想法", 1),
+        QUESTION("#EF5350", "问题", 2),
+        RESOURCE("#66BB6A", "资源", 3),
+        TASK("#AB47BC", "任务", 4),
+        GOAL("#26A69A", "目标", 5),
+        NOTE("#FFA726", "笔记", 6),
+        DECISION("#5C6BC0", "决策", 7),
+
+        // 兼容旧版本 SearchDialog / NodeEditDialog
+        PROBLEM("#EF5350", "问题", 2),
+        PERSON("#4FC3F7", "人物", 0),
+        EVENT("#FFA726", "事件", 6),
+        RISK("#EF5350", "风险", 2);
 
         public final String colorHex;
         public final String label;
+        public final int styleIndex;
 
-        NodeType(String colorHex, String label) {
+        NodeType(String colorHex, String label, int styleIndex) {
             this.colorHex = colorHex;
             this.label = label;
+            this.styleIndex = styleIndex;
+        }
+
+        public static NodeType fromIndex(int index) {
+            switch (index) {
+                case 0: return CONCEPT;
+                case 1: return IDEA;
+                case 2: return QUESTION;
+                case 3: return RESOURCE;
+                case 4: return TASK;
+                case 5: return GOAL;
+                case 6: return NOTE;
+                case 7: return DECISION;
+                default: return CONCEPT;
+            }
         }
     }
 
@@ -65,6 +87,7 @@ public class Node {
     private transient Paint titlePaint;
     private transient Paint contentPaint;
     private transient Paint selectedPaint;
+    private transient Paint highlightPaint;
 
     public Node() {
         this.id = UUID.randomUUID().toString();
@@ -82,6 +105,7 @@ public class Node {
         ensurePaints();
     }
 
+    // 新版本构造：title, content, x, y, type
     public Node(String title, String content, float x, float y, NodeType type) {
         this.id = UUID.randomUUID().toString();
         this.title = title == null ? "" : title;
@@ -96,6 +120,11 @@ public class Node {
         this.dragging = false;
         this.connectionIds = new ArrayList<>();
         ensurePaints();
+    }
+
+    // 兼容旧版本构造：title, content, type, x, y
+    public Node(String title, String content, NodeType type, float x, float y) {
+        this(title, content, x, y, type);
     }
 
     private void ensurePaints() {
@@ -131,6 +160,14 @@ public class Node {
             selectedPaint.setAlpha(190);
         }
 
+        if (highlightPaint == null) {
+            highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            highlightPaint.setStyle(Paint.Style.STROKE);
+            highlightPaint.setColor(Color.parseColor("#FFF176"));
+            highlightPaint.setStrokeWidth(8f);
+            highlightPaint.setAlpha(220);
+        }
+
         applyTypeStyle();
     }
 
@@ -153,7 +190,19 @@ public class Node {
         return Color.rgb(r, g, b);
     }
 
+    // 新版 draw
     public void draw(Canvas canvas, float scale, float offsetX, float offsetY) {
+        drawInternal(canvas, scale, offsetX, offsetY, false, false);
+    }
+
+    // 兼容旧版 draw
+    public void draw(Canvas canvas, float scale, float offsetX, float offsetY,
+                     boolean isSearchResult, boolean highlightSearchResults) {
+        drawInternal(canvas, scale, offsetX, offsetY, isSearchResult, highlightSearchResults);
+    }
+
+    private void drawInternal(Canvas canvas, float scale, float offsetX, float offsetY,
+                              boolean isSearchResult, boolean highlightSearchResults) {
         ensurePaints();
 
         float drawX = (x + offsetX) * scale;
@@ -165,6 +214,10 @@ public class Node {
 
         if (selected) {
             drawShapeOutline(canvas, rect, selectedPaint, scale);
+        }
+
+        if (highlightSearchResults && isSearchResult) {
+            drawShapeOutline(canvas, rect, highlightPaint, scale);
         }
 
         drawShape(canvas, rect, fillPaint, scale);
@@ -195,7 +248,7 @@ public class Node {
     }
 
     private void drawShape(Canvas canvas, RectF rect, Paint paint, float scale) {
-        switch (shape) {
+        switch (getShape()) {
             case CIRCLE:
                 canvas.drawOval(rect, paint);
                 break;
@@ -225,7 +278,7 @@ public class Node {
         Paint p = new Paint(paint);
         p.setStrokeWidth(Math.max(2f, paint.getStrokeWidth() * scale * 0.7f));
 
-        switch (shape) {
+        switch (getShape()) {
             case CIRCLE:
                 canvas.drawOval(rect, p);
                 break;
@@ -344,10 +397,11 @@ public class Node {
     public float getY() { return y; }
     public float getWidth() { return width; }
     public float getHeight() { return height; }
-    public NodeType getType() { return type; }
+    public NodeType getType() { return type == null ? NodeType.CONCEPT : type; }
     public NodeShape getShape() { return shape == null ? NodeShape.RECT : shape; }
     public boolean isSelected() { return selected; }
     public boolean isDragging() { return dragging; }
+
     public List<String> getConnectionIds() {
         if (connectionIds == null) connectionIds = new ArrayList<>();
         return connectionIds;
