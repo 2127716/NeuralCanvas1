@@ -446,7 +446,6 @@ public class MindMapView extends View {
 
     // ====== 核心：弹框编辑连线文字（可编辑），并保证样式一致 ======
     private void showEditConnectionLabelDialog(Node from, Node to) {
-    private void showEditConnectionLabelDialog(Node from, Node to) {
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         int padding = 32;
