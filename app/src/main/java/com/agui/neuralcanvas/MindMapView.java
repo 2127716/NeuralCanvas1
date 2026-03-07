@@ -302,106 +302,118 @@ public class MindMapView extends View {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        scaleGestureDetector.onTouchEvent(event);
-        gestureDetector.onTouchEvent(event);
+public boolean onTouchEvent(MotionEvent event) {
+    scaleGestureDetector.onTouchEvent(event);
 
-        float x = event.getX();
-        float y = event.getY();
-
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN: {
-                downX = x;
-                downY = y;
-                lastTouchX = x;
-                lastTouchY = y;
-                movedEnough = false;
-                isDraggingCanvas = false;
-                isDraggingNode = false;
-
-                if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
-                    return true;
-                }
-
-                Node touchedNode = findNodeAt(x, y);
-                Connection touchedConnection = findConnectionAt(x, y);
-
-                clearSelections();
-
-                if (touchedNode != null) {
-                    touchedNode.setSelected(true);
-                    selectedNode = touchedNode;
-                    draggingNode = touchedNode;
-                    invalidate();
-                } else if (touchedConnection != null) {
-                    touchedConnection.setSelected(true);
-                    selectedConnection = touchedConnection;
-                    draggingNode = null;
-                    invalidate();
-                } else {
-                    draggingNode = null;
-                    previewNode = null;
-                    previewRect = null;
-                    invalidate();
-                }
-                break;
-            }
-
-            case MotionEvent.ACTION_MOVE: {
-                float totalDx = x - downX;
-                float totalDy = y - downY;
-
-                if (!movedEnough) {
-                    if (Math.hypot(totalDx, totalDy) > touchSlop) {
-                        movedEnough = true;
-                    }
-                }
-
-                if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
-                    pendingEndX = x;
-                    pendingEndY = y;
-                    invalidate();
-                }
-
-                if (!isScaling && movedEnough) {
-                    float dx = (x - lastTouchX) / scale;
-                    float dy = (y - lastTouchY) / scale;
-
-                    if (draggingNode != null) {
-                        isDraggingNode = true;
-                        previewNode = null;
-                        previewRect = null;
-                        draggingNode.move(dx, dy);
-                        invalidate();
-                    } else {
-                        isDraggingCanvas = true;
-                        offsetX += dx;
-                        offsetY += dy;
-                        invalidate();
-                    }
-                }
-
-                lastTouchX = x;
-                lastTouchY = y;
-                break;
-            }
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL: {
-                if (draggingNode != null && isDraggingNode) {
-                    draggingNode.setDragging(false);
-                    notifyDataChanged();
-                }
-
-                draggingNode = null;
-                isDraggingCanvas = false;
-                isDraggingNode = false;
-                break;
-            }
-        }
-
+    if (event.getPointerCount() > 1) {
+        isScaling = true;
+        draggingNode = null;
+        isDraggingCanvas = false;
+        isDraggingNode = false;
+        movedEnough = true;
+        lastTouchX = event.getX();
+        lastTouchY = event.getY();
         return true;
     }
+
+    gestureDetector.onTouchEvent(event);
+
+    float x = event.getX();
+    float y = event.getY();
+
+    switch (event.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN: {
+            downX = x;
+            downY = y;
+            lastTouchX = x;
+            lastTouchY = y;
+            movedEnough = false;
+            isDraggingCanvas = false;
+            isDraggingNode = false;
+            isScaling = false;
+
+            if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
+                return true;
+            }
+
+            Node touchedNode = findNodeAt(x, y);
+            Connection touchedConnection = findConnectionAt(x, y);
+
+            clearSelections();
+
+            if (touchedNode != null) {
+                touchedNode.setSelected(true);
+                selectedNode = touchedNode;
+                draggingNode = touchedNode;
+                invalidate();
+            } else if (touchedConnection != null) {
+                touchedConnection.setSelected(true);
+                selectedConnection = touchedConnection;
+                draggingNode = null;
+                invalidate();
+            } else {
+                draggingNode = null;
+                previewNode = null;
+                previewRect = null;
+                invalidate();
+            }
+            break;
+        }
+
+        case MotionEvent.ACTION_MOVE: {
+            if (isScaling) return true;
+
+            float totalDx = x - downX;
+            float totalDy = y - downY;
+
+            if (!movedEnough && Math.hypot(totalDx, totalDy) > touchSlop) {
+                movedEnough = true;
+            }
+
+            if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
+                pendingEndX = x;
+                pendingEndY = y;
+                invalidate();
+            }
+
+            if (movedEnough) {
+                float dx = (x - lastTouchX) / scale;
+                float dy = (y - lastTouchY) / scale;
+
+                if (draggingNode != null) {
+                    isDraggingNode = true;
+                    previewNode = null;
+                    previewRect = null;
+                    draggingNode.move(dx, dy);
+                } else {
+                    isDraggingCanvas = true;
+                    offsetX += dx;
+                    offsetY += dy;
+                }
+                invalidate();
+            }
+
+            lastTouchX = x;
+            lastTouchY = y;
+            break;
+        }
+
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL: {
+            if (draggingNode != null && isDraggingNode) {
+                draggingNode.setDragging(false);
+                notifyDataChanged();
+            }
+            draggingNode = null;
+            isDraggingCanvas = false;
+            isDraggingNode = false;
+            isScaling = false;
+            break;
+        }
+    }
+
+    return true;
+}
 
     private void clearSelections() {
         for (Node node : nodes.values()) {
