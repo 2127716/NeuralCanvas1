@@ -631,7 +631,7 @@ public boolean onTouchEvent(MotionEvent event) {
         return null;
     }
 
-    private void showEditConnectionLabelDialog(Node from, Node to) {
+
     private void showEditConnectionLabelDialog(Node from, Node to) {
     LinearLayout layout = new LinearLayout(getContext());
     layout.setOrientation(LinearLayout.VERTICAL);
