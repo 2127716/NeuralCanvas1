@@ -1,5 +1,8 @@
 package com.agui.neuralcanvas;
 
+import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -20,6 +23,21 @@ import java.util.List;
 import java.util.Map;
 
 public class MindMapView extends View {
+    public interface OnDataChangeListener {
+        void onDataChanged();
+    }
+
+    private OnDataChangeListener onDataChangeListener;
+
+    public void setOnDataChangeListener(OnDataChangeListener listener) {
+        this.onDataChangeListener = listener;
+    }
+
+    private void notifyDataChanged() {
+        if (onDataChangeListener != null) {
+            onDataChangeListener.onDataChanged();
+        }
+    }
 
     // 数据
     private final Map<String, Node> nodes = new HashMap<>();
@@ -271,12 +289,12 @@ public class MindMapView extends View {
                     invalidate();
                 }
 
-                if (isDragging && !isScaling) {
+                if (draggingNode != null && !isScaling) {
+                    draggingNode.move(dx, dy);
+                    invalidate();
+                } else if (isDragging && !isScaling) {
                     offsetX += dx;
                     offsetY += dy;
-                    invalidate();
-                } else if (draggingNode != null) {
-                    draggingNode.move(dx, dy);
                     invalidate();
                 }
 
@@ -288,10 +306,13 @@ public class MindMapView extends View {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
                 isDragging = false;
+
                 if (draggingNode != null) {
                     draggingNode.setDragging(false);
                     draggingNode = null;
+                    notifyDataChanged(); // 节点拖动后自动保存
                 }
+
                 break;
             }
         }
@@ -348,6 +369,7 @@ public class MindMapView extends View {
     public void addNode(Node node) {
         nodes.put(node.getId(), node);
         invalidate();
+        notifyDataChanged();
     }
 
     public void removeNode(String nodeId) {
@@ -366,6 +388,7 @@ public class MindMapView extends View {
 
             nodes.remove(nodeId);
             invalidate();
+            notifyDataChanged();
         }
     }
 
@@ -378,6 +401,7 @@ public class MindMapView extends View {
         if (toNode != null) toNode.addConnection(connection.getId());
 
         invalidate();
+        notifyDataChanged();
     }
 
     public void removeConnection(String connectionId) {
@@ -390,9 +414,9 @@ public class MindMapView extends View {
 
             connections.remove(connectionId);
             invalidate();
+            notifyDataChanged();
         }
     }
-
     // ====== 你要的：链接/取消链接模式入口（给 NodeEditDialog 调） ======
     public void startConnectionMode(Node sourceNode) {
         pendingAction = PendingAction.CONNECT;
@@ -422,42 +446,106 @@ public class MindMapView extends View {
 
     // ====== 核心：弹框编辑连线文字（可编辑），并保证样式一致 ======
     private void showEditConnectionLabelDialog(Node from, Node to) {
+    private void showEditConnectionLabelDialog(Node from, Node to) {
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int padding = 32;
+        layout.setPadding(padding, padding, padding, padding);
+
         EditText input = new EditText(getContext());
         input.setHint("输入连线文字（可为空）");
+        layout.addView(input);
+
+        Spinner colorSpinner = new Spinner(getContext());
+        String[] colorNames = {"默认蓝色", "绿色", "红色", "橙色", "紫色", "白色"};
+        Integer[] colorValues = {
+                null,
+                Color.parseColor("#4CAF50"),
+                Color.parseColor("#F44336"),
+                Color.parseColor("#FF9800"),
+                Color.parseColor("#9C27B0"),
+                Color.WHITE
+        };
+        ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_item,
+                colorNames
+        );
+        colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        colorSpinner.setAdapter(colorAdapter);
+        layout.addView(colorSpinner);
+
+        Spinner widthSpinner = new Spinner(getContext());
+        String[] widthNames = {"细", "中", "粗", "超粗"};
+        float[] widthValues = {4f, 6f, 8f, 10f};
+        ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_item,
+                widthNames
+        );
+        widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        widthSpinner.setAdapter(widthAdapter);
+        layout.addView(widthSpinner);
 
         Connection existing = findConnectionBetween(from.getId(), to.getId());
-        if (existing != null && existing.getLabel() != null) {
-            input.setText(existing.getLabel());
-            input.setSelection(input.getText().length());
+        if (existing != null) {
+            if (existing.getLabel() != null) {
+                input.setText(existing.getLabel());
+                input.setSelection(input.getText().length());
+            }
+
+            Integer existingColor = existing.getCustomColor();
+            int colorIndex = 0;
+            for (int i = 0; i < colorValues.length; i++) {
+                Integer value = colorValues[i];
+                if ((value == null && existingColor == null) ||
+                        (value != null && value.equals(existingColor))) {
+                    colorIndex = i;
+                    break;
+                }
+            }
+            colorSpinner.setSelection(colorIndex);
+
+            float w = existing.getStrokeWidth();
+            int widthIndex = 0;
+            if (w >= 10f) widthIndex = 3;
+            else if (w >= 8f) widthIndex = 2;
+            else if (w >= 6f) widthIndex = 1;
+            widthSpinner.setSelection(widthIndex);
         }
 
         new AlertDialog.Builder(getContext())
-                .setTitle("编辑连线文字")
-                .setView(input)
+                .setTitle("编辑连线")
+                .setView(layout)
                 .setNegativeButton("取消", (d, w) -> {
                     cancelPendingAction();
                     d.dismiss();
                 })
                 .setPositiveButton("确定", (d, w) -> {
                     String label = input.getText().toString().trim();
+                    Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
+                    float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
 
                     Connection ex = findConnectionBetween(from.getId(), to.getId());
                     if (ex != null) {
-                        // 已存在连接：只改文字
                         ex.setLabel(label);
+                        ex.setCustomColor(selectedColor);
+                        ex.setStrokeWidth(selectedWidth);
                     } else {
-                        // 新建连接：用 SEQUENCE（跟你初始化的蓝色那种一致）
                         Connection c = new Connection(
                                 from.getId(),
                                 to.getId(),
                                 Connection.ConnectionType.SEQUENCE,
-                                TextUtils.isEmpty(label) ? "" : label
+                                label
                         );
+                        c.setCustomColor(selectedColor);
+                        c.setStrokeWidth(selectedWidth);
                         addConnection(c);
                     }
 
                     cancelPendingAction();
                     invalidate();
+                    notifyDataChanged();
                     d.dismiss();
                 })
                 .show();
@@ -487,13 +575,32 @@ public class MindMapView extends View {
     }
 
     // ====== 搜索 ======
+    private void focusNode(Node node) {
+        if (node == null || getWidth() == 0 || getHeight() == 0) return;
+
+        float nodeCenterX = node.getX() + node.getWidth() / 2f;
+        float nodeCenterY = node.getY() + node.getHeight() / 2f;
+
+        offsetX = (getWidth() / (2f * scale)) - nodeCenterX;
+        offsetY = (getHeight() / (2f * scale)) - nodeCenterY;
+
+        invalidate();
+    }
+
+    public void focusNodeById(String nodeId) {
+        Node node = nodes.get(nodeId);
+        if (node != null) {
+            focusNode(node);
+        }
+    }
     public void search(String keyword, List<Node.NodeType> types, boolean highlight) {
+        keyword = keyword == null ? "" : keyword.trim();
         searchKeyword = keyword.toLowerCase();
-        searchTypes = types;
+        searchTypes = types != null ? types : new ArrayList<>();
         highlightSearchResults = highlight;
         searchResultNodeIds.clear();
 
-        if (keyword.isEmpty() && types.isEmpty()) {
+        if (searchKeyword.isEmpty() && searchTypes.isEmpty()) {
             clearSearch();
             return;
         }
@@ -501,24 +608,29 @@ public class MindMapView extends View {
         for (Node node : nodes.values()) {
             boolean matches;
 
-            if (!types.isEmpty() && !types.contains(node.getType())) {
+            if (!searchTypes.isEmpty() && !searchTypes.contains(node.getType())) {
                 continue;
             }
 
-            if (!keyword.isEmpty()) {
-                String title = node.getTitle().toLowerCase();
-                String content = node.getContent().toLowerCase();
+            if (!searchKeyword.isEmpty()) {
+                String title = node.getTitle() == null ? "" : node.getTitle().toLowerCase();
+                String content = node.getContent() == null ? "" : node.getContent().toLowerCase();
                 matches = title.contains(searchKeyword) || content.contains(searchKeyword);
             } else {
                 matches = true;
             }
 
-            if (matches) searchResultNodeIds.add(node.getId());
+            if (matches) {
+                searchResultNodeIds.add(node.getId());
+            }
         }
 
-        invalidate();
+        if (!searchResultNodeIds.isEmpty()) {
+            focusNodeById(searchResultNodeIds.get(0));
+        } else {
+            invalidate();
+        }
     }
-
     public void clearSearch() {
         searchKeyword = "";
         searchTypes.clear();
@@ -591,9 +703,22 @@ public class MindMapView extends View {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
             isScaling = true;
-            float scaleFactor = detector.getScaleFactor();
-            scale *= scaleFactor;
-            scale = Math.max(0.1f, Math.min(scale, 5.0f));
+
+            float oldScale = scale;
+            float newScale = oldScale * detector.getScaleFactor();
+            newScale = Math.max(0.3f, Math.min(newScale, 4.0f));
+
+            float focusX = detector.getFocusX();
+            float focusY = detector.getFocusY();
+
+            float worldFocusX = (focusX / oldScale) - offsetX;
+            float worldFocusY = (focusY / oldScale) - offsetY;
+
+            scale = newScale;
+
+            offsetX = (focusX / scale) - worldFocusX;
+            offsetY = (focusY / scale) - worldFocusY;
+
             invalidate();
             return true;
         }
