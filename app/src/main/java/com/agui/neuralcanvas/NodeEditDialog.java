@@ -1,8 +1,10 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -30,6 +32,14 @@ public class NodeEditDialog extends DialogFragment {
         return new NodeEditDialog();
     }
 
+    private int dp(int value) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                value,
+                requireContext().getResources().getDisplayMetrics()
+        );
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -38,25 +48,36 @@ public class NodeEditDialog extends DialogFragment {
         }
 
         ScrollView scrollView = new ScrollView(requireContext());
+        scrollView.setFillViewport(true);
+
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
-        int p = 36;
+        int p = dp(20);
         root.setPadding(p, p, p, p);
         scrollView.addView(root);
 
         EditText titleInput = new EditText(requireContext());
         titleInput.setHint("标题");
         titleInput.setText(currentNode.getTitle());
+        titleInput.setTextColor(Color.parseColor("#0F172A"));
+        titleInput.setHintTextColor(Color.parseColor("#94A3B8"));
+        titleInput.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#60A5FA")));
         root.addView(titleInput, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         EditText contentInput = new EditText(requireContext());
         contentInput.setHint("内容");
         contentInput.setText(currentNode.getContent());
-        contentInput.setMinLines(4);
+        contentInput.setMinLines(5);
         contentInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        root.addView(contentInput, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        contentInput.setTextColor(Color.parseColor("#0F172A"));
+        contentInput.setHintTextColor(Color.parseColor("#94A3B8"));
+        contentInput.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#60A5FA")));
+
+        LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        contentLp.topMargin = dp(14);
+        root.addView(contentInput, contentLp);
 
         Spinner typeSpinner = new Spinner(requireContext());
         String[] typeLabels = new String[Node.NodeType.values().length];
@@ -71,8 +92,11 @@ public class NodeEditDialog extends DialogFragment {
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         typeSpinner.setAdapter(typeAdapter);
         typeSpinner.setSelection(currentNode.getType().ordinal());
-        root.addView(typeSpinner, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        typeLp.topMargin = dp(14);
+        root.addView(typeSpinner, typeLp);
 
         Spinner shapeSpinner = new Spinner(requireContext());
         String[] shapeLabels = new String[Node.NodeShape.values().length];
@@ -87,22 +111,23 @@ public class NodeEditDialog extends DialogFragment {
         shapeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         shapeSpinner.setAdapter(shapeAdapter);
         shapeSpinner.setSelection(currentNode.getShape().ordinal());
-        root.addView(shapeSpinner, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        return new AlertDialog.Builder(requireContext())
+        LinearLayout.LayoutParams shapeLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        shapeLp.topMargin = dp(14);
+        root.addView(shapeSpinner, shapeLp);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("编辑节点")
                 .setView(scrollView)
-                .setNeutralButton("创建连线", (dialog, which) -> {
-                    currentMindMapView.startConnectionMode(currentNode);
-                })
-                .setNegativeButton("删除", (dialog, which) -> {
+                .setNeutralButton("创建连线", (d, which) -> currentMindMapView.startConnectionMode(currentNode))
+                .setNegativeButton("删除", (d, which) -> {
                     currentMindMapView.removeNode(currentNode.getId());
                     if (getActivity() instanceof NodeEditListener) {
                         ((NodeEditListener) getActivity()).onNodeDeleted(currentNode);
                     }
                 })
-                .setPositiveButton("保存", (dialog, which) -> {
+                .setPositiveButton("保存", (d, which) -> {
                     currentNode.setTitle(titleInput.getText().toString().trim());
                     currentNode.setContent(contentInput.getText().toString().trim());
                     currentNode.setType(Node.NodeType.values()[typeSpinner.getSelectedItemPosition()]);
@@ -113,5 +138,7 @@ public class NodeEditDialog extends DialogFragment {
                     }
                 })
                 .create();
+
+        return dialog;
     }
 }
