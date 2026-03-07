@@ -3,220 +3,377 @@ package com.agui.neuralcanvas;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Typeface;
-import android.text.TextPaint;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Node {
-public enum NodeType {
-        GOAL(Color.parseColor("#4CAF50"), "目标", 0),
-        TASK(Color.parseColor("#2196F3"), "任务", 1),
-        IDEA(Color.parseColor("#FF9800"), "想法", 2),
-        NOTE(Color.parseColor("#9C27B0"), "笔记", 3),
-        PROBLEM(Color.parseColor("#F44336"), "问题", 4),
-        RESOURCE(Color.parseColor("#607D8B"), "资源", 5),
-        PERSON(Color.parseColor("#E91E63"), "人物", 6),
-        EVENT(Color.parseColor("#00BCD4"), "事件", 7),
-        DECISION(Color.parseColor("#8BC34A"), "决策", 8),
-        RISK(Color.parseColor("#FF5722"), "风险", 9);
-        
-        public final int color;
+
+    public enum NodeType {
+        CONCEPT("#4FC3F7", "概念"),
+        IDEA("#FFCA28", "想法"),
+        QUESTION("#EF5350", "问题"),
+        RESOURCE("#66BB6A", "资源"),
+        TASK("#AB47BC", "任务"),
+        GOAL("#26A69A", "目标"),
+        NOTE("#FFA726", "笔记"),
+        DECISION("#5C6BC0", "决策");
+
+        public final String colorHex;
         public final String label;
-        public final int styleIndex;
-        
-        NodeType(int color, String label, int styleIndex) {
-            this.color = color;
+
+        NodeType(String colorHex, String label) {
+            this.colorHex = colorHex;
             this.label = label;
-            this.styleIndex = styleIndex;
-        }
-        
-        public static NodeType fromIndex(int index) {
-            for (NodeType type : values()) {
-                if (type.styleIndex == index) {
-                    return type;
-                }
-            }
-            return NOTE; // 默认返回笔记类型
         }
     }
-    
+
+    public enum NodeShape {
+        RECT("正方形"),
+        CIRCLE("圆形"),
+        OVAL("椭圆"),
+        DIAMOND("菱形"),
+        TRIANGLE("三角形"),
+        PENTAGON("五边形"),
+        HEXAGON("六边形");
+
+        public final String label;
+
+        NodeShape(String label) {
+            this.label = label;
+        }
+    }
+
     private String id;
     private String title;
     private String content;
+    private float x;
+    private float y;
+    private float width;
+    private float height;
     private NodeType type;
-    private float x, y;
-    private float width = 200;
-    private float height = 120;
-    private boolean selected = false;
-    private boolean dragging = false;
-    private List<String> connectionIds = new ArrayList<>();
-    
-    // 绘制相关
-    private Paint nodePaint;
-    private Paint selectedPaint;
-    private TextPaint textPaint;
-    private Paint typePaint;
-    
-    // 默认构造函数，用于Gson反序列化
+    private NodeShape shape = NodeShape.RECT;
+    private boolean selected;
+    private boolean dragging;
+    private List<String> connectionIds;
+
+    private transient Paint fillPaint;
+    private transient Paint strokePaint;
+    private transient Paint titlePaint;
+    private transient Paint contentPaint;
+    private transient Paint selectedPaint;
+
     public Node() {
         this.id = UUID.randomUUID().toString();
-        this.title = "新节点";
+        this.title = "";
         this.content = "";
-        this.type = NodeType.NOTE;
-        this.x = 0;
-        this.y = 0;
-        this.width = 200;
-        this.height = 100;
+        this.x = 100;
+        this.y = 100;
+        this.width = 220;
+        this.height = 130;
+        this.type = NodeType.CONCEPT;
+        this.shape = NodeShape.RECT;
+        this.selected = false;
+        this.dragging = false;
         this.connectionIds = new ArrayList<>();
-        
-        // 初始化画笔
-        initPaints();
+        ensurePaints();
     }
-    
-    public Node(String title, String content, NodeType type, float x, float y) {
+
+    public Node(String title, String content, float x, float y, NodeType type) {
         this.id = UUID.randomUUID().toString();
-        this.title = title;
-        this.content = content;
-        this.type = type;
+        this.title = title == null ? "" : title;
+        this.content = content == null ? "" : content;
         this.x = x;
         this.y = y;
-        
-        initPaints();
+        this.width = 220;
+        this.height = 130;
+        this.type = type == null ? NodeType.CONCEPT : type;
+        this.shape = NodeShape.RECT;
+        this.selected = false;
+        this.dragging = false;
+        this.connectionIds = new ArrayList<>();
+        ensurePaints();
     }
-    
-    private void initPaints() {
-        nodePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        nodePaint.setColor(type.color);
-        nodePaint.setStyle(Paint.Style.FILL);
-        nodePaint.setAlpha(180);
-        
-        selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        selectedPaint.setColor(Color.WHITE);
-        selectedPaint.setStyle(Paint.Style.STROKE);
-        selectedPaint.setStrokeWidth(4);
-        
-        textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(24);
-        textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        
-        typePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        typePaint.setColor(Color.WHITE);
-        typePaint.setTextSize(18);
-        typePaint.setAlpha(200);
+
+    private void ensurePaints() {
+        if (fillPaint == null) {
+            fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fillPaint.setStyle(Paint.Style.FILL);
+        }
+
+        if (strokePaint == null) {
+            strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setStrokeWidth(3f);
+        }
+
+        if (titlePaint == null) {
+            titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            titlePaint.setColor(Color.WHITE);
+            titlePaint.setTextSize(28f);
+            titlePaint.setFakeBoldText(true);
+        }
+
+        if (contentPaint == null) {
+            contentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            contentPaint.setColor(Color.parseColor("#F6F7FB"));
+            contentPaint.setTextSize(20f);
+        }
+
+        if (selectedPaint == null) {
+            selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            selectedPaint.setStyle(Paint.Style.STROKE);
+            selectedPaint.setColor(Color.WHITE);
+            selectedPaint.setStrokeWidth(6f);
+            selectedPaint.setAlpha(190);
+        }
+
+        applyTypeStyle();
     }
-    
-    public void draw(Canvas canvas, float scale, float offsetX, float offsetY, 
-                     boolean isSearchResult, boolean highlight) {
+
+    private void applyTypeStyle() {
+        int baseColor;
+        try {
+            baseColor = Color.parseColor(type != null ? type.colorHex : "#4FC3F7");
+        } catch (Exception e) {
+            baseColor = Color.parseColor("#4FC3F7");
+        }
+
+        fillPaint.setColor(baseColor);
+        strokePaint.setColor(adjustColorBrightness(baseColor, 0.78f));
+    }
+
+    private int adjustColorBrightness(int color, float factor) {
+        int r = Math.max(0, Math.min(255, (int) (Color.red(color) * factor)));
+        int g = Math.max(0, Math.min(255, (int) (Color.green(color) * factor)));
+        int b = Math.max(0, Math.min(255, (int) (Color.blue(color) * factor)));
+        return Color.rgb(r, g, b);
+    }
+
+    public void draw(Canvas canvas, float scale, float offsetX, float offsetY) {
+        ensurePaints();
+
         float drawX = (x + offsetX) * scale;
         float drawY = (y + offsetY) * scale;
-        float drawWidth = width * scale;
-        float drawHeight = height * scale;
-        
-        // 绘制圆角矩形节点
-        RectF rect = new RectF(drawX, drawY, drawX + drawWidth, drawY + drawHeight);
-        
-        // 如果是搜索结果且需要高亮，绘制高亮背景
-        if (isSearchResult && highlight) {
-            Paint highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            highlightPaint.setColor(Color.YELLOW);
-            highlightPaint.setStyle(Paint.Style.FILL);
-            highlightPaint.setAlpha(80);
-            canvas.drawRoundRect(rect, 20 * scale, 20 * scale, highlightPaint);
-        }
-        
-        canvas.drawRoundRect(rect, 20 * scale, 20 * scale, nodePaint);
-        
-        // 绘制选中边框
+        float drawW = width * scale;
+        float drawH = height * scale;
+
+        RectF rect = new RectF(drawX, drawY, drawX + drawW, drawY + drawH);
+
         if (selected) {
-            canvas.drawRoundRect(rect, 20 * scale, 20 * scale, selectedPaint);
+            drawShapeOutline(canvas, rect, selectedPaint, scale);
         }
-        
-        // 绘制搜索结果边框
-        if (isSearchResult && highlight) {
-            Paint searchBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            searchBorderPaint.setColor(Color.YELLOW);
-            searchBorderPaint.setStyle(Paint.Style.STROKE);
-            searchBorderPaint.setStrokeWidth(3 * scale);
-            canvas.drawRoundRect(rect, 20 * scale, 20 * scale, searchBorderPaint);
+
+        drawShape(canvas, rect, fillPaint, scale);
+        drawShapeOutline(canvas, rect, strokePaint, scale);
+
+        float padding = 16f * scale;
+        float titleSize = Math.max(22f, 28f * scale);
+        float contentSize = Math.max(16f, 20f * scale);
+        titlePaint.setTextSize(titleSize);
+        contentPaint.setTextSize(contentSize);
+
+        String safeTitle = title == null ? "" : title;
+        String safeContent = content == null ? "" : content;
+
+        canvas.drawText(
+                truncateText(safeTitle, 12),
+                rect.left + padding,
+                rect.top + 34f * scale,
+                titlePaint
+        );
+
+        List<String> lines = splitLines(safeContent, 16, 3);
+        float lineY = rect.top + 64f * scale;
+        for (String line : lines) {
+            canvas.drawText(line, rect.left + padding, lineY, contentPaint);
+            lineY += 24f * scale;
         }
-        
-        // 绘制标题
-        String displayTitle = title;
-        if (displayTitle.length() > 15) {
-            displayTitle = displayTitle.substring(0, 15) + "...";
-        }
-        float titleX = drawX + 10 * scale;
-        float titleY = drawY + 30 * scale;
-        canvas.drawText(displayTitle, titleX, titleY, textPaint);
-        
-        // 绘制类型标签
-        float typeX = drawX + 10 * scale;
-        float typeY = drawY + drawHeight - 15 * scale;
-        canvas.drawText(type.label, typeX, typeY, typePaint);
-        
-        // 绘制连接点（节点中心）
-        float centerX = drawX + drawWidth / 2;
-        float centerY = drawY + drawHeight / 2;
-        Paint centerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        centerPaint.setColor(Color.WHITE);
-        centerPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(centerX, centerY, 5 * scale, centerPaint);
     }
-    
+
+    private void drawShape(Canvas canvas, RectF rect, Paint paint, float scale) {
+        switch (shape) {
+            case CIRCLE:
+                canvas.drawOval(rect, paint);
+                break;
+            case OVAL:
+                canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, paint);
+                break;
+            case DIAMOND:
+                canvas.drawPath(createPolygonPath(rect, 4, -90f, true), paint);
+                break;
+            case TRIANGLE:
+                canvas.drawPath(createPolygonPath(rect, 3, -90f, false), paint);
+                break;
+            case PENTAGON:
+                canvas.drawPath(createPolygonPath(rect, 5, -90f, false), paint);
+                break;
+            case HEXAGON:
+                canvas.drawPath(createPolygonPath(rect, 6, -90f, false), paint);
+                break;
+            case RECT:
+            default:
+                canvas.drawRoundRect(rect, 24f * scale, 24f * scale, paint);
+                break;
+        }
+    }
+
+    private void drawShapeOutline(Canvas canvas, RectF rect, Paint paint, float scale) {
+        Paint p = new Paint(paint);
+        p.setStrokeWidth(Math.max(2f, paint.getStrokeWidth() * scale * 0.7f));
+
+        switch (shape) {
+            case CIRCLE:
+                canvas.drawOval(rect, p);
+                break;
+            case OVAL:
+                canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, p);
+                break;
+            case DIAMOND:
+                canvas.drawPath(createPolygonPath(rect, 4, -90f, true), p);
+                break;
+            case TRIANGLE:
+                canvas.drawPath(createPolygonPath(rect, 3, -90f, false), p);
+                break;
+            case PENTAGON:
+                canvas.drawPath(createPolygonPath(rect, 5, -90f, false), p);
+                break;
+            case HEXAGON:
+                canvas.drawPath(createPolygonPath(rect, 6, -90f, false), p);
+                break;
+            case RECT:
+            default:
+                canvas.drawRoundRect(rect, 24f * scale, 24f * scale, p);
+                break;
+        }
+    }
+
+    private Path createPolygonPath(RectF rect, int sides, float startAngleDeg, boolean forceDiamond) {
+        Path path = new Path();
+        float cx = rect.centerX();
+        float cy = rect.centerY();
+        float rx = rect.width() / 2f;
+        float ry = rect.height() / 2f;
+
+        for (int i = 0; i < sides; i++) {
+            float angle = (float) Math.toRadians(startAngleDeg + i * (360f / sides));
+            float px = cx + (float) Math.cos(angle) * rx;
+            float py = cy + (float) Math.sin(angle) * ry;
+
+            if (forceDiamond) {
+                if (i == 0) {
+                    px = cx;
+                    py = rect.top;
+                } else if (i == 1) {
+                    px = rect.right;
+                    py = cy;
+                } else if (i == 2) {
+                    px = cx;
+                    py = rect.bottom;
+                } else {
+                    px = rect.left;
+                    py = cy;
+                }
+            }
+
+            if (i == 0) path.moveTo(px, py);
+            else path.lineTo(px, py);
+        }
+        path.close();
+        return path;
+    }
+
+    private String truncateText(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max - 1) + "…";
+    }
+
+    private List<String> splitLines(String text, int charsPerLine, int maxLines) {
+        List<String> lines = new ArrayList<>();
+        if (text == null || text.trim().isEmpty()) return lines;
+
+        String normalized = text.replace("\n", " ");
+        int start = 0;
+        while (start < normalized.length() && lines.size() < maxLines) {
+            int end = Math.min(start + charsPerLine, normalized.length());
+            String line = normalized.substring(start, end);
+            if (end < normalized.length() && lines.size() == maxLines - 1) {
+                if (line.length() >= 2) line = line.substring(0, line.length() - 1) + "…";
+            }
+            lines.add(line);
+            start = end;
+        }
+        return lines;
+    }
+
     public boolean contains(float touchX, float touchY, float scale, float offsetX, float offsetY) {
         float drawX = (x + offsetX) * scale;
         float drawY = (y + offsetY) * scale;
-        float drawWidth = width * scale;
-        float drawHeight = height * scale;
-        
-        return touchX >= drawX && touchX <= drawX + drawWidth &&
-               touchY >= drawY && touchY <= drawY + drawHeight;
+        float drawW = width * scale;
+        float drawH = height * scale;
+
+        return touchX >= drawX && touchX <= drawX + drawW &&
+                touchY >= drawY && touchY <= drawY + drawH;
     }
-    
+
     public void move(float dx, float dy) {
         this.x += dx;
         this.y += dy;
     }
-    
-    public void setPosition(float x, float y) {
-        this.x = x;
-        this.y = y;
-    }
-    
-    // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-    public NodeType getType() { return type; }
-    public void setType(NodeType type) { 
-        this.type = type;
-        nodePaint.setColor(type.color);
-    }
-    public float getX() { return x; }
-    public float getY() { return y; }
-    public float getWidth() { return width; }
-    public float getHeight() { return height; }
-    public boolean isSelected() { return selected; }
-    public void setSelected(boolean selected) { this.selected = selected; }
-    public boolean isDragging() { return dragging; }
-    public void setDragging(boolean dragging) { this.dragging = dragging; }
-    public List<String> getConnectionIds() { return connectionIds; }
-    
+
     public void addConnection(String connectionId) {
+        if (connectionIds == null) connectionIds = new ArrayList<>();
         if (!connectionIds.contains(connectionId)) {
             connectionIds.add(connectionId);
         }
     }
-    
+
     public void removeConnection(String connectionId) {
-        connectionIds.remove(connectionId);
+        if (connectionIds != null) {
+            connectionIds.remove(connectionId);
+        }
+    }
+
+    public String getId() { return id; }
+    public String getTitle() { return title; }
+    public String getContent() { return content; }
+    public float getX() { return x; }
+    public float getY() { return y; }
+    public float getWidth() { return width; }
+    public float getHeight() { return height; }
+    public NodeType getType() { return type; }
+    public NodeShape getShape() { return shape == null ? NodeShape.RECT : shape; }
+    public boolean isSelected() { return selected; }
+    public boolean isDragging() { return dragging; }
+    public List<String> getConnectionIds() {
+        if (connectionIds == null) connectionIds = new ArrayList<>();
+        return connectionIds;
+    }
+
+    public void setTitle(String title) { this.title = title == null ? "" : title; }
+    public void setContent(String content) { this.content = content == null ? "" : content; }
+    public void setX(float x) { this.x = x; }
+    public void setY(float y) { this.y = y; }
+    public void setWidth(float width) { this.width = width; }
+    public void setHeight(float height) { this.height = height; }
+    public void setSelected(boolean selected) { this.selected = selected; }
+    public void setDragging(boolean dragging) { this.dragging = dragging; }
+
+    public void setType(NodeType type) {
+        this.type = type == null ? NodeType.CONCEPT : type;
+        ensurePaints();
+        applyTypeStyle();
+    }
+
+    public void setShape(NodeShape shape) {
+        this.shape = shape == null ? NodeShape.RECT : shape;
+        ensurePaints();
+    }
+
+    public void setConnectionIds(List<String> connectionIds) {
+        this.connectionIds = connectionIds == null ? new ArrayList<>() : connectionIds;
     }
 }
