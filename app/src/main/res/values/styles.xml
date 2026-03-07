@@ -7,14 +7,16 @@
     </style>
 
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#101827</item>
-        <item name="colorPrimaryVariant">#0B1220</item>
+        <item name="colorPrimary">#7C3AED</item>
+        <item name="colorPrimaryVariant">#6D28D9</item>
         <item name="colorOnPrimary">#FFFFFF</item>
+
         <item name="colorSecondary">#60A5FA</item>
         <item name="colorSecondaryVariant">#3B82F6</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="android:statusBarColor">#0B1220</item>
-        <item name="android:navigationBarColor">#0B1220</item>
+  
+        <item name="android:statusBarColor">#0B1020</item>
+        <item name="android:navigationBarColor">#0B1020</item>
         <item name="materialAlertDialogTheme">@style/RoundedDialogTheme</item>
     </style>
 
