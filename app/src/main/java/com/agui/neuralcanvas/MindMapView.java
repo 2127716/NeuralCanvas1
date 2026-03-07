@@ -638,39 +638,31 @@ public boolean onTouchEvent(MotionEvent event) {
         layout.setPadding(padding, padding, padding, padding);
 
         EditText input = new EditText(getContext());
-        input.setHint("输入连线文字（可为空）");
-        layout.addView(input);
+input.setHint("输入连线文字（可为空）");
+LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+);
+inputParams.bottomMargin = (int) dp(14f);
+input.setLayoutParams(inputParams);
+layout.addView(input);
 
-        Spinner colorSpinner = new Spinner(getContext());
-        String[] colorNames = {"默认蓝色", "绿色", "红色", "橙色", "紫色", "白色"};
-        Integer[] colorValues = {
-                null,
-                Color.parseColor("#57D38C"),
-                Color.parseColor("#FF6B6B"),
-                Color.parseColor("#FFB84D"),
-                Color.parseColor("#B084F5"),
-                Color.WHITE
-        };
-        ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
-                getContext(),
-                android.R.layout.simple_spinner_item,
-                colorNames
-        );
-        colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        colorSpinner.setAdapter(colorAdapter);
-        layout.addView(colorSpinner);
+Spinner colorSpinner = new Spinner(getContext());
+LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+);
+colorParams.bottomMargin = (int) dp(14f);
+colorSpinner.setLayoutParams(colorParams);
+layout.addView(colorSpinner);
 
-        Spinner widthSpinner = new Spinner(getContext());
-        String[] widthNames = {"细", "中", "粗", "超粗"};
-        float[] widthValues = {4f, 6f, 8f, 10f};
-        ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
-                getContext(),
-                android.R.layout.simple_spinner_item,
-                widthNames
-        );
-        widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        widthSpinner.setAdapter(widthAdapter);
-        layout.addView(widthSpinner);
+Spinner widthSpinner = new Spinner(getContext());
+LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+);
+widthSpinner.setLayoutParams(widthParams);
+layout.addView(widthSpinner);
 
         Connection existing = findConnectionBetween(from.getId(), to.getId());
         if (existing != null) {
