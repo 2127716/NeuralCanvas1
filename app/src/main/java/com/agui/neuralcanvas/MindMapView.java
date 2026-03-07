@@ -803,41 +803,37 @@ public boolean onTouchEvent(MotionEvent event) {
     }
 
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            isScaling = true;
-            return true;
-        }
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        isScaling = true;
+        draggingNode = null;
+        return true;
+    }
 
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            float oldScale = scale;
-            float factor = detector.getScaleFactor();
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        float oldScale = scale;
+        float newScale = oldScale * detector.getScaleFactor();
+        newScale = Math.max(minScale, Math.min(newScale, maxScale));
 
-            factor = Math.max(0.92f, Math.min(factor, 1.08f));
+        float focusX = detector.getFocusX();
+        float focusY = detector.getFocusY();
 
-            float newScale = oldScale * factor;
-            if (newScale < minScale) newScale = minScale;
-            if (newScale > maxScale) newScale = maxScale;
+        float worldFocusX = (focusX / oldScale) - offsetX;
+        float worldFocusY = (focusY / oldScale) - offsetY;
 
-            float focusX = detector.getFocusX();
-            float focusY = detector.getFocusY();
+        scale = newScale;
+        offsetX = (focusX / scale) - worldFocusX;
+        offsetY = (focusY / scale) - worldFocusY;
 
-            float worldX = focusX / oldScale - offsetX;
-            float worldY = focusY / oldScale - offsetY;
+        previewRect = null;
+        invalidate();
+        return true;
+    }
 
-            scale = newScale;
-            offsetX = focusX / scale - worldX;
-            offsetY = focusY / scale - worldY;
-
-            previewRect = null;
-            invalidate();
-            return true;
-        }
-
-        @Override
-        public void onScaleEnd(ScaleGestureDetector detector) {
-            isScaling = false;
-        }
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        isScaling = false;
+    }
     }
 }
