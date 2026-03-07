@@ -13,43 +13,21 @@ import java.util.UUID;
 public class Node {
 
     public enum NodeType {
-        CONCEPT("#4FC3F7", "概念", 0),
-        IDEA("#FFCA28", "想法", 1),
-        QUESTION("#EF5350", "问题", 2),
-        RESOURCE("#66BB6A", "资源", 3),
-        TASK("#AB47BC", "任务", 4),
-        GOAL("#26A69A", "目标", 5),
-        NOTE("#FFA726", "笔记", 6),
-        DECISION("#5C6BC0", "决策", 7),
-
-        // 兼容旧版本
-        PROBLEM("#EF5350", "问题", 2),
-        PERSON("#4FC3F7", "人物", 0),
-        EVENT("#FFA726", "事件", 6),
-        RISK("#EF5350", "风险", 2);
+        CONCEPT("#4FC3F7", "概念"),
+        IDEA("#FF9800", "想法"),
+        QUESTION("#EF5350", "问题"),
+        RESOURCE("#66BB6A", "资源"),
+        TASK("#42A5F5", "任务"),
+        GOAL("#43A047", "目标"),
+        NOTE("#AB47BC", "笔记"),
+        DECISION("#8BC34A", "决策");
 
         public final String colorHex;
         public final String label;
-        public final int styleIndex;
 
-        NodeType(String colorHex, String label, int styleIndex) {
+        NodeType(String colorHex, String label) {
             this.colorHex = colorHex;
             this.label = label;
-            this.styleIndex = styleIndex;
-        }
-
-        public static NodeType fromIndex(int index) {
-            switch (index) {
-                case 0: return CONCEPT;
-                case 1: return IDEA;
-                case 2: return QUESTION;
-                case 3: return RESOURCE;
-                case 4: return TASK;
-                case 5: return GOAL;
-                case 6: return NOTE;
-                case 7: return DECISION;
-                default: return CONCEPT;
-            }
         }
     }
 
@@ -86,14 +64,8 @@ public class Node {
     private transient Paint strokePaint;
     private transient Paint titlePaint;
     private transient Paint contentPaint;
+    private transient Paint typePaint;
     private transient Paint selectedPaint;
-    private transient Paint highlightPaint;
-    private transient Paint badgePaint;
-    private transient Paint badgeTextPaint;
-
-    private transient RectF drawRect;
-    private transient RectF shapeRect;
-    private transient Path polygonPath;
 
     public Node() {
         this.id = UUID.randomUUID().toString();
@@ -101,8 +73,8 @@ public class Node {
         this.content = "";
         this.x = 100;
         this.y = 100;
-        this.width = 220;
-        this.height = 130;
+        this.width = 168;
+        this.height = 168;
         this.type = NodeType.CONCEPT;
         this.shape = NodeShape.RECT;
         this.selected = false;
@@ -117,19 +89,14 @@ public class Node {
         this.content = content == null ? "" : content;
         this.x = x;
         this.y = y;
-        this.width = 220;
-        this.height = 130;
+        this.width = 168;
+        this.height = 168;
         this.type = type == null ? NodeType.CONCEPT : type;
         this.shape = NodeShape.RECT;
         this.selected = false;
         this.dragging = false;
         this.connectionIds = new ArrayList<>();
         ensurePaints();
-    }
-
-    // 兼容旧版构造参数顺序
-    public Node(String title, String content, NodeType type, float x, float y) {
-        this(title, content, x, y, type);
     }
 
     private void ensurePaints() {
@@ -153,8 +120,14 @@ public class Node {
 
         if (contentPaint == null) {
             contentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            contentPaint.setColor(Color.parseColor("#F8FAFC"));
+            contentPaint.setColor(Color.parseColor("#EAF2FF"));
             contentPaint.setTextSize(20f);
+        }
+
+        if (typePaint == null) {
+            typePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            typePaint.setColor(Color.parseColor("#D8E6FF"));
+            typePaint.setTextSize(18f);
         }
 
         if (selectedPaint == null) {
@@ -162,32 +135,8 @@ public class Node {
             selectedPaint.setStyle(Paint.Style.STROKE);
             selectedPaint.setColor(Color.WHITE);
             selectedPaint.setStrokeWidth(6f);
-            selectedPaint.setAlpha(190);
+            selectedPaint.setAlpha(200);
         }
-
-        if (highlightPaint == null) {
-            highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            highlightPaint.setStyle(Paint.Style.STROKE);
-            highlightPaint.setColor(Color.parseColor("#FFF176"));
-            highlightPaint.setStrokeWidth(8f);
-            highlightPaint.setAlpha(220);
-        }
-
-        if (badgePaint == null) {
-            badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            badgePaint.setStyle(Paint.Style.FILL);
-        }
-
-        if (badgeTextPaint == null) {
-            badgeTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            badgeTextPaint.setColor(Color.WHITE);
-            badgeTextPaint.setFakeBoldText(true);
-            badgeTextPaint.setTextAlign(Paint.Align.CENTER);
-        }
-
-        if (drawRect == null) drawRect = new RectF();
-        if (shapeRect == null) shapeRect = new RectF();
-        if (polygonPath == null) polygonPath = new Path();
 
         applyTypeStyle();
     }
@@ -201,8 +150,7 @@ public class Node {
         }
 
         fillPaint.setColor(baseColor);
-        strokePaint.setColor(adjustColorBrightness(baseColor, 0.78f));
-        badgePaint.setColor(adjustColorBrightness(baseColor, 0.88f));
+        strokePaint.setColor(adjustColorBrightness(baseColor, 0.72f));
     }
 
     private int adjustColorBrightness(int color, float factor) {
@@ -213,16 +161,6 @@ public class Node {
     }
 
     public void draw(Canvas canvas, float scale, float offsetX, float offsetY) {
-        drawInternal(canvas, scale, offsetX, offsetY, false, false);
-    }
-
-    public void draw(Canvas canvas, float scale, float offsetX, float offsetY,
-                     boolean isSearchResult, boolean highlightSearchResults) {
-        drawInternal(canvas, scale, offsetX, offsetY, isSearchResult, highlightSearchResults);
-    }
-
-    private void drawInternal(Canvas canvas, float scale, float offsetX, float offsetY,
-                              boolean isSearchResult, boolean highlightSearchResults) {
         ensurePaints();
 
         float drawX = (x + offsetX) * scale;
@@ -230,204 +168,147 @@ public class Node {
         float drawW = width * scale;
         float drawH = height * scale;
 
-        drawRect.set(drawX, drawY, drawX + drawW, drawY + drawH);
-        computeShapeRect(drawRect, getShape(), shapeRect);
+        RectF bounds = new RectF(drawX, drawY, drawX + drawW, drawY + drawH);
+        RectF shapeBounds = getRegularShapeBounds(bounds);
 
         if (selected) {
-            drawShapeOutline(canvas, shapeRect, selectedPaint, scale);
+            drawShapeOutline(canvas, shapeBounds, selectedPaint, scale);
         }
 
-        if (highlightSearchResults && isSearchResult) {
-            drawShapeOutline(canvas, shapeRect, highlightPaint, scale);
-        }
+        drawShape(canvas, shapeBounds, fillPaint, scale);
+        drawShapeOutline(canvas, shapeBounds, strokePaint, scale);
 
-        drawShape(canvas, shapeRect, fillPaint, scale);
-        drawShapeOutline(canvas, shapeRect, strokePaint, scale);
-
-        drawTexts(canvas, shapeRect, scale);
-        drawTypeBadge(canvas, shapeRect, scale);
-    }
-
-    private void computeShapeRect(RectF baseRect, NodeShape shape, RectF outRect) {
-        if (shape == NodeShape.OVAL) {
-            outRect.set(baseRect);
-            return;
-        }
-
-        float size = Math.min(baseRect.width(), baseRect.height());
-        float cx = baseRect.centerX();
-        float cy = baseRect.centerY();
-
-        float half = size / 2f;
-        outRect.set(cx - half, cy - half, cx + half, cy + half);
-    }
-
-    private void drawTexts(Canvas canvas, RectF rect, float scale) {
-        float padding = Math.max(10f, 12f * scale);
-        float titleSize = Math.max(20f, 26f * scale);
-        float contentSize = Math.max(14f, 18f * scale);
-
-        titlePaint.setTextSize(titleSize);
-        contentPaint.setTextSize(contentSize);
+        float padding = 15f * scale;
+        titlePaint.setTextSize(Math.max(20f, 24f * scale));
+        contentPaint.setTextSize(Math.max(15f, 17f * scale));
+        typePaint.setTextSize(Math.max(13f, 14f * scale));
 
         String safeTitle = title == null ? "" : title;
         String safeContent = content == null ? "" : content;
+        String safeType = type == null ? "" : type.label;
 
-        float contentLeft = rect.left + padding;
-        float titleY = rect.top + Math.max(26f, 30f * scale);
+        float textLeft = bounds.left + padding;
+        float textTop = bounds.top + 34f * scale;
 
-        canvas.drawText(
-                truncateText(safeTitle, 12),
-                contentLeft,
-                titleY,
-                titlePaint
-        );
-
-        List<String> lines = splitLines(safeContent, 12, 2);
-        float lineY = titleY + Math.max(20f, 22f * scale);
-        for (String line : lines) {
-            canvas.drawText(line, contentLeft, lineY, contentPaint);
-            lineY += Math.max(18f, 20f * scale);
-        }
+        canvas.drawText(truncateText(safeTitle, 10), textLeft, textTop, titlePaint);
+        canvas.drawText(truncateText(safeContent, 8), textLeft, bounds.top + 58f * scale, contentPaint);
+        canvas.drawText(safeType, textLeft, bounds.bottom - 14f * scale, typePaint);
     }
 
-    private void drawTypeBadge(Canvas canvas, RectF rect, float scale) {
-        String badgeText = getType().label;
-        if (badgeText == null || badgeText.trim().isEmpty()) return;
-
-        float textSize = Math.max(11f, 12f * scale);
-        badgeTextPaint.setTextSize(textSize);
-
-        float textWidth = badgeTextPaint.measureText(badgeText);
-        float padX = Math.max(7f, 8f * scale);
-        float badgeHeight = Math.max(16f, 18f * scale);
-        float badgeWidth = textWidth + padX * 2f;
-
-        float left = rect.left + Math.max(10f, 10f * scale);
-        float bottom = rect.bottom - Math.max(8f, 8f * scale);
-        float top = bottom - badgeHeight;
-        float right = left + badgeWidth;
-
-        RectF badgeRect = new RectF(left, top, right, bottom);
-        canvas.drawRoundRect(
-                badgeRect,
-                Math.max(7f, 8f * scale),
-                Math.max(7f, 8f * scale),
-                badgePaint
-        );
-
-        float textY = badgeRect.centerY() - ((badgeTextPaint.descent() + badgeTextPaint.ascent()) / 2f);
-        canvas.drawText(badgeText, badgeRect.centerX(), textY, badgeTextPaint);
+    private RectF getRegularShapeBounds(RectF bounds) {
+        switch (getShape()) {
+            case CIRCLE:
+            case RECT:
+            case DIAMOND:
+            case TRIANGLE:
+            case PENTAGON:
+            case HEXAGON: {
+                float size = Math.min(bounds.width(), bounds.height());
+                float cx = bounds.centerX();
+                float cy = bounds.centerY();
+                return new RectF(
+                        cx - size / 2f,
+                        cy - size / 2f,
+                        cx + size / 2f,
+                        cy + size / 2f
+                );
+            }
+            case OVAL:
+            default:
+                return bounds;
+        }
     }
 
     private void drawShape(Canvas canvas, RectF rect, Paint paint, float scale) {
         switch (getShape()) {
             case CIRCLE:
-                canvas.drawCircle(rect.centerX(), rect.centerY(), rect.width() / 2f, paint);
+                canvas.drawOval(rect, paint);
                 break;
             case OVAL:
                 canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, paint);
                 break;
             case DIAMOND:
-                canvas.drawPath(buildDiamondPath(rect), paint);
+                canvas.drawPath(createDiamondPath(rect), paint);
                 break;
             case TRIANGLE:
-                canvas.drawPath(buildRegularPolygonPath(rect, 3, -90f), paint);
+                canvas.drawPath(createRegularPolygonPath(rect, 3, -90f), paint);
                 break;
             case PENTAGON:
-                canvas.drawPath(buildRegularPolygonPath(rect, 5, -90f), paint);
+                canvas.drawPath(createRegularPolygonPath(rect, 5, -90f), paint);
                 break;
             case HEXAGON:
-                canvas.drawPath(buildRegularPolygonPath(rect, 6, -90f), paint);
+                canvas.drawPath(createRegularPolygonPath(rect, 6, -90f), paint);
                 break;
             case RECT:
             default:
-                canvas.drawRoundRect(rect, Math.max(10f, 14f * scale), Math.max(10f, 14f * scale), paint);
+                canvas.drawRoundRect(rect, 22f * scale, 22f * scale, paint);
                 break;
         }
     }
 
     private void drawShapeOutline(Canvas canvas, RectF rect, Paint paint, float scale) {
-        Paint p = paint;
-        p.setStrokeWidth(Math.max(2f, paint.getStrokeWidth() * Math.max(0.85f, scale * 0.7f)));
+        Paint p = new Paint(paint);
+        p.setStrokeWidth(Math.max(2f, paint.getStrokeWidth() * (0.55f + 0.45f * scale)));
 
         switch (getShape()) {
             case CIRCLE:
-                canvas.drawCircle(rect.centerX(), rect.centerY(), rect.width() / 2f, p);
+                canvas.drawOval(rect, p);
                 break;
             case OVAL:
                 canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, p);
                 break;
             case DIAMOND:
-                canvas.drawPath(buildDiamondPath(rect), p);
+                canvas.drawPath(createDiamondPath(rect), p);
                 break;
             case TRIANGLE:
-                canvas.drawPath(buildRegularPolygonPath(rect, 3, -90f), p);
+                canvas.drawPath(createRegularPolygonPath(rect, 3, -90f), p);
                 break;
             case PENTAGON:
-                canvas.drawPath(buildRegularPolygonPath(rect, 5, -90f), p);
+                canvas.drawPath(createRegularPolygonPath(rect, 5, -90f), p);
                 break;
             case HEXAGON:
-                canvas.drawPath(buildRegularPolygonPath(rect, 6, -90f), p);
+                canvas.drawPath(createRegularPolygonPath(rect, 6, -90f), p);
                 break;
             case RECT:
             default:
-                canvas.drawRoundRect(rect, Math.max(10f, 14f * scale), Math.max(10f, 14f * scale), p);
+                canvas.drawRoundRect(rect, 22f * scale, 22f * scale, p);
                 break;
         }
     }
 
-    private Path buildDiamondPath(RectF rect) {
-        polygonPath.reset();
-        polygonPath.moveTo(rect.centerX(), rect.top);
-        polygonPath.lineTo(rect.right, rect.centerY());
-        polygonPath.lineTo(rect.centerX(), rect.bottom);
-        polygonPath.lineTo(rect.left, rect.centerY());
-        polygonPath.close();
-        return polygonPath;
+    private Path createDiamondPath(RectF rect) {
+        Path path = new Path();
+        path.moveTo(rect.centerX(), rect.top);
+        path.lineTo(rect.right, rect.centerY());
+        path.lineTo(rect.centerX(), rect.bottom);
+        path.lineTo(rect.left, rect.centerY());
+        path.close();
+        return path;
     }
 
-    private Path buildRegularPolygonPath(RectF rect, int sides, float startAngleDeg) {
-        polygonPath.reset();
+    private Path createRegularPolygonPath(RectF rect, int sides, float startAngleDeg) {
+        Path path = new Path();
 
         float cx = rect.centerX();
         float cy = rect.centerY();
-        float radius = rect.width() / 2f;
+        float radius = Math.min(rect.width(), rect.height()) / 2f;
 
         for (int i = 0; i < sides; i++) {
-            double angle = Math.toRadians(startAngleDeg + i * (360.0 / sides));
+            double angle = Math.toRadians(startAngleDeg + i * 360f / sides);
             float px = cx + (float) (Math.cos(angle) * radius);
             float py = cy + (float) (Math.sin(angle) * radius);
 
-            if (i == 0) polygonPath.moveTo(px, py);
-            else polygonPath.lineTo(px, py);
+            if (i == 0) path.moveTo(px, py);
+            else path.lineTo(px, py);
         }
 
-        polygonPath.close();
-        return polygonPath;
+        path.close();
+        return path;
     }
 
     private String truncateText(String text, int max) {
         if (text == null) return "";
         return text.length() <= max ? text : text.substring(0, max - 1) + "…";
-    }
-
-    private List<String> splitLines(String text, int charsPerLine, int maxLines) {
-        List<String> lines = new ArrayList<>();
-        if (text == null || text.trim().isEmpty()) return lines;
-
-        String normalized = text.replace("\n", " ");
-        int start = 0;
-        while (start < normalized.length() && lines.size() < maxLines) {
-            int end = Math.min(start + charsPerLine, normalized.length());
-            String line = normalized.substring(start, end);
-            if (end < normalized.length() && lines.size() == maxLines - 1 && line.length() >= 2) {
-                line = line.substring(0, line.length() - 1) + "…";
-            }
-            lines.add(line);
-            start = end;
-        }
-        return lines;
     }
 
     public boolean contains(float touchX, float touchY, float scale, float offsetX, float offsetY) {
@@ -436,10 +317,8 @@ public class Node {
         float drawW = width * scale;
         float drawH = height * scale;
 
-        drawRect.set(drawX, drawY, drawX + drawW, drawY + drawH);
-        computeShapeRect(drawRect, getShape(), shapeRect);
-
-        return shapeRect.contains(touchX, touchY);
+        return touchX >= drawX && touchX <= drawX + drawW &&
+                touchY >= drawY && touchY <= drawY + drawH;
     }
 
     public void move(float dx, float dy) {
@@ -467,11 +346,10 @@ public class Node {
     public float getY() { return y; }
     public float getWidth() { return width; }
     public float getHeight() { return height; }
-    public NodeType getType() { return type == null ? NodeType.CONCEPT : type; }
+    public NodeType getType() { return type; }
     public NodeShape getShape() { return shape == null ? NodeShape.RECT : shape; }
     public boolean isSelected() { return selected; }
     public boolean isDragging() { return dragging; }
-
     public List<String> getConnectionIds() {
         if (connectionIds == null) connectionIds = new ArrayList<>();
         return connectionIds;
