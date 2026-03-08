@@ -6,7 +6,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -29,6 +35,12 @@ public class AiRepository {
         void onError(String message);
     }
 
+    public static class PreparedRequest {
+        public AiGraphSnapshot snapshot;
+        public String finalPrompt;
+        public boolean layoutAllowed;
+    }
+
     private static final String TAG = "AiRepository";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
@@ -40,11 +52,45 @@ public class AiRepository {
             .retryOnConnectionFailure(true)
             .build();
 
-    public void askGraph(
-            AiConfig config,
+    public PreparedRequest prepareRelevantRequest(
             Map<String, Node> nodes,
             Map<String, Connection> connections,
             String userMessage,
+            boolean forceFullGraph
+    ) {
+        PreparedRequest prepared = new PreparedRequest();
+        prepared.layoutAllowed = containsLayoutIntent(userMessage);
+
+        if (forceFullGraph || nodes == null || nodes.isEmpty()) {
+            prepared.snapshot = AiGraphSnapshot.from(nodes, connections);
+            prepared.finalPrompt = safeText(userMessage);
+            return prepared;
+        }
+
+        AiGraphSnapshot full = AiGraphSnapshot.from(nodes, connections);
+        AiGraphSnapshot relevant = selectRelevantSubgraph(full, userMessage);
+
+        int fullNodeCount = full.nodes == null ? 0 : full.nodes.size();
+        int relevantNodeCount = relevant.nodes == null ? 0 : relevant.nodes.size();
+
+        prepared.snapshot = relevantNodeCount > 0 ? relevant : full;
+
+        if (relevantNodeCount > 0 && relevantNodeCount < fullNodeCount) {
+            prepared.finalPrompt =
+                    "【系统已为你筛选与当前问题更相关的子图，不是整张图。若你判断仍需全图，请基于当前子图先回答，再尽量保守。】\n"
+                            + safeText(userMessage);
+        } else {
+            prepared.finalPrompt = safeText(userMessage);
+        }
+
+        return prepared;
+    }
+
+    public void askGraph(
+            AiConfig config,
+            AiGraphSnapshot snapshot,
+            String userMessage,
+            boolean layoutAllowed,
             AiCallback callback
     ) {
         try {
@@ -53,21 +99,20 @@ public class AiRepository {
                 return;
             }
 
-            AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
             String graphJson = AiJsonParser.toJson(snapshot);
 
-            int nodeCount = snapshot.nodes == null ? 0 : snapshot.nodes.size();
-            int connectionCount = snapshot.connections == null ? 0 : snapshot.connections.size();
+            int nodeCount = snapshot == null || snapshot.nodes == null ? 0 : snapshot.nodes.size();
+            int connectionCount = snapshot == null || snapshot.connections == null ? 0 : snapshot.connections.size();
 
             String systemPrompt =
                     "你是 NeuralCanvas 的图谱编辑 AI。\n" +
-                    "你能完整读取当前画布中的所有节点与连线，包括：\n" +
+                    "你能完整读取当前传给你的节点与连线，包括：\n" +
                     "1. 节点 id、标题、内容、类型、形状、坐标、尺寸\n" +
                     "2. 连线 id、起点节点、终点节点、关系类型、文字标签、粗细、颜色\n" +
                     "3. 箭头方向表示关系方向，fromNodeId 指向 toNodeId\n\n" +
 
                     "你的工作方式必须像真正会操作图谱的软件助手，而不是空谈。\n" +
-                    "当用户要求你改图时，优先给出 commands，而不是只解释。\n\n" +
+                    "用户要求改图时，优先输出 commands，而不是只解释。\n\n" +
 
                     "你可执行的操作包括：\n" +
                     "- 分析图谱结构\n" +
@@ -76,7 +121,7 @@ public class AiRepository {
                     "- 创建、修改、删除连线\n" +
                     "- 设置连线文字、关系类型、粗细、颜色\n" +
                     "- 聚焦某节点\n" +
-                    "- 在需要时执行自动布局\n\n" +
+                    "- 在明确需要时执行自动布局\n\n" +
 
                     "你必须严格输出 JSON，不允许输出 markdown，不允许输出解释性前缀。\n" +
                     "输出格式固定为：\n" +
@@ -112,19 +157,15 @@ public class AiRepository {
                     "- 创建多个新节点并互相连线时，必须给每个新节点分配 tempId，然后后续命令用 tempId 引用\n" +
                     "- 连线颜色必须用 connectionColorHex 输出，格式为 #RRGGBB\n" +
                     "- 连线粗细用 strokeWidth 输出，推荐范围 2 到 10\n" +
-                    "- 若图谱会拥挤、重叠、结构混乱，最后追加 auto_layout 或将 applyAutoLayoutAfter 设为 true\n" +
                     "- 不确定时尽量保守，不要大量删除已有节点\n" +
-                    "- 若只是回答问题、不需要改图谱，则 commands 返回空数组\n" +
-                    "- 若用户要求“自由创建、自己分析、自己补充”，你应主动补合理节点和关系，而不是只复述\n" +
                     "- 节点标题应简洁，内容可稍详细\n" +
                     "- 连线文字要体现关系语义，不要总是空白\n" +
-                    "- 若涉及任务分解、原因分析、资源关联、目标推进，应主动建立有方向的关系\n";
+                    "- 若用户只是问答，不需要改图谱，则 commands 返回空数组\n" +
+                    "- 不要为了凑结构而创建无关紧要的连线\n" +
+                    "- 除非用户明确提出“布局、重排、整理布局、重新排列、排版”之类要求，否则不要输出 auto_layout，也不要把 applyAutoLayoutAfter 设为 true\n";
 
             String userPrompt =
                     "当前图谱概况：节点 " + nodeCount + " 个，连线 " + connectionCount + " 条。\n" +
-                    (nodeCount > 60
-                            ? "注意：当前图谱较大，请优先围绕与用户请求最相关的节点工作，避免无意义大改。\n\n"
-                            : "\n") +
                     "当前图谱 JSON：\n" + graphJson + "\n\n" +
                     "用户请求：\n" + safeText(userMessage);
 
@@ -136,7 +177,7 @@ public class AiRepository {
             messages.put(new JSONObject().put("role", "user").put("content", userPrompt));
 
             body.put("messages", messages);
-            body.put("temperature", 0.12);
+            body.put("temperature", 0.08);
             body.put("top_p", 0.9);
 
             String url = normalizeChatCompletionsUrl(config.getBaseUrl());
@@ -170,8 +211,6 @@ public class AiRepository {
                     }
 
                     try {
-                        Log.d(TAG, "AI原始响应=" + respBody);
-
                         String content = extractAssistantContent(respBody);
                         if (content.trim().isEmpty()) {
                             callback.onError("AI未返回有效内容");
@@ -179,10 +218,7 @@ public class AiRepository {
                         }
 
                         AiResponse parsed = AiJsonParser.parseResponse(stripMarkdownCodeFence(content));
-                        if (parsed.getCommands() == null) {
-                            parsed.setCommands(null);
-                        }
-
+                        sanitizeResponse(parsed, layoutAllowed);
                         callback.onSuccess(parsed);
 
                     } catch (Exception e) {
@@ -198,7 +234,6 @@ public class AiRepository {
         }
     }
 
-    // 给“测试连接”按钮用。只验证 baseUrl / apiKey / model 是否基本可用。
     public void testConnection(AiConfig config, SimpleCallback callback) {
         try {
             if (config == null || !config.isEnabled()) {
@@ -257,6 +292,144 @@ public class AiRepository {
         }
     }
 
+    private AiGraphSnapshot selectRelevantSubgraph(AiGraphSnapshot full, String userMessage) {
+        if (full == null || full.nodes == null || full.nodes.isEmpty()) {
+            return full == null ? new AiGraphSnapshot() : full;
+        }
+
+        List<String> keywords = tokenize(userMessage);
+        if (keywords.isEmpty()) {
+            return full;
+        }
+
+        Map<String, Integer> scoreMap = new LinkedHashMap<>();
+        Set<String> keepNodeIds = new LinkedHashSet<>();
+
+        for (AiGraphSnapshot.SnapshotNode node : full.nodes) {
+            int score = scoreNode(node, keywords);
+            if (score > 0) {
+                scoreMap.put(node.id, score);
+            }
+        }
+
+        if (scoreMap.isEmpty()) {
+            return full;
+        }
+
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(scoreMap.entrySet());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        int limit = Math.min(Math.max(8, sorted.size()), 18);
+        for (int i = 0; i < sorted.size() && i < limit; i++) {
+            keepNodeIds.add(sorted.get(i).getKey());
+        }
+
+        for (AiGraphSnapshot.SnapshotConnection c : full.connections) {
+            if (keepNodeIds.contains(c.fromNodeId) || keepNodeIds.contains(c.toNodeId)) {
+                keepNodeIds.add(c.fromNodeId);
+                keepNodeIds.add(c.toNodeId);
+            }
+        }
+
+        AiGraphSnapshot result = new AiGraphSnapshot();
+        for (AiGraphSnapshot.SnapshotNode node : full.nodes) {
+            if (keepNodeIds.contains(node.id)) {
+                result.nodes.add(node);
+            }
+        }
+        for (AiGraphSnapshot.SnapshotConnection c : full.connections) {
+            if (keepNodeIds.contains(c.fromNodeId) && keepNodeIds.contains(c.toNodeId)) {
+                result.connections.add(c);
+            }
+        }
+
+        return result.nodes.isEmpty() ? full : result;
+    }
+
+    private int scoreNode(AiGraphSnapshot.SnapshotNode node, List<String> keywords) {
+        String title = safeText(node.title).toLowerCase(Locale.ROOT);
+        String content = safeText(node.content).toLowerCase(Locale.ROOT);
+        String type = safeText(node.type).toLowerCase(Locale.ROOT);
+
+        int score = 0;
+        for (String kw : keywords) {
+            if (kw.length() < 2) continue;
+
+            if (title.contains(kw)) score += 6;
+            if (content.contains(kw)) score += 3;
+            if (type.contains(kw)) score += 2;
+        }
+
+        return score;
+    }
+
+    private List<String> tokenize(String text) {
+        List<String> result = new ArrayList<>();
+        if (text == null) return result;
+
+        String normalized = text
+                .replace("，", " ")
+                .replace("。", " ")
+                .replace("：", " ")
+                .replace("；", " ")
+                .replace(",", " ")
+                .replace(".", " ")
+                .replace(":", " ")
+                .replace(";", " ")
+                .replace("\n", " ")
+                .toLowerCase(Locale.ROOT);
+
+        String[] parts = normalized.split("\\s+");
+        for (String p : parts) {
+            String s = p.trim();
+            if (s.length() >= 2) {
+                result.add(s);
+            }
+        }
+        return result;
+    }
+
+    private void sanitizeResponse(AiResponse response, boolean layoutAllowed) {
+        if (response == null || response.getCommands() == null) return;
+
+        List<AiCommand> cleaned = new ArrayList<>();
+        for (AiCommand cmd : response.getCommands()) {
+            if (cmd == null) continue;
+
+            String action = safeLower(cmd.getAction());
+
+            if (!layoutAllowed) {
+                if ("auto_layout".equals(action)) {
+                    continue;
+                }
+                if (Boolean.TRUE.equals(cmd.getApplyAutoLayoutAfter())) {
+                    cmd.setApplyAutoLayoutAfter(false);
+                }
+            }
+
+            // 限制离谱线宽
+            if (cmd.getStrokeWidth() != null) {
+                float w = cmd.getStrokeWidth();
+                if (w < 2f) cmd.setStrokeWidth(2f);
+                if (w > 10f) cmd.setStrokeWidth(10f);
+            }
+
+            cleaned.add(cmd);
+        }
+        response.setCommands(cleaned);
+    }
+
+    private boolean containsLayoutIntent(String text) {
+        String s = safeLower(text);
+        return s.contains("布局")
+                || s.contains("重排")
+                || s.contains("整理")
+                || s.contains("排列")
+                || s.contains("排版")
+                || s.contains("重新排列")
+                || s.contains("自动布局");
+    }
+
     private String normalizeChatCompletionsUrl(String baseUrl) {
         String url = baseUrl == null ? "" : baseUrl.trim();
         if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
@@ -281,12 +454,10 @@ public class AiRepository {
         Object contentObj = message.opt("content");
         if (contentObj == null) return "";
 
-        // 标准字符串 content
         if (contentObj instanceof String) {
             return (String) contentObj;
         }
 
-        // 某些服务兼容 responses 风格，content 可能是数组
         if (contentObj instanceof JSONArray) {
             JSONArray arr = (JSONArray) contentObj;
             StringBuilder sb = new StringBuilder();
@@ -342,5 +513,9 @@ public class AiRepository {
 
     private String safeText(String text) {
         return text == null ? "" : text;
+    }
+
+    private String safeLower(String text) {
+        return text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
     }
 }
