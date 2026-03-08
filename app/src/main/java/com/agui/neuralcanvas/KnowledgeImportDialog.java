@@ -4,7 +4,6 @@ import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -53,7 +52,7 @@ public class KnowledgeImportDialog extends DialogFragment {
         scrollView.addView(root);
 
         TextView tip = new TextView(requireContext());
-        tip.setText("把一段知识文本交给AI，自动整理为节点、内容和有方向的连接关系。");
+        tip.setText("把一段知识文本交给AI，自动整理为节点、内容和有方向的连接关系。默认不会乱重排你原来已经整理好的旧布局。");
         tip.setTextColor(Color.parseColor("#475569"));
         tip.setTextSize(14);
         root.addView(tip);
@@ -75,20 +74,24 @@ public class KnowledgeImportDialog extends DialogFragment {
         addQuickRule(quickRow, "按章节", "按章节层级建图");
         addQuickRule(quickRow, "只提重点", "只提炼重点，不要太碎");
         addQuickRule(quickRow, "任务拆解", "按目标-任务-资源关系建图");
-        addQuickRule(quickRow, "适度布局", "生成后尽量结构清晰，必要时自动布局");
+        addQuickRule(quickRow, "保守加线", "只建立高价值关系，不要生成大量无关连线");
+        addQuickRule(quickRow, "可布局", "如果新建节点很多，允许只整理新生成结构，不要重排旧布局");
 
         addWithTopMargin(root, quickScroll, 8);
 
         EditText textInput = new EditText(requireContext());
         textInput.setHint("粘贴文本，例如课程知识、读书笔记、项目需求、论文摘要等");
         textInput.setMinLines(10);
-        textInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        styleInput(textInput);
+        textInput.setTextColor(Color.parseColor("#0F172A"));
+        textInput.setHintTextColor(Color.parseColor("#94A3B8"));
+        textInput.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
         addWithTopMargin(root, textInput, 14);
 
         EditText extraRuleInput = new EditText(requireContext());
-        extraRuleInput.setHint("可选：补充要求，例如“按因果关系建图”“按章节建图”“只提炼重点”");
-        styleInput(extraRuleInput);
+        extraRuleInput.setHint("可选：补充要求，例如“按因果关系建图”“只提炼重点”“不要乱重排旧节点”");
+        extraRuleInput.setTextColor(Color.parseColor("#0F172A"));
+        extraRuleInput.setHintTextColor(Color.parseColor("#94A3B8"));
+        extraRuleInput.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
         addWithTopMargin(root, extraRuleInput, 14);
 
         TextView resultTitle = new TextView(requireContext());
@@ -135,22 +138,36 @@ public class KnowledgeImportDialog extends DialogFragment {
                         "要求：\n" +
                         "1. 提炼核心主题、关键概念、任务、问题、结论、资源\n" +
                         "2. 生成节点并建立有方向的连接关系\n" +
-                        "3. 尽量避免重复节点\n" +
-                        "4. 节点标题简洁，内容可适度概括\n" +
+                        "3. 节点标题简洁，内容可适度概括\n" +
+                        "4. 优先建立高价值关系，不要生成大量无关连线\n" +
                         "5. 优先给出可执行 commands\n" +
-                        "6. 如果结构会拥挤，加入自动布局\n" +
-                        (extraRule.isEmpty() ? "" : ("7. 额外要求：" + extraRule + "\n")) +
+                        "6. 不要随意重排我原来已经整理好的旧节点布局\n" +
+                        "7. 只有在我明确要求，或新生成节点明显拥挤时，才允许布局相关命令\n" +
+                        (extraRule.isEmpty() ? "" : ("8. 额外要求：" + extraRule + "\n")) +
                         "\n原文如下：\n" + rawText;
 
                 resultView.setText("正在让AI整理知识...");
                 positive.setEnabled(false);
 
                 AiRepository repository = new AiRepository();
-                repository.askGraph(
-                        config,
+
+                // 导入文本本质是“生成新结构”，这里仍然给 AI 当前图谱上下文，
+                // 但先走 prepareRelevantRequest，避免未来如果你对导入做局部增强时又无脑全图。
+                AiRepository.PreparedRequest prepared = repository.prepareRelevantRequest(
                         activity.getMindMapView().getNodesInternal(),
                         activity.getMindMapView().getConnectionsInternal(),
                         prompt,
+                        true
+                );
+
+                // 知识导入默认禁止乱布局，除非文本规则里明确出现布局意图
+                boolean layoutAllowed = containsLayoutIntent(prompt);
+
+                repository.askGraph(
+                        config,
+                        prepared.snapshot,
+                        prompt,
+                        layoutAllowed,
                         new AiRepository.AiCallback() {
                             @Override
                             public void onSuccess(AiResponse response) {
@@ -184,7 +201,6 @@ public class KnowledgeImportDialog extends DialogFragment {
         });
 
         bindQuickRules(quickRow, extraRuleInput);
-
         return dialog;
     }
 
@@ -195,12 +211,6 @@ public class KnowledgeImportDialog extends DialogFragment {
         );
         lp.topMargin = dp(topMarginDp);
         root.addView(view, lp);
-    }
-
-    private void styleInput(EditText editText) {
-        editText.setTextColor(Color.parseColor("#0F172A"));
-        editText.setHintTextColor(Color.parseColor("#94A3B8"));
-        editText.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
     }
 
     private void addQuickRule(LinearLayout parent, String title, String value) {
@@ -226,5 +236,16 @@ public class KnowledgeImportDialog extends DialogFragment {
                 child.setOnClickListener(v -> extraRuleInput.setText(String.valueOf(v.getTag())));
             }
         }
+    }
+
+    private boolean containsLayoutIntent(String text) {
+        String s = text == null ? "" : text.trim();
+        return s.contains("布局")
+                || s.contains("重排")
+                || s.contains("整理")
+                || s.contains("排列")
+                || s.contains("排版")
+                || s.contains("重新排列")
+                || s.contains("自动布局");
     }
 }
