@@ -142,12 +142,12 @@ public class KnowledgeImportDialog extends DialogFragment {
                             if (activity == null) return;
                             activity.runOnUiThread(() -> {
                                 resultView.setText(response.getAnswer().isEmpty() ? "知识整理完成" : response.getAnswer());
-                                new AiGraphExecutor(activity.getMindMapView()).execute(response.getCommands());
-                                activity.onGraphMutatedByAi();
                                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
 
                                 if (response.getCommands() != null && !response.getCommands().isEmpty()) {
-                                    Toast.makeText(requireContext(), "知识已导入图谱", Toast.LENGTH_SHORT).show();
+                                    AiCommandPreviewDialog.newInstance(response)
+                                            .show(activity.getSupportFragmentManager(), "ai_command_preview");
+                                    Toast.makeText(requireContext(), "知识图谱命令已生成，请确认后执行", Toast.LENGTH_SHORT).show();
                                 } else {
                                     Toast.makeText(requireContext(), "AI未生成图谱操作", Toast.LENGTH_SHORT).show();
                                 }
