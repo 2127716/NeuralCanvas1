@@ -57,6 +57,19 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    public MindMapView getMindMapView() {
+        return mindMapView;
+    }
+
+    public SimpleDataManager getDataManager() {
+        return dataManager;
+    }
+
+    public void onGraphMutatedByAi() {
+        mindMapView.invalidate();
+        scheduleAutoSave();
+    }
+
     private void loadSavedData() {
         try {
             Map<?, ?> savedData = dataManager.loadMindMap();
@@ -81,40 +94,33 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-public boolean onOptionsItemSelected(MenuItem item) {
-    int id = item.getItemId();
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
 
-    if (id == R.id.action_add_node) {
-        Node newNode = new Node("新节点", "输入内容", -84f, -84f, Node.NodeType.CONCEPT);
-        mindMapView.addNode(newNode);
-        showNodeEditDialog(newNode);
-        return true;
+        if (id == R.id.action_add_node) {
+            Node newNode = new Node("新节点", "输入内容", -84f, -84f, Node.NodeType.CONCEPT);
+            mindMapView.addNode(newNode);
+            showNodeEditDialog(newNode);
+            return true;
+        } else if (id == R.id.action_search) {
+            showSearchDialog();
+            return true;
+        } else if (id == R.id.action_ai_assistant) {
+            AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
+            return true;
+        } else if (id == R.id.action_import_knowledge) {
+            KnowledgeImportDialog.newInstance().show(getSupportFragmentManager(), "knowledge_import");
+            return true;
+        } else if (id == R.id.action_clear_all) {
+            confirmClearAll();
+            return true;
+        } else if (id == R.id.action_help) {
+            startActivity(new Intent(this, HelpActivity.class));
+            return true;
+        }
 
-    } else if (id == R.id.action_search) {
-        showSearchDialog();
-        return true;
-
-    } else if (id == R.id.action_ai_assistant) {
-        DialogFragment dialog = AiAssistantDialog.newInstance(mindMapView);
-        dialog.show(getSupportFragmentManager(), "ai_assistant_dialog");
-        return true;
-
-    } else if (id == R.id.action_import_knowledge) {
-        DialogFragment dialog = KnowledgeImportDialog.newInstance(mindMapView);
-        dialog.show(getSupportFragmentManager(), "knowledge_import_dialog");
-        return true;
-
-    } else if (id == R.id.action_clear_all) {
-        confirmClearAll();
-        return true;
-
-    } else if (id == R.id.action_help) {
-        startActivity(new Intent(this, HelpActivity.class));
-        return true;
+        return super.onOptionsItemSelected(item);
     }
-
-    return super.onOptionsItemSelected(item);
-}
 
     private void confirmClearAll() {
         new AlertDialog.Builder(this)
