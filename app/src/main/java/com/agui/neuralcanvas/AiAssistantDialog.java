@@ -179,12 +179,12 @@ public class AiAssistantDialog extends DialogFragment {
                             if (activity == null) return;
                             activity.runOnUiThread(() -> {
                                 resultView.setText(response.getAnswer().isEmpty() ? "AI未返回文字说明" : response.getAnswer());
-                                new AiGraphExecutor(activity.getMindMapView()).execute(response.getCommands());
-                                activity.onGraphMutatedByAi();
                                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
 
                                 if (response.getCommands() != null && !response.getCommands().isEmpty()) {
-                                    Toast.makeText(requireContext(), "AI已执行 " + response.getCommands().size() + " 条图谱操作", Toast.LENGTH_SHORT).show();
+                                    AiCommandPreviewDialog.newInstance(response)
+                                            .show(activity.getSupportFragmentManager(), "ai_command_preview");
+                                    Toast.makeText(requireContext(), "AI已生成命令，请确认后执行", Toast.LENGTH_SHORT).show();
                                 } else {
                                     Toast.makeText(requireContext(), "AI已回复，但未修改图谱", Toast.LENGTH_SHORT).show();
                                 }
