@@ -4,7 +4,6 @@ import android.app.Dialog;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -57,23 +56,15 @@ public class AiAssistantDialog extends DialogFragment {
         scrollView.addView(root);
 
         TextView tip = new TextView(requireContext());
-        tip.setText("AI可读取节点标题、内容、类型、形状、连接方向、连线文字、粗细和颜色，并生成可执行命令。");
+        tip.setText("AI可读取节点标题、内容、类型、形状、连接方向、连线文字、粗细和颜色。默认优先只读相关子图，不会无脑读完整张图。");
         tip.setTextColor(Color.parseColor("#475569"));
         tip.setTextSize(14);
-        root.addView(tip, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        root.addView(tip);
 
         Switch enableSwitch = new Switch(requireContext());
         enableSwitch.setText("启用AI");
         enableSwitch.setChecked(config.isEnabled());
-        LinearLayout.LayoutParams switchLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        switchLp.topMargin = dp(12);
-        root.addView(enableSwitch, switchLp);
+        addWithTopMargin(root, enableSwitch, 12);
 
         EditText baseUrlInput = new EditText(requireContext());
         baseUrlInput.setHint("Base URL，例如 https://api.xxx.com/v1");
@@ -83,7 +74,6 @@ public class AiAssistantDialog extends DialogFragment {
 
         EditText apiKeyInput = new EditText(requireContext());
         apiKeyInput.setHint("API Key");
-        apiKeyInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         apiKeyInput.setText(config.getApiKey());
         styleInput(apiKeyInput);
         addWithTopMargin(root, apiKeyInput, 12);
@@ -103,20 +93,28 @@ public class AiAssistantDialog extends DialogFragment {
         RadioGroup scopeGroup = new RadioGroup(requireContext());
         scopeGroup.setOrientation(LinearLayout.HORIZONTAL);
 
-        RadioButton fullGraphButton = new RadioButton(requireContext());
-        fullGraphButton.setText("整张图");
-        fullGraphButton.setTextColor(Color.parseColor("#0F172A"));
-        fullGraphButton.setId(ViewIdGenerator.next());
+        RadioButton smartScope = new RadioButton(requireContext());
+        smartScope.setText("智能相关子图");
+        smartScope.setTextColor(Color.parseColor("#0F172A"));
 
-        RadioButton selectedGraphButton = new RadioButton(requireContext());
-        selectedGraphButton.setText("仅选中节点");
-        selectedGraphButton.setTextColor(Color.parseColor("#0F172A"));
-        selectedGraphButton.setId(ViewIdGenerator.next());
+        RadioButton fullScope = new RadioButton(requireContext());
+        fullScope.setText("整张图");
+        fullScope.setTextColor(Color.parseColor("#0F172A"));
 
-        scopeGroup.addView(fullGraphButton);
-        scopeGroup.addView(selectedGraphButton);
-        fullGraphButton.setChecked(true);
+        RadioButton selectedScope = new RadioButton(requireContext());
+        selectedScope.setText("仅选中节点");
+        selectedScope.setTextColor(Color.parseColor("#0F172A"));
+
+        scopeGroup.addView(smartScope);
+        scopeGroup.addView(fullScope);
+        scopeGroup.addView(selectedScope);
+        smartScope.setChecked(true);
         addWithTopMargin(root, scopeGroup, 8);
+
+        Switch backgroundSwitch = new Switch(requireContext());
+        backgroundSwitch.setText("后台回答（关闭弹窗继续等待，返回后再提示）");
+        backgroundSwitch.setChecked(false);
+        addWithTopMargin(root, backgroundSwitch, 12);
 
         TextView quickTitle = new TextView(requireContext());
         quickTitle.setText("快捷指令");
@@ -134,16 +132,17 @@ public class AiAssistantDialog extends DialogFragment {
         addQuickButton(quickRow, "总结图谱", "总结当前图谱的核心结构、关键节点和薄弱点");
         addQuickButton(quickRow, "补任务", "补充3个高质量任务节点，并建立合理连接");
         addQuickButton(quickRow, "补关系", "补全关键节点之间缺失的关系，并给连线添加合适文字");
-        addQuickButton(quickRow, "整理布局", "整理当前图谱结构，必要时自动布局");
         addQuickButton(quickRow, "查问题", "找出当前图谱中的逻辑冲突、断裂点和重复节点");
+        addQuickButton(quickRow, "删杂线", "识别无关紧要或冗余的连线，并给出保守删除建议，不要乱删");
 
         addWithTopMargin(root, quickScroll, 8);
 
         EditText promptInput = new EditText(requireContext());
         promptInput.setHint("输入你的问题或要求，例如：请补充3个任务节点，并把它们与目标节点连接起来");
         promptInput.setMinLines(7);
-        promptInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        styleInput(promptInput);
+        promptInput.setTextColor(Color.parseColor("#0F172A"));
+        promptInput.setHintTextColor(Color.parseColor("#94A3B8"));
+        promptInput.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
         addWithTopMargin(root, promptInput, 14);
 
         TextView resultTitle = new TextView(requireContext());
@@ -180,7 +179,6 @@ public class AiAssistantDialog extends DialogFragment {
             testButton.setText("测试连接");
             testButton.setTextColor(Color.WHITE);
             testButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#2563EB")));
-
             ((ViewGroup) neutral.getParent()).addView(testButton, 0);
 
             testButton.setOnClickListener(v -> {
@@ -195,25 +193,22 @@ public class AiAssistantDialog extends DialogFragment {
                 resultView.setText("正在测试连接...");
                 setButtonsEnabled(positive, neutral, testButton, false);
 
-                AiRepository repository = new AiRepository();
-                repository.testConnection(newConfig, new AiRepository.SimpleCallback() {
+                new AiRepository().testConnection(newConfig, new AiRepository.SimpleCallback() {
                     @Override
                     public void onSuccess(String message) {
-                        if (activity == null) return;
                         activity.runOnUiThread(() -> {
                             resultView.setText(message);
                             setButtonsEnabled(positive, neutral, testButton, true);
-                            Toast.makeText(requireContext(), "连接成功", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(activity, "连接成功", Toast.LENGTH_SHORT).show();
                         });
                     }
 
                     @Override
                     public void onError(String message) {
-                        if (activity == null) return;
                         activity.runOnUiThread(() -> {
                             resultView.setText(message);
                             setButtonsEnabled(positive, neutral, testButton, true);
-                            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
                         });
                     }
                 });
@@ -230,62 +225,81 @@ public class AiAssistantDialog extends DialogFragment {
                 }
 
                 if (!newConfig.isEnabled()) {
-                    Toast.makeText(requireContext(), "请先完整填写并启用AI配置", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(activity, "请先完整填写并启用AI配置", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                boolean useSelectedOnly = selectedGraphButton.isChecked();
-                AiGraphSnapshot snapshot = useSelectedOnly
-                        ? activity.getMindMapView().getSelectedGraphSnapshot()
-                        : AiGraphSnapshot.from(
-                                activity.getMindMapView().getNodesInternal(),
-                                activity.getMindMapView().getConnectionsInternal()
-                        );
+                AiRepository repository = new AiRepository();
+                AiRepository.PreparedRequest prepared;
 
-                int nodeCount = snapshot.nodes == null ? 0 : snapshot.nodes.size();
-                if (useSelectedOnly && nodeCount == 0) {
-                    Toast.makeText(requireContext(), "当前没有选中节点，无法使用局部模式", Toast.LENGTH_SHORT).show();
-                    return;
+                if (selectedScope.isChecked()) {
+                    AiGraphSnapshot selected = activity.getMindMapView().getSelectedGraphSnapshot();
+                    int nodeCount = selected == null || selected.nodes == null ? 0 : selected.nodes.size();
+                    if (nodeCount == 0) {
+                        Toast.makeText(activity, "当前没有选中节点，无法使用局部模式", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    prepared = new AiRepository.PreparedRequest();
+                    prepared.snapshot = selected;
+                    prepared.finalPrompt = "【当前仅基于选中节点子图工作】\n" + prompt;
+                    prepared.layoutAllowed = containsLayoutIntent(prompt);
+                } else if (fullScope.isChecked()) {
+                    prepared = repository.prepareRelevantRequest(
+                            activity.getMindMapView().getNodesInternal(),
+                            activity.getMindMapView().getConnectionsInternal(),
+                            prompt,
+                            true
+                    );
+                } else {
+                    prepared = repository.prepareRelevantRequest(
+                            activity.getMindMapView().getNodesInternal(),
+                            activity.getMindMapView().getConnectionsInternal(),
+                            prompt,
+                            false
+                    );
                 }
 
                 resultView.setText("正在请求AI...");
                 setButtonsEnabled(positive, neutral, testButton, false);
 
-                String finalPrompt = useSelectedOnly
-                        ? "【当前仅基于选中节点子图工作】\n" + prompt
-                        : prompt;
+                boolean background = backgroundSwitch.isChecked();
+                if (background) {
+                    Toast.makeText(activity, "已转为后台回答，完成后会提示你", Toast.LENGTH_SHORT).show();
+                    dismissAllowingStateLoss();
+                }
 
-                AiRepository repository = new AiRepository();
                 repository.askGraph(
                         newConfig,
-                        snapshotToNodeMap(snapshot),
-                        snapshotToConnectionMap(snapshot),
-                        finalPrompt,
+                        prepared.snapshot,
+                        prepared.finalPrompt,
+                        prepared.layoutAllowed,
                         new AiRepository.AiCallback() {
                             @Override
                             public void onSuccess(AiResponse response) {
-                                if (activity == null) return;
                                 activity.runOnUiThread(() -> {
-                                    resultView.setText(response.getAnswer().isEmpty() ? "AI未返回文字说明" : response.getAnswer());
-                                    setButtonsEnabled(positive, neutral, testButton, true);
+                                    if (!background && isAdded()) {
+                                        resultView.setText(response.getAnswer().isEmpty() ? "AI未返回文字说明" : response.getAnswer());
+                                        setButtonsEnabled(positive, neutral, testButton, true);
+                                    }
 
                                     if (response.getCommands() != null && !response.getCommands().isEmpty()) {
                                         AiCommandPreviewDialog.newInstance(response)
                                                 .show(activity.getSupportFragmentManager(), "ai_command_preview");
-                                        Toast.makeText(requireContext(), "AI已生成命令，请确认后执行", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(activity, "AI已生成命令，请确认后执行", Toast.LENGTH_SHORT).show();
                                     } else {
-                                        Toast.makeText(requireContext(), "AI已回复，但未修改图谱", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(activity, "AI已回复，但未修改图谱", Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             }
 
                             @Override
                             public void onError(String message) {
-                                if (activity == null) return;
                                 activity.runOnUiThread(() -> {
-                                    resultView.setText(message);
-                                    setButtonsEnabled(positive, neutral, testButton, true);
-                                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                                    if (!background && isAdded()) {
+                                        resultView.setText(message);
+                                        setButtonsEnabled(positive, neutral, testButton, true);
+                                    }
+                                    Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
                                 });
                             }
                         }
@@ -294,7 +308,6 @@ public class AiAssistantDialog extends DialogFragment {
         });
 
         bindQuickButtonText(quickRow, promptInput);
-
         return dialog;
     }
 
@@ -353,105 +366,14 @@ public class AiAssistantDialog extends DialogFragment {
         }
     }
 
-    private java.util.Map<String, Node> snapshotToNodeMap(AiGraphSnapshot snapshot) {
-        java.util.Map<String, Node> result = new java.util.LinkedHashMap<>();
-        if (snapshot == null || snapshot.nodes == null) return result;
-
-        for (AiGraphSnapshot.SnapshotNode item : snapshot.nodes) {
-            Node node = new Node(
-                    item.title,
-                    item.content,
-                    item.x,
-                    item.y,
-                    parseType(item.type)
-            );
-            node.setShape(parseShape(item.shape));
-            node.setWidth(item.width);
-            node.setHeight(item.height);
-
-            tryForceId(node, item.id);
-
-            if (item.connectionIds != null) {
-                node.setConnectionIds(new java.util.ArrayList<>(item.connectionIds));
-            }
-            result.put(item.id, node);
-        }
-        return result;
-    }
-
-    private java.util.Map<String, Connection> snapshotToConnectionMap(AiGraphSnapshot snapshot) {
-        java.util.Map<String, Connection> result = new java.util.LinkedHashMap<>();
-        if (snapshot == null || snapshot.connections == null) return result;
-
-        for (AiGraphSnapshot.SnapshotConnection item : snapshot.connections) {
-            Connection connection = new Connection(
-                    item.fromNodeId,
-                    item.toNodeId,
-                    parseConnectionType(item.type),
-                    item.label
-            );
-            if (item.customColor != null) {
-                connection.setCustomColor(item.customColor);
-            }
-            if (item.strokeWidth != null) {
-                connection.setStrokeWidth(item.strokeWidth);
-            }
-
-            tryForceConnectionId(connection, item.id);
-
-            result.put(item.id, connection);
-        }
-        return result;
-    }
-
-    private Node.NodeType parseType(String value) {
-        try {
-            return Node.NodeType.valueOf(value == null ? "CONCEPT" : value.toUpperCase());
-        } catch (Exception e) {
-            return Node.NodeType.CONCEPT;
-        }
-    }
-
-    private Node.NodeShape parseShape(String value) {
-        try {
-            return Node.NodeShape.valueOf(value == null ? "RECT" : value.toUpperCase());
-        } catch (Exception e) {
-            return Node.NodeShape.RECT;
-        }
-    }
-
-    private Connection.ConnectionType parseConnectionType(String value) {
-        try {
-            return Connection.ConnectionType.valueOf(value == null ? "SEQUENCE" : value.toUpperCase());
-        } catch (Exception e) {
-            return Connection.ConnectionType.SEQUENCE;
-        }
-    }
-
-    private void tryForceId(Node node, String id) {
-        try {
-            java.lang.reflect.Field field = Node.class.getDeclaredField("id");
-            field.setAccessible(true);
-            field.set(node, id);
-        } catch (Exception ignored) {
-        }
-    }
-
-    private void tryForceConnectionId(Connection connection, String id) {
-        try {
-            java.lang.reflect.Field field = Connection.class.getDeclaredField("id");
-            field.setAccessible(true);
-            field.set(connection, id);
-        } catch (Exception ignored) {
-        }
-    }
-
-    // 避免直接用资源 id，纯代码场景下给 RadioButton 一个不重复 id
-    private static class ViewIdGenerator {
-        private static int nextId = 100000;
-
-        static int next() {
-            return nextId++;
-        }
+    private boolean containsLayoutIntent(String text) {
+        String s = text == null ? "" : text.trim();
+        return s.contains("布局")
+                || s.contains("重排")
+                || s.contains("整理")
+                || s.contains("排列")
+                || s.contains("排版")
+                || s.contains("重新排列")
+                || s.contains("自动布局");
     }
 }
