@@ -2,6 +2,7 @@ package com.agui.neuralcanvas;
 
 public class AiCommand {
     private String action;
+    private String tempId;
     private String nodeId;
     private String fromNodeId;
     private String toNodeId;
@@ -11,14 +12,20 @@ public class AiCommand {
     private String shape;
     private String label;
     private String connectionType;
+    private String connectionColorHex;
+    private String reason;
     private Float x;
     private Float y;
     private Float width;
     private Float height;
     private Float strokeWidth;
+    private Boolean applyAutoLayoutAfter;
 
     public String getAction() { return action == null ? "" : action.trim(); }
     public void setAction(String action) { this.action = action; }
+
+    public String getTempId() { return tempId == null ? "" : tempId.trim(); }
+    public void setTempId(String tempId) { this.tempId = tempId; }
 
     public String getNodeId() { return nodeId == null ? "" : nodeId.trim(); }
     public void setNodeId(String nodeId) { this.nodeId = nodeId; }
@@ -47,6 +54,12 @@ public class AiCommand {
     public String getConnectionType() { return connectionType == null ? "" : connectionType.trim(); }
     public void setConnectionType(String connectionType) { this.connectionType = connectionType; }
 
+    public String getConnectionColorHex() { return connectionColorHex == null ? "" : connectionColorHex.trim(); }
+    public void setConnectionColorHex(String connectionColorHex) { this.connectionColorHex = connectionColorHex; }
+
+    public String getReason() { return reason == null ? "" : reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
     public Float getX() { return x; }
     public void setX(Float x) { this.x = x; }
 
@@ -61,4 +74,7 @@ public class AiCommand {
 
     public Float getStrokeWidth() { return strokeWidth; }
     public void setStrokeWidth(Float strokeWidth) { this.strokeWidth = strokeWidth; }
+
+    public Boolean getApplyAutoLayoutAfter() { return applyAutoLayoutAfter; }
+    public void setApplyAutoLayoutAfter(Boolean applyAutoLayoutAfter) { this.applyAutoLayoutAfter = applyAutoLayoutAfter; }
 }
