@@ -19,20 +19,16 @@
         android:title="更多"
         android:icon="@android:drawable/ic_menu_more"
         app:showAsAction="always">
-
         <menu>
             <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
-
             <item
                 android:id="@+id/action_import_knowledge"
                 android:title="知识导入" />
-
             <item
                 android:id="@+id/action_clear_all"
                 android:title="清除全部" />
-
             <item
                 android:id="@+id/action_help"
                 android:title="帮助" />
