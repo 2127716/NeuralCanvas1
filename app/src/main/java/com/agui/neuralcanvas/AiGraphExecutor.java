@@ -22,29 +22,37 @@ public class AiGraphExecutor {
         for (AiCommand cmd : commands) {
             if (cmd == null) continue;
 
-            String action = cmd.getAction().toLowerCase();
+            String action = safeLower(cmd.getAction());
+
             switch (action) {
                 case "create_node":
                     createNode(cmd, tempNodeAliasMap);
                     break;
+
                 case "update_node":
                     updateNode(cmd, tempNodeAliasMap);
                     break;
+
                 case "delete_node":
                     deleteNode(cmd, tempNodeAliasMap);
                     break;
+
                 case "create_connection":
                     createConnection(cmd, tempNodeAliasMap);
                     break;
+
                 case "update_connection":
                     updateConnection(cmd, tempNodeAliasMap);
                     break;
+
                 case "delete_connection":
                     deleteConnection(cmd, tempNodeAliasMap);
                     break;
+
                 case "focus_node":
                     focusNode(cmd, tempNodeAliasMap);
                     break;
+
                 case "auto_layout":
                     GraphAutoLayout.apply(mindMapView);
                     break;
@@ -65,54 +73,66 @@ public class AiGraphExecutor {
         float x = cmd.getX() != null ? cmd.getX() : 0f;
         float y = cmd.getY() != null ? cmd.getY() : 0f;
 
-        Node node = new Node(cmd.getTitle(), cmd.getContent(), x, y, type);
+        Node node = new Node(
+                nonNull(cmd.getTitle()),
+                nonNull(cmd.getContent()),
+                x,
+                y,
+                type
+        );
+
         node.setShape(shape);
 
-        if (cmd.getWidth() != null) node.setWidth(cmd.getWidth());
-        if (cmd.getHeight() != null) node.setHeight(cmd.getHeight());
+        if (cmd.getWidth() != null) node.setWidth(Math.max(80f, cmd.getWidth()));
+        if (cmd.getHeight() != null) node.setHeight(Math.max(80f, cmd.getHeight()));
 
         mindMapView.addNode(node);
 
-        if (!cmd.getTempId().isEmpty()) {
-            tempNodeAliasMap.put(cmd.getTempId(), node.getId());
+        if (!isBlank(cmd.getTempId())) {
+            tempNodeAliasMap.put(cmd.getTempId().trim(), node.getId());
         }
     }
 
     private void updateNode(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
-        Node node = mindMapView.getNodes().get(resolveNodeId(cmd.getNodeId(), tempNodeAliasMap));
+        Map<String, Node> nodes = mindMapView.getNodesInternal();
+        String realNodeId = resolveNodeId(cmd.getNodeId(), tempNodeAliasMap);
+        Node node = nodes.get(realNodeId);
         if (node == null) return;
 
-        if (!cmd.getTitle().isEmpty()) node.setTitle(cmd.getTitle());
-        if (!cmd.getContent().isEmpty()) node.setContent(cmd.getContent());
-        if (!cmd.getType().isEmpty()) node.setType(parseNodeType(cmd.getType()));
-        if (!cmd.getShape().isEmpty()) node.setShape(parseNodeShape(cmd.getShape()));
+        if (!isBlank(cmd.getTitle())) node.setTitle(cmd.getTitle());
+        if (!isBlank(cmd.getContent())) node.setContent(cmd.getContent());
+        if (!isBlank(cmd.getType())) node.setType(parseNodeType(cmd.getType()));
+        if (!isBlank(cmd.getShape())) node.setShape(parseNodeShape(cmd.getShape()));
         if (cmd.getX() != null) node.setX(cmd.getX());
         if (cmd.getY() != null) node.setY(cmd.getY());
-        if (cmd.getWidth() != null) node.setWidth(cmd.getWidth());
-        if (cmd.getHeight() != null) node.setHeight(cmd.getHeight());
+        if (cmd.getWidth() != null) node.setWidth(Math.max(80f, cmd.getWidth()));
+        if (cmd.getHeight() != null) node.setHeight(Math.max(80f, cmd.getHeight()));
+
+        mindMapView.invalidate();
     }
 
     private void deleteNode(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
         String realNodeId = resolveNodeId(cmd.getNodeId(), tempNodeAliasMap);
-        if (!realNodeId.isEmpty()) {
+        if (!isBlank(realNodeId)) {
             mindMapView.removeNode(realNodeId);
         }
     }
 
     private void createConnection(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
-        Map<String, Node> nodes = mindMapView.getNodes();
-        Map<String, Connection> connections = mindMapView.getConnections();
+        Map<String, Node> nodes = mindMapView.getNodesInternal();
+        Map<String, Connection> connections = mindMapView.getConnectionsInternal();
 
         String fromId = resolveNodeId(cmd.getFromNodeId(), tempNodeAliasMap);
         String toId = resolveNodeId(cmd.getToNodeId(), tempNodeAliasMap);
 
-        if (!nodes.containsKey(fromId) || !nodes.containsKey(toId) || fromId.equals(toId)) {
-            return;
-        }
+        if (isBlank(fromId) || isBlank(toId)) return;
+        if (!nodes.containsKey(fromId) || !nodes.containsKey(toId)) return;
+        if (fromId.equals(toId)) return;
 
         for (Connection c : connections.values()) {
             if (fromId.equals(c.getFromNodeId()) && toId.equals(c.getToNodeId())) {
                 applyConnectionValues(c, cmd);
+                mindMapView.invalidate();
                 return;
             }
         }
@@ -121,29 +141,39 @@ public class AiGraphExecutor {
                 fromId,
                 toId,
                 parseConnectionType(cmd.getConnectionType()),
-                cmd.getLabel()
+                nonNull(cmd.getLabel())
         );
+
         applyConnectionValues(connection, cmd);
         mindMapView.addConnection(connection);
     }
 
     private void updateConnection(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
+        Map<String, Connection> connections = mindMapView.getConnectionsInternal();
+
         String fromId = resolveNodeId(cmd.getFromNodeId(), tempNodeAliasMap);
         String toId = resolveNodeId(cmd.getToNodeId(), tempNodeAliasMap);
 
-        for (Connection c : mindMapView.getConnections().values()) {
+        if (isBlank(fromId) || isBlank(toId)) return;
+
+        for (Connection c : connections.values()) {
             if (fromId.equals(c.getFromNodeId()) && toId.equals(c.getToNodeId())) {
                 applyConnectionValues(c, cmd);
+                mindMapView.invalidate();
                 return;
             }
         }
     }
 
     private void deleteConnection(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
+        Map<String, Connection> connections = mindMapView.getConnectionsInternal();
+
         String fromId = resolveNodeId(cmd.getFromNodeId(), tempNodeAliasMap);
         String toId = resolveNodeId(cmd.getToNodeId(), tempNodeAliasMap);
 
-        for (Connection c : mindMapView.getConnections().values()) {
+        if (isBlank(fromId) || isBlank(toId)) return;
+
+        for (Connection c : connections.values()) {
             if (fromId.equals(c.getFromNodeId()) && toId.equals(c.getToNodeId())) {
                 mindMapView.removeConnection(c.getId());
                 return;
@@ -153,28 +183,34 @@ public class AiGraphExecutor {
 
     private void focusNode(AiCommand cmd, Map<String, String> tempNodeAliasMap) {
         String realNodeId = resolveNodeId(cmd.getNodeId(), tempNodeAliasMap);
-        if (!realNodeId.isEmpty()) {
+        if (!isBlank(realNodeId)) {
             mindMapView.focusNodeById(realNodeId);
         }
     }
 
     private String resolveNodeId(String rawId, Map<String, String> tempNodeAliasMap) {
-        if (rawId == null || rawId.trim().isEmpty()) return "";
+        if (isBlank(rawId)) return "";
         String id = rawId.trim();
-        return tempNodeAliasMap.containsKey(id) ? tempNodeAliasMap.get(id) : id;
+        if (tempNodeAliasMap.containsKey(id)) {
+            return tempNodeAliasMap.get(id);
+        }
+        return id;
     }
 
     private void applyConnectionValues(Connection connection, AiCommand cmd) {
-        if (!cmd.getLabel().isEmpty()) {
+        if (!isBlank(cmd.getLabel())) {
             connection.setLabel(cmd.getLabel());
         }
-        if (!cmd.getConnectionType().isEmpty()) {
+
+        if (!isBlank(cmd.getConnectionType())) {
             connection.setType(parseConnectionType(cmd.getConnectionType()));
         }
+
         if (cmd.getStrokeWidth() != null) {
-            connection.setStrokeWidth(cmd.getStrokeWidth());
+            connection.setStrokeWidth(Math.max(2f, cmd.getStrokeWidth()));
         }
-        if (!cmd.getConnectionColorHex().isEmpty()) {
+
+        if (!isBlank(cmd.getConnectionColorHex())) {
             try {
                 connection.setCustomColor(Color.parseColor(cmd.getConnectionColorHex()));
             } catch (Exception ignored) {
@@ -184,7 +220,7 @@ public class AiGraphExecutor {
 
     private Node.NodeType parseNodeType(String value) {
         try {
-            return Node.NodeType.valueOf(value.toUpperCase());
+            return Node.NodeType.valueOf(value.trim().toUpperCase());
         } catch (Exception e) {
             return Node.NodeType.CONCEPT;
         }
@@ -192,7 +228,7 @@ public class AiGraphExecutor {
 
     private Node.NodeShape parseNodeShape(String value) {
         try {
-            return Node.NodeShape.valueOf(value.toUpperCase());
+            return Node.NodeShape.valueOf(value.trim().toUpperCase());
         } catch (Exception e) {
             return Node.NodeShape.RECT;
         }
@@ -200,9 +236,21 @@ public class AiGraphExecutor {
 
     private Connection.ConnectionType parseConnectionType(String value) {
         try {
-            return Connection.ConnectionType.valueOf(value.toUpperCase());
+            return Connection.ConnectionType.valueOf(value.trim().toUpperCase());
         } catch (Exception e) {
             return Connection.ConnectionType.SEQUENCE;
         }
+    }
+
+    private String safeLower(String text) {
+        return text == null ? "" : text.trim().toLowerCase();
+    }
+
+    private boolean isBlank(String text) {
+        return text == null || text.trim().isEmpty();
+    }
+
+    private String nonNull(String text) {
+        return text == null ? "" : text;
     }
 }
