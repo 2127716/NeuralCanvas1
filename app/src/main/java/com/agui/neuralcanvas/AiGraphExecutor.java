@@ -14,18 +14,16 @@ public class AiGraphExecutor {
     public void execute(List<AiCommand> commands) {
         if (commands == null || commands.isEmpty()) return;
 
-        Map<String, Node> nodes = mindMapView.getNodes();
-        Map<String, Connection> connections = mindMapView.getConnections();
-
         for (AiCommand cmd : commands) {
-            String action = cmd.getAction().toLowerCase();
+            if (cmd == null) continue;
 
+            String action = cmd.getAction().toLowerCase();
             switch (action) {
                 case "create_node":
                     createNode(cmd);
                     break;
                 case "update_node":
-                    updateNode(cmd, nodes);
+                    updateNode(cmd);
                     break;
                 case "delete_node":
                     if (!cmd.getNodeId().isEmpty()) {
@@ -33,10 +31,10 @@ public class AiGraphExecutor {
                     }
                     break;
                 case "create_connection":
-                    createConnection(cmd, nodes, connections);
+                    createConnection(cmd);
                     break;
                 case "delete_connection":
-                    deleteConnection(cmd, connections);
+                    deleteConnection(cmd);
                     break;
                 case "focus_node":
                     if (!cmd.getNodeId().isEmpty()) {
@@ -65,7 +63,8 @@ public class AiGraphExecutor {
         mindMapView.addNode(node);
     }
 
-    private void updateNode(AiCommand cmd, Map<String, Node> nodes) {
+    private void updateNode(AiCommand cmd) {
+        Map<String, Node> nodes = mindMapView.getNodes();
         Node node = nodes.get(cmd.getNodeId());
         if (node == null) return;
 
@@ -79,12 +78,17 @@ public class AiGraphExecutor {
         if (cmd.getHeight() != null) node.setHeight(cmd.getHeight());
     }
 
-    private void createConnection(AiCommand cmd, Map<String, Node> nodes, Map<String, Connection> connections) {
-        if (!nodes.containsKey(cmd.getFromNodeId()) || !nodes.containsKey(cmd.getToNodeId())) return;
+    private void createConnection(AiCommand cmd) {
+        Map<String, Node> nodes = mindMapView.getNodes();
+        Map<String, Connection> connections = mindMapView.getConnections();
+
+        if (!nodes.containsKey(cmd.getFromNodeId()) || !nodes.containsKey(cmd.getToNodeId())) {
+            return;
+        }
 
         for (Connection c : connections.values()) {
-            if (cmd.getFromNodeId().equals(c.getFromNodeId()) &&
-                cmd.getToNodeId().equals(c.getToNodeId())) {
+            if (cmd.getFromNodeId().equals(c.getFromNodeId())
+                    && cmd.getToNodeId().equals(c.getToNodeId())) {
                 c.setLabel(cmd.getLabel());
                 return;
             }
@@ -99,10 +103,11 @@ public class AiGraphExecutor {
         mindMapView.addConnection(connection);
     }
 
-    private void deleteConnection(AiCommand cmd, Map<String, Connection> connections) {
+    private void deleteConnection(AiCommand cmd) {
+        Map<String, Connection> connections = mindMapView.getConnections();
         for (Connection c : connections.values()) {
-            if (cmd.getFromNodeId().equals(c.getFromNodeId()) &&
-                cmd.getToNodeId().equals(c.getToNodeId())) {
+            if (cmd.getFromNodeId().equals(c.getFromNodeId())
+                    && cmd.getToNodeId().equals(c.getToNodeId())) {
                 mindMapView.removeConnection(c.getId());
                 return;
             }
