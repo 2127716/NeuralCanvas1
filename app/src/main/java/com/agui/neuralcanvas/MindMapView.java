@@ -20,6 +20,7 @@ import android.widget.Spinner;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -80,8 +81,10 @@ public class MindMapView extends View {
     private Paint previewBorderPaint;
     private Paint previewTitlePaint;
     private Paint previewContentPaint;
+    private Paint previewShadowPaint;
     private Paint tempLinePaint;
     private Paint gridPaint;
+    private Paint searchHighlightPaint;
 
     private enum PendingAction {
         NONE,
@@ -127,12 +130,15 @@ public class MindMapView extends View {
 
         previewTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewTitlePaint.setColor(Color.parseColor("#0F172A"));
-        previewTitlePaint.setTextSize(dp(8f));
+        previewTitlePaint.setTextSize(dp(15f));
         previewTitlePaint.setFakeBoldText(true);
 
         previewContentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewContentPaint.setColor(Color.parseColor("#334155"));
-        previewContentPaint.setTextSize(dp(6f));
+        previewContentPaint.setTextSize(dp(13f));
+
+        previewShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        previewShadowPaint.setColor(Color.parseColor("#55000000"));
 
         tempLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         tempLinePaint.setColor(Color.parseColor("#93C5FD"));
@@ -142,6 +148,11 @@ public class MindMapView extends View {
         gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         gridPaint.setColor(Color.parseColor("#1D2638"));
         gridPaint.setStrokeWidth(1f);
+
+        searchHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        searchHighlightPaint.setStyle(Paint.Style.STROKE);
+        searchHighlightPaint.setColor(Color.parseColor("#F8FAFC"));
+        searchHighlightPaint.setAlpha(185);
     }
 
     private float dp(float value) {
@@ -156,11 +167,14 @@ public class MindMapView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawColor(Color.parseColor("#0B1020"));
+
         drawGrid(canvas);
 
         for (Connection connection : connections.values()) {
             Node fromNode = nodes.get(connection.getFromNodeId());
             Node toNode = nodes.get(connection.getToNodeId());
+            if (fromNode == null || toNode == null) continue;
+            if (!isConnectionLikelyVisible(fromNode, toNode)) continue;
             connection.draw(canvas, fromNode, toNode, scale, offsetX, offsetY);
         }
 
@@ -172,6 +186,8 @@ public class MindMapView extends View {
         }
 
         for (Node node : nodes.values()) {
+            if (!isNodeVisible(node)) continue;
+
             node.draw(canvas, scale, offsetX, offsetY);
 
             if (highlightSearchResults && searchResultNodeIds.contains(node.getId())) {
@@ -208,13 +224,8 @@ public class MindMapView extends View {
         float right = left + node.getWidth() * scale + 16f * scale;
         float bottom = top + node.getHeight() * scale + 16f * scale;
 
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setStyle(Paint.Style.STROKE);
-        p.setColor(Color.parseColor("#F8FAFC"));
-        p.setAlpha(185);
-        p.setStrokeWidth(Math.max(dp(1.4f), 2.8f * scale));
-
-        canvas.drawRoundRect(new RectF(left, top, right, bottom), 22f * scale, 22f * scale, p);
+        searchHighlightPaint.setStrokeWidth(Math.max(dp(1.4f), 2.8f * scale));
+        canvas.drawRoundRect(new RectF(left, top, right, bottom), 22f * scale, 22f * scale, searchHighlightPaint);
     }
 
     private void drawPreviewCard(Canvas canvas, Node node) {
@@ -223,15 +234,15 @@ public class MindMapView extends View {
         float nodeWidth = node.getWidth() * scale;
         float nodeHeight = node.getHeight() * scale;
 
-        float cardWidth = Math.max(dp(180f), nodeWidth * 1.08f);
-        float cardHeight = Math.max(dp(112f), nodeHeight * 1.05f);
+        float cardWidth = Math.max(dp(250f), Math.min(dp(360f), Math.max(nodeWidth * 1.15f, dp(250f))));
+        float cardHeight = Math.max(dp(180f), Math.min(dp(320f), Math.max(nodeHeight * 1.12f, dp(180f))));
 
         float left = nodeLeft + nodeWidth / 2f - cardWidth / 2f;
         float top = nodeTop + nodeHeight / 2f - cardHeight / 2f;
         float right = left + cardWidth;
         float bottom = top + cardHeight;
 
-        float margin = dp(8f);
+        float margin = dp(10f);
         if (left < margin) {
             right += (margin - left);
             left = margin;
@@ -253,167 +264,231 @@ public class MindMapView extends View {
 
         previewRect = new RectF(left, top, right, bottom);
 
-        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        shadowPaint.setColor(Color.parseColor("#55000000"));
         canvas.drawRoundRect(
                 new RectF(left + dp(3f), top + dp(5f), right + dp(3f), bottom + dp(5f)),
-                dp(16f), dp(16f), shadowPaint
+                dp(18f), dp(18f), previewShadowPaint
         );
-
-        canvas.drawRoundRect(previewRect, dp(16f), dp(16f), previewCardPaint);
-        canvas.drawRoundRect(previewRect, dp(16f), dp(16f), previewBorderPaint);
+        canvas.drawRoundRect(previewRect, dp(18f), dp(18f), previewCardPaint);
+        canvas.drawRoundRect(previewRect, dp(18f), dp(18f), previewBorderPaint);
 
         String title = node.getTitle() == null ? "" : node.getTitle();
         String content = node.getContent() == null ? "" : node.getContent();
 
         float paddingX = dp(16f);
-        float y = top + dp(24f);
-        canvas.drawText(truncate(title, 18), left + paddingX, y, previewTitlePaint);
+        float usableWidth = cardWidth - paddingX * 2f;
 
-        y += dp(22f);
-        List<String> lines = splitText(content, 22, 6);
+        previewTitlePaint.setTextSize(dp(15f));
+        previewContentPaint.setTextSize(dp(13f));
+
+        float y = top + dp(26f);
+        for (String line : wrapTextByWidth(title, previewTitlePaint, usableWidth, 2)) {
+            canvas.drawText(line, left + paddingX, y, previewTitlePaint);
+            y += dp(18f);
+        }
+
+        y += dp(6f);
+
+        List<String> lines = wrapTextByWidth(content, previewContentPaint, usableWidth, 10);
         for (String line : lines) {
+            if (y > bottom - dp(18f)) break;
             canvas.drawText(line, left + paddingX, y, previewContentPaint);
-            y += dp(16f);
+            y += dp(17f);
         }
     }
 
-    private String truncate(String text, int max) {
-        if (text == null) return "";
-        return text.length() <= max ? text : text.substring(0, max - 1) + "…";
-    }
-
-    private List<String> splitText(String text, int charsPerLine, int maxLines) {
+    private List<String> wrapTextByWidth(String text, Paint paint, float maxWidth, int maxLines) {
         List<String> lines = new ArrayList<>();
         if (text == null || text.trim().isEmpty()) return lines;
 
-        String normalized = text.replace("\n", " ");
-        int start = 0;
-        while (start < normalized.length() && lines.size() < maxLines) {
-            int end = Math.min(start + charsPerLine, normalized.length());
-            String line = normalized.substring(start, end);
-            if (end < normalized.length() && lines.size() == maxLines - 1 && line.length() >= 2) {
-                line = line.substring(0, line.length() - 1) + "…";
+        String normalized = text.replace("\r", "");
+        String[] paragraphs = normalized.split("\n");
+
+        for (String paragraph : paragraphs) {
+            if (paragraph.isEmpty()) {
+                if (lines.size() < maxLines) lines.add("");
+                if (lines.size() >= maxLines) break;
+                continue;
             }
-            lines.add(line);
-            start = end;
+
+            int start = 0;
+            while (start < paragraph.length()) {
+                if (lines.size() >= maxLines) break;
+
+                int end = start + 1;
+                while (end <= paragraph.length() && paint.measureText(paragraph, start, end) <= maxWidth) {
+                    end++;
+                }
+                end--;
+
+                if (end <= start) {
+                    end = Math.min(start + 1, paragraph.length());
+                }
+
+                String line = paragraph.substring(start, end);
+
+                if (lines.size() == maxLines - 1 && end < paragraph.length()) {
+                    while (paint.measureText(line + "…") > maxWidth && line.length() > 1) {
+                        line = line.substring(0, line.length() - 1);
+                    }
+                    line = line + "…";
+                    lines.add(line);
+                    return lines;
+                }
+
+                lines.add(line);
+                start = end;
+            }
+
+            if (lines.size() >= maxLines) break;
         }
+
         return lines;
     }
 
-    @Override
-public boolean onTouchEvent(MotionEvent event) {
-    scaleGestureDetector.onTouchEvent(event);
+    private boolean isNodeVisible(Node node) {
+        float left = (node.getX() + offsetX) * scale;
+        float top = (node.getY() + offsetY) * scale;
+        float right = left + node.getWidth() * scale;
+        float bottom = top + node.getHeight() * scale;
 
-    if (event.getPointerCount() > 1) {
-        isScaling = true;
-        draggingNode = null;
-        isDraggingCanvas = false;
-        isDraggingNode = false;
-        movedEnough = true;
-        lastTouchX = event.getX();
-        lastTouchY = event.getY();
-        return true;
+        float pad = dp(80f);
+        return !(right < -pad || bottom < -pad || left > getWidth() + pad || top > getHeight() + pad);
     }
 
-    gestureDetector.onTouchEvent(event);
+    private boolean isConnectionLikelyVisible(Node fromNode, Node toNode) {
+        float fromLeft = (fromNode.getX() + offsetX) * scale;
+        float fromTop = (fromNode.getY() + offsetY) * scale;
+        float fromRight = fromLeft + fromNode.getWidth() * scale;
+        float fromBottom = fromTop + fromNode.getHeight() * scale;
 
-    float x = event.getX();
-    float y = event.getY();
+        float toLeft = (toNode.getX() + offsetX) * scale;
+        float toTop = (toNode.getY() + offsetY) * scale;
+        float toRight = toLeft + toNode.getWidth() * scale;
+        float toBottom = toTop + toNode.getHeight() * scale;
 
-    switch (event.getActionMasked()) {
-        case MotionEvent.ACTION_DOWN: {
-            downX = x;
-            downY = y;
-            lastTouchX = x;
-            lastTouchY = y;
-            movedEnough = false;
-            isDraggingCanvas = false;
-            isDraggingNode = false;
-            isScaling = false;
+        float minX = Math.min(fromLeft, toLeft);
+        float minY = Math.min(fromTop, toTop);
+        float maxX = Math.max(fromRight, toRight);
+        float maxY = Math.max(fromBottom, toBottom);
 
-            if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
-                return true;
-            }
+        float pad = dp(100f);
+        return !(maxX < -pad || maxY < -pad || minX > getWidth() + pad || minY > getHeight() + pad);
+    }
 
-            Node touchedNode = findNodeAt(x, y);
-            Connection touchedConnection = findConnectionAt(x, y);
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        scaleGestureDetector.onTouchEvent(event);
 
-            clearSelections();
-
-            if (touchedNode != null) {
-                touchedNode.setSelected(true);
-                selectedNode = touchedNode;
-                draggingNode = touchedNode;
-                invalidate();
-            } else if (touchedConnection != null) {
-                touchedConnection.setSelected(true);
-                selectedConnection = touchedConnection;
-                draggingNode = null;
-                invalidate();
-            } else {
-                draggingNode = null;
-                previewNode = null;
-                previewRect = null;
-                invalidate();
-            }
-            break;
-        }
-
-        case MotionEvent.ACTION_MOVE: {
-            if (isScaling) return true;
-
-            float totalDx = x - downX;
-            float totalDy = y - downY;
-
-            if (!movedEnough && Math.hypot(totalDx, totalDy) > touchSlop) {
-                movedEnough = true;
-            }
-
-            if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
-                pendingEndX = x;
-                pendingEndY = y;
-                invalidate();
-            }
-
-            if (movedEnough) {
-                float dx = (x - lastTouchX) / scale;
-                float dy = (y - lastTouchY) / scale;
-
-                if (draggingNode != null) {
-                    isDraggingNode = true;
-                    previewNode = null;
-                    previewRect = null;
-                    draggingNode.move(dx, dy);
-                } else {
-                    isDraggingCanvas = true;
-                    offsetX += dx;
-                    offsetY += dy;
-                }
-                invalidate();
-            }
-
-            lastTouchX = x;
-            lastTouchY = y;
-            break;
-        }
-
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_CANCEL: {
-            if (draggingNode != null && isDraggingNode) {
-                draggingNode.setDragging(false);
-                notifyDataChanged();
-            }
+        if (event.getPointerCount() > 1) {
+            isScaling = true;
             draggingNode = null;
             isDraggingCanvas = false;
             isDraggingNode = false;
-            isScaling = false;
-            break;
+            movedEnough = true;
+            lastTouchX = event.getX();
+            lastTouchY = event.getY();
+            return true;
         }
-    }
 
-    return true;
-}
+        gestureDetector.onTouchEvent(event);
+
+        float x = event.getX();
+        float y = event.getY();
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: {
+                downX = x;
+                downY = y;
+                lastTouchX = x;
+                lastTouchY = y;
+                movedEnough = false;
+                isDraggingCanvas = false;
+                isDraggingNode = false;
+                isScaling = false;
+
+                if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
+                    return true;
+                }
+
+                Node touchedNode = findNodeAt(x, y);
+                Connection touchedConnection = findConnectionAt(x, y);
+
+                clearSelections();
+
+                if (touchedNode != null) {
+                    touchedNode.setSelected(true);
+                    selectedNode = touchedNode;
+                    draggingNode = touchedNode;
+                    invalidate();
+                } else if (touchedConnection != null) {
+                    touchedConnection.setSelected(true);
+                    selectedConnection = touchedConnection;
+                    draggingNode = null;
+                    invalidate();
+                } else {
+                    draggingNode = null;
+                    previewNode = null;
+                    previewRect = null;
+                    invalidate();
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                if (isScaling) return true;
+
+                float totalDx = x - downX;
+                float totalDy = y - downY;
+
+                if (!movedEnough && Math.hypot(totalDx, totalDy) > touchSlop) {
+                    movedEnough = true;
+                }
+
+                if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
+                    pendingEndX = x;
+                    pendingEndY = y;
+                    invalidate();
+                }
+
+                if (movedEnough) {
+                    float dx = (x - lastTouchX) / scale;
+                    float dy = (y - lastTouchY) / scale;
+
+                    if (draggingNode != null) {
+                        isDraggingNode = true;
+                        draggingNode.setDragging(true);
+                        previewNode = null;
+                        previewRect = null;
+                        draggingNode.move(dx, dy);
+                    } else {
+                        isDraggingCanvas = true;
+                        offsetX += dx;
+                        offsetY += dy;
+                    }
+                    invalidate();
+                }
+
+                lastTouchX = x;
+                lastTouchY = y;
+                break;
+            }
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL: {
+                if (draggingNode != null && isDraggingNode) {
+                    draggingNode.setDragging(false);
+                    notifyDataChanged();
+                }
+                draggingNode = null;
+                isDraggingCanvas = false;
+                isDraggingNode = false;
+                isScaling = false;
+                break;
+            }
+        }
+
+        return true;
+    }
 
     private void clearSelections() {
         for (Node node : nodes.values()) {
@@ -528,6 +603,15 @@ public boolean onTouchEvent(MotionEvent event) {
         return new LinkedHashMap<>(connections);
     }
 
+    // 隐藏坑修复：给内部高频逻辑和 AI 执行器直接拿内部引用，避免反复拷贝 Map
+    public Map<String, Node> getNodesInternal() {
+        return nodes;
+    }
+
+    public Map<String, Connection> getConnectionsInternal() {
+        return connections;
+    }
+
     public void setNodes(Map<String, Node> map) {
         nodes.clear();
         if (map != null) nodes.putAll(map);
@@ -608,6 +692,79 @@ public boolean onTouchEvent(MotionEvent event) {
         if (node != null) focusNode(node);
     }
 
+    public void selectNodeById(String nodeId) {
+        clearSelections();
+        Node node = nodes.get(nodeId);
+        if (node != null) {
+            node.setSelected(true);
+            selectedNode = node;
+            invalidate();
+        }
+    }
+
+    public List<String> getSelectedNodeIds() {
+        List<String> ids = new ArrayList<>();
+        for (Node node : nodes.values()) {
+            if (node.isSelected()) {
+                ids.add(node.getId());
+            }
+        }
+        return ids;
+    }
+
+    // 新增建议功能：给 AI 或后续高级功能提供“只看当前选中子图”的快照
+    public AiGraphSnapshot getSelectedGraphSnapshot() {
+        LinkedHashSet<String> selectedIds = new LinkedHashSet<>(getSelectedNodeIds());
+        AiGraphSnapshot snapshot = new AiGraphSnapshot();
+
+        if (selectedIds.isEmpty()) {
+            return AiGraphSnapshot.from(nodes, connections);
+        }
+
+        for (String nodeId : selectedIds) {
+            Node node = nodes.get(nodeId);
+            if (node == null) continue;
+
+            AiGraphSnapshot.SnapshotNode item = new AiGraphSnapshot.SnapshotNode();
+            item.id = node.getId();
+            item.title = node.getTitle();
+            item.content = node.getContent();
+            item.type = node.getType() == null ? "" : node.getType().name();
+            item.shape = node.getShape() == null ? "" : node.getShape().name();
+            item.x = node.getX();
+            item.y = node.getY();
+            item.width = node.getWidth();
+            item.height = node.getHeight();
+            item.connectionIds = new ArrayList<>(node.getConnectionIds());
+            snapshot.nodes.add(item);
+        }
+
+        for (Connection c : connections.values()) {
+            if (!selectedIds.contains(c.getFromNodeId()) || !selectedIds.contains(c.getToNodeId())) {
+                continue;
+            }
+
+            AiGraphSnapshot.SnapshotConnection item = new AiGraphSnapshot.SnapshotConnection();
+            item.id = c.getId();
+            item.fromNodeId = c.getFromNodeId();
+            item.toNodeId = c.getToNodeId();
+            item.type = c.getType() == null ? "" : c.getType().name();
+            item.label = c.getLabel();
+            item.strokeWidth = c.getStrokeWidth();
+            item.customColor = c.getCustomColor();
+            item.directed = true;
+            snapshot.connections.add(item);
+        }
+
+        return snapshot;
+    }
+
+    public void clearPreviewCard() {
+        previewNode = null;
+        previewRect = null;
+        invalidate();
+    }
+
     public void startConnectionMode(Node sourceNode) {
         pendingAction = PendingAction.CREATE_CONNECTION;
         pendingSourceNode = sourceNode;
@@ -631,126 +788,131 @@ public boolean onTouchEvent(MotionEvent event) {
         return null;
     }
 
-
     private void showEditConnectionLabelDialog(Node from, Node to) {
-    LinearLayout layout = new LinearLayout(getContext());
-    layout.setOrientation(LinearLayout.VERTICAL);
-    int padding = (int) dp(18f);
-    layout.setPadding(padding, padding, padding, padding);
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) dp(18f);
+        layout.setPadding(padding, padding, padding, padding);
 
-    EditText input = new EditText(getContext());
-    input.setHint("输入连线文字（可为空）");
-    LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-    );
-    inputParams.bottomMargin = (int) dp(14f);
-    input.setLayoutParams(inputParams);
-    layout.addView(input);
+        EditText input = new EditText(getContext());
+        input.setHint("输入连线文字（可为空）");
+        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        inputParams.bottomMargin = (int) dp(14f);
+        input.setLayoutParams(inputParams);
+        layout.addView(input);
 
-    Spinner colorSpinner = new Spinner(getContext());
-    LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-    );
-    colorParams.bottomMargin = (int) dp(14f);
-    colorSpinner.setLayoutParams(colorParams);
+        Spinner colorSpinner = new Spinner(getContext());
+        LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        colorParams.bottomMargin = (int) dp(14f);
+        colorSpinner.setLayoutParams(colorParams);
 
-    String[] colorNames = {"默认蓝色", "绿色", "红色", "橙色", "黄色", "紫色", "白色"};
-    Integer[] colorValues = {
-            null,
-            Color.parseColor("#57D38C"),
-            Color.parseColor("#FF6B6B"),
-            Color.parseColor("#FFB84D"),
-            Color.parseColor("#FFD54F"),
-            Color.parseColor("#B084F5"),
-            Color.WHITE
-    };
+        String[] colorNames = {"默认蓝色", "绿色", "红色", "橙色", "黄色", "紫色", "白色"};
+        Integer[] colorValues = {
+                null,
+                Color.parseColor("#57D38C"),
+                Color.parseColor("#FF6B6B"),
+                Color.parseColor("#FFB84D"),
+                Color.parseColor("#FFD54F"),
+                Color.parseColor("#B084F5"),
+                Color.WHITE
+        };
 
-    ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
-            getContext(),
-            android.R.layout.simple_spinner_item,
-            colorNames
-    );
-    colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-    colorSpinner.setAdapter(colorAdapter);
-    layout.addView(colorSpinner);
+        ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_item,
+                colorNames
+        );
+        colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        colorSpinner.setAdapter(colorAdapter);
+        layout.addView(colorSpinner);
 
-    Spinner widthSpinner = new Spinner(getContext());
-    LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-    );
-    widthSpinner.setLayoutParams(widthParams);
+        Spinner widthSpinner = new Spinner(getContext());
+        LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        widthSpinner.setLayoutParams(widthParams);
 
-    String[] widthNames = {"细", "中", "粗", "超粗"};
-    float[] widthValues = {4f, 6f, 8f, 10f};
+        String[] widthNames = {"细", "中", "粗", "超粗"};
+        float[] widthValues = {4f, 6f, 8f, 10f};
 
-    ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
-            getContext(),
-            android.R.layout.simple_spinner_item,
-            widthNames
-    );
-    widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-    widthSpinner.setAdapter(widthAdapter);
-    layout.addView(widthSpinner);
+        ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_item,
+                widthNames
+        );
+        widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        widthSpinner.setAdapter(widthAdapter);
+        layout.addView(widthSpinner);
 
-    Connection existing = findConnectionBetween(from.getId(), to.getId());
-    if (existing != null) {
-        input.setText(existing.getLabel() == null ? "" : existing.getLabel());
+        Connection existing = findConnectionBetween(from.getId(), to.getId());
+        if (existing != null) {
+            input.setText(existing.getLabel() == null ? "" : existing.getLabel());
 
-        Integer existingColor = existing.getCustomColor();
-        int colorIndex = 0;
-        for (int i = 0; i < colorValues.length; i++) {
-            Integer value = colorValues[i];
-            if ((value == null && existingColor == null)
-                    || (value != null && value.equals(existingColor))) {
-                colorIndex = i;
-                break;
-            }
-        }
-        colorSpinner.setSelection(colorIndex);
-
-        float w = existing.getStrokeWidth();
-        int widthIndex = 0;
-        if (w >= 10f) widthIndex = 3;
-        else if (w >= 8f) widthIndex = 2;
-        else if (w >= 6f) widthIndex = 1;
-        widthSpinner.setSelection(widthIndex);
-    }
-
-    new AlertDialog.Builder(getContext())
-            .setTitle("编辑连线")
-            .setView(layout)
-            .setNegativeButton("取消", (d, w) -> cancelPendingAction())
-            .setPositiveButton("确定", (d, w) -> {
-                String label = input.getText().toString().trim();
-                Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
-                float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
-
-                Connection ex = findConnectionBetween(from.getId(), to.getId());
-                if (ex != null) {
-                    ex.setLabel(label);
-                    ex.setCustomColor(selectedColor);
-                    ex.setStrokeWidth(selectedWidth);
-                } else {
-                    Connection c = new Connection(
-                            from.getId(),
-                            to.getId(),
-                            Connection.ConnectionType.SEQUENCE,
-                            label
-                    );
-                    c.setCustomColor(selectedColor);
-                    c.setStrokeWidth(selectedWidth);
-                    addConnection(c);
+            Integer existingColor = existing.getCustomColor();
+            int colorIndex = 0;
+            for (int i = 0; i < colorValues.length; i++) {
+                Integer value = colorValues[i];
+                if ((value == null && existingColor == null)
+                        || (value != null && value.equals(existingColor))) {
+                    colorIndex = i;
+                    break;
                 }
+            }
+            colorSpinner.setSelection(colorIndex);
 
-                cancelPendingAction();
-                invalidate();
-                notifyDataChanged();
-            })
-            .show();
-}
+            float w = existing.getStrokeWidth();
+            int widthIndex = 0;
+            if (w >= 10f) widthIndex = 3;
+            else if (w >= 8f) widthIndex = 2;
+            else if (w >= 6f) widthIndex = 1;
+            widthSpinner.setSelection(widthIndex);
+        }
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("编辑连线")
+                .setView(layout)
+                .setNegativeButton("取消", (d, w) -> cancelPendingAction())
+                .setPositiveButton("确定", (d, w) -> {
+                    String label = input.getText().toString().trim();
+                    Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
+                    float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
+
+                    Connection ex = findConnectionBetween(from.getId(), to.getId());
+                    boolean changedOnly = false;
+
+                    if (ex != null) {
+                        ex.setLabel(label);
+                        ex.setCustomColor(selectedColor);
+                        ex.setStrokeWidth(selectedWidth);
+                        changedOnly = true;
+                    } else {
+                        Connection c = new Connection(
+                                from.getId(),
+                                to.getId(),
+                                Connection.ConnectionType.SEQUENCE,
+                                label
+                        );
+                        c.setCustomColor(selectedColor);
+                        c.setStrokeWidth(selectedWidth);
+                        addConnection(c);
+                    }
+
+                    cancelPendingAction();
+                    invalidate();
+
+                    if (changedOnly) {
+                        notifyDataChanged();
+                    }
+                })
+                .show();
+    }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -827,37 +989,37 @@ public boolean onTouchEvent(MotionEvent event) {
     }
 
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-    @Override
-    public boolean onScaleBegin(ScaleGestureDetector detector) {
-        isScaling = true;
-        draggingNode = null;
-        return true;
-    }
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            isScaling = true;
+            draggingNode = null;
+            return true;
+        }
 
-    @Override
-    public boolean onScale(ScaleGestureDetector detector) {
-        float oldScale = scale;
-        float newScale = oldScale * detector.getScaleFactor();
-        newScale = Math.max(minScale, Math.min(newScale, maxScale));
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            float oldScale = scale;
+            float newScale = oldScale * detector.getScaleFactor();
+            newScale = Math.max(minScale, Math.min(newScale, maxScale));
 
-        float focusX = detector.getFocusX();
-        float focusY = detector.getFocusY();
+            float focusX = detector.getFocusX();
+            float focusY = detector.getFocusY();
 
-        float worldFocusX = (focusX / oldScale) - offsetX;
-        float worldFocusY = (focusY / oldScale) - offsetY;
+            float worldFocusX = (focusX / oldScale) - offsetX;
+            float worldFocusY = (focusY / oldScale) - offsetY;
 
-        scale = newScale;
-        offsetX = (focusX / scale) - worldFocusX;
-        offsetY = (focusY / scale) - worldFocusY;
+            scale = newScale;
+            offsetX = (focusX / scale) - worldFocusX;
+            offsetY = (focusY / scale) - worldFocusY;
 
-        previewRect = null;
-        invalidate();
-        return true;
-    }
+            previewRect = null;
+            invalidate();
+            return true;
+        }
 
-    @Override
-    public void onScaleEnd(ScaleGestureDetector detector) {
-        isScaling = false;
-    }
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            isScaling = false;
+        }
     }
 }
