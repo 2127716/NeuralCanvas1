@@ -51,7 +51,7 @@ public class AiRepository {
                     "  \"answer\": \"给用户的简洁回答\",\n" +
                     "  \"commands\": [\n" +
                     "    {\n" +
-                    "      \"action\": \"create_node | update_node | delete_node | create_connection | delete_connection | focus_node\",\n" +
+                    "      \"action\": \"create_node | update_node | delete_node | create_connection | update_connection | delete_connection | focus_node | auto_layout\",\n" +
                     "      \"nodeId\": \"\",\n" +
                     "      \"fromNodeId\": \"\",\n" +
                     "      \"toNodeId\": \"\",\n" +
@@ -60,10 +60,12 @@ public class AiRepository {
                     "      \"type\": \"\",\n" +
                     "      \"shape\": \"\",\n" +
                     "      \"label\": \"\",\n" +
+                    "      \"connectionType\": \"\",\n" +
                     "      \"x\": 0,\n" +
                     "      \"y\": 0,\n" +
                     "      \"width\": 168,\n" +
-                    "      \"height\": 168\n" +
+                    "      \"height\": 168,\n" +
+                    "      \"strokeWidth\": 4\n" +
                     "    }\n" +
                     "  ]\n" +
                     "}\n\n" +
@@ -73,7 +75,9 @@ public class AiRepository {
                     "- 只能输出合法 JSON\n" +
                     "- 如果只是回答问题，不需要改图谱，则 commands 返回空数组\n" +
                     "- 如果创建节点，尽量给出合理位置，避免重叠\n" +
-                    "- 连线是有方向的：fromNodeId 指向 toNodeId";
+                    "- 连线是有方向的：fromNodeId 指向 toNodeId\n" +
+                    "- 若用户要求整理结构、避免重叠、优化排版，可加入 auto_layout 命令\n" +
+                    "- 修改已有连线时优先使用 update_connection";
 
             String userPrompt =
                     "当前图谱JSON如下：\n" + graphJson + "\n\n" +
