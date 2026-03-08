@@ -411,7 +411,7 @@ public class MindMapView extends View {
                 }
 
                 Node touchedNode = findNodeAt(x, y);
-                Connection touchedConnection = findConnectionAt(x, y);
+                Connection touchedConnection = touchedNode == null ? findConnectionAt(x, y) : null;
 
                 clearSelections();
 
@@ -516,7 +516,7 @@ public class MindMapView extends View {
         for (Connection connection : connections.values()) {
             Node from = nodes.get(connection.getFromNodeId());
             Node to = nodes.get(connection.getToNodeId());
-            if (connection.isNear(x, y, from, to, scale, offsetX, offsetY, dp(8f))) {
+            if (connection.isNear(x, y, from, to, scale, offsetX, offsetY, dp(10f))) {
                 return connection;
             }
         }
@@ -576,6 +576,11 @@ public class MindMapView extends View {
             if (toNode != null) toNode.removeConnection(connectionId);
 
             connections.remove(connectionId);
+
+            if (selectedConnection != null && connectionId.equals(selectedConnection.getId())) {
+                selectedConnection = null;
+            }
+
             invalidate();
             notifyDataChanged();
         }
@@ -603,7 +608,6 @@ public class MindMapView extends View {
         return new LinkedHashMap<>(connections);
     }
 
-    // 隐藏坑修复：给内部高频逻辑和 AI 执行器直接拿内部引用，避免反复拷贝 Map
     public Map<String, Node> getNodesInternal() {
         return nodes;
     }
@@ -712,7 +716,6 @@ public class MindMapView extends View {
         return ids;
     }
 
-    // 新增建议功能：给 AI 或后续高级功能提供“只看当前选中子图”的快照
     public AiGraphSnapshot getSelectedGraphSnapshot() {
         LinkedHashSet<String> selectedIds = new LinkedHashSet<>(getSelectedNodeIds());
         AiGraphSnapshot snapshot = new AiGraphSnapshot();
@@ -788,7 +791,7 @@ public class MindMapView extends View {
         return null;
     }
 
-    private void showEditConnectionLabelDialog(Node from, Node to) {
+    private void showEditConnectionDialog(Node from, Node to) {
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         int padding = (int) dp(18f);
@@ -875,8 +878,8 @@ public class MindMapView extends View {
             widthSpinner.setSelection(widthIndex);
         }
 
-        new AlertDialog.Builder(getContext())
-                .setTitle("编辑连线")
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
+                .setTitle(existing != null ? "编辑连线" : "新建连线")
                 .setView(layout)
                 .setNegativeButton("取消", (d, w) -> cancelPendingAction())
                 .setPositiveButton("确定", (d, w) -> {
@@ -910,8 +913,26 @@ public class MindMapView extends View {
                     if (changedOnly) {
                         notifyDataChanged();
                     }
-                })
-                .show();
+                });
+
+        if (existing != null) {
+            builder.setNeutralButton("删除连线", (d, w) -> {
+                removeConnection(existing.getId());
+                cancelPendingAction();
+            });
+        }
+
+        builder.show();
+    }
+
+    private void showEditExistingConnectionDialog(Connection connection) {
+        if (connection == null) return;
+
+        Node from = nodes.get(connection.getFromNodeId());
+        Node to = nodes.get(connection.getToNodeId());
+        if (from == null || to == null) return;
+
+        showEditConnectionDialog(from, to);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -927,7 +948,7 @@ public class MindMapView extends View {
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
                 if (node != null && !pendingSourceNode.getId().equals(node.getId())) {
-                    showEditConnectionLabelDialog(pendingSourceNode, node);
+                    showEditConnectionDialog(pendingSourceNode, node);
                     return true;
                 }
             }
@@ -977,13 +998,19 @@ public class MindMapView extends View {
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
                 if (touchedNode != null && !pendingSourceNode.getId().equals(touchedNode.getId())) {
-                    showEditConnectionLabelDialog(pendingSourceNode, touchedNode);
+                    showEditConnectionDialog(pendingSourceNode, touchedNode);
                     return;
                 }
             }
 
             if (touchedNode != null && getContext() instanceof MainActivity) {
                 ((MainActivity) getContext()).showNodeEditDialog(touchedNode);
+                return;
+            }
+
+            Connection touchedConnection = findConnectionAt(e.getX(), e.getY());
+            if (touchedConnection != null) {
+                showEditExistingConnectionDialog(touchedConnection);
             }
         }
     }
