@@ -10,10 +10,12 @@ public class AiCommand {
     private String type;
     private String shape;
     private String label;
+    private String connectionType;
     private Float x;
     private Float y;
     private Float width;
     private Float height;
+    private Float strokeWidth;
 
     public String getAction() { return action == null ? "" : action.trim(); }
     public void setAction(String action) { this.action = action; }
@@ -42,6 +44,9 @@ public class AiCommand {
     public String getLabel() { return label == null ? "" : label; }
     public void setLabel(String label) { this.label = label; }
 
+    public String getConnectionType() { return connectionType == null ? "" : connectionType.trim(); }
+    public void setConnectionType(String connectionType) { this.connectionType = connectionType; }
+
     public Float getX() { return x; }
     public void setX(Float x) { this.x = x; }
 
@@ -53,4 +58,7 @@ public class AiCommand {
 
     public Float getHeight() { return height; }
     public void setHeight(Float height) { this.height = height; }
+
+    public Float getStrokeWidth() { return strokeWidth; }
+    public void setStrokeWidth(Float strokeWidth) { this.strokeWidth = strokeWidth; }
 }
