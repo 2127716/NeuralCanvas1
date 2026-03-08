@@ -33,6 +33,9 @@ public class AiGraphExecutor {
                 case "create_connection":
                     createConnection(cmd);
                     break;
+                case "update_connection":
+                    updateConnection(cmd);
+                    break;
                 case "delete_connection":
                     deleteConnection(cmd);
                     break;
@@ -40,6 +43,9 @@ public class AiGraphExecutor {
                     if (!cmd.getNodeId().isEmpty()) {
                         mindMapView.focusNodeById(cmd.getNodeId());
                     }
+                    break;
+                case "auto_layout":
+                    GraphAutoLayout.apply(mindMapView);
                     break;
             }
         }
@@ -89,7 +95,7 @@ public class AiGraphExecutor {
         for (Connection c : connections.values()) {
             if (cmd.getFromNodeId().equals(c.getFromNodeId())
                     && cmd.getToNodeId().equals(c.getToNodeId())) {
-                c.setLabel(cmd.getLabel());
+                applyConnectionValues(c, cmd);
                 return;
             }
         }
@@ -97,10 +103,24 @@ public class AiGraphExecutor {
         Connection connection = new Connection(
                 cmd.getFromNodeId(),
                 cmd.getToNodeId(),
-                Connection.ConnectionType.SEQUENCE,
+                parseConnectionType(cmd.getConnectionType()),
                 cmd.getLabel()
         );
+        if (cmd.getStrokeWidth() != null) {
+            connection.setStrokeWidth(cmd.getStrokeWidth());
+        }
         mindMapView.addConnection(connection);
+    }
+
+    private void updateConnection(AiCommand cmd) {
+        Map<String, Connection> connections = mindMapView.getConnections();
+        for (Connection c : connections.values()) {
+            if (cmd.getFromNodeId().equals(c.getFromNodeId())
+                    && cmd.getToNodeId().equals(c.getToNodeId())) {
+                applyConnectionValues(c, cmd);
+                return;
+            }
+        }
     }
 
     private void deleteConnection(AiCommand cmd) {
@@ -111,6 +131,18 @@ public class AiGraphExecutor {
                 mindMapView.removeConnection(c.getId());
                 return;
             }
+        }
+    }
+
+    private void applyConnectionValues(Connection connection, AiCommand cmd) {
+        if (!cmd.getLabel().isEmpty()) {
+            connection.setLabel(cmd.getLabel());
+        }
+        if (!cmd.getConnectionType().isEmpty()) {
+            connection.setType(parseConnectionType(cmd.getConnectionType()));
+        }
+        if (cmd.getStrokeWidth() != null) {
+            connection.setStrokeWidth(cmd.getStrokeWidth());
         }
     }
 
@@ -127,6 +159,14 @@ public class AiGraphExecutor {
             return Node.NodeShape.valueOf(value.toUpperCase());
         } catch (Exception e) {
             return Node.NodeShape.RECT;
+        }
+    }
+
+    private Connection.ConnectionType parseConnectionType(String value) {
+        try {
+            return Connection.ConnectionType.valueOf(value.toUpperCase());
+        } catch (Exception e) {
+            return Connection.ConnectionType.SEQUENCE;
         }
     }
 }
