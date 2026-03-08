@@ -41,6 +41,7 @@ public class Connection {
     private transient Paint linePaint;
     private transient Paint arrowPaint;
     private transient Paint labelPaint;
+    private transient Paint labelBgPaint;
 
     public Connection() {
         this.id = UUID.randomUUID().toString();
@@ -74,6 +75,9 @@ public class Connection {
             labelPaint.setColor(Color.WHITE);
             labelPaint.setTextAlign(Paint.Align.CENTER);
         }
+        if (labelBgPaint == null) {
+            labelBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        }
         applyPaintStyle();
     }
 
@@ -86,6 +90,7 @@ public class Connection {
         linePaint.setColor(color);
         linePaint.setStrokeCap(type != null ? type.lineCap : Paint.Cap.ROUND);
         arrowPaint.setColor(color);
+        labelBgPaint.setColor(color);
     }
 
     public void draw(Canvas canvas, Node fromNode, Node toNode, float scale, float offsetX, float offsetY) {
@@ -101,7 +106,6 @@ public class Connection {
         if (start == null) start = fromCenter;
         if (end == null) end = toCenter;
 
-        // 关键：缩小时也保留粗细差异，不让所有线看起来都一样细
         float effectiveWidth = Math.max(2.2f, strokeWidth * (0.85f + scale * 0.35f));
         linePaint.setStrokeWidth(effectiveWidth);
 
@@ -114,7 +118,7 @@ public class Connection {
         }
 
         canvas.drawLine(start.x, start.y, end.x, end.y, linePaint);
-        drawArrow(canvas, start.x, start.y, end.x, end.y, effectiveWidth, scale);
+        drawArrow(canvas, start.x, start.y, end.x, end.y, effectiveWidth);
 
         if (label != null && !label.trim().isEmpty()) {
             drawLabel(canvas, start.x, start.y, end.x, end.y, scale);
@@ -122,17 +126,18 @@ public class Connection {
     }
 
     private void drawLabel(Canvas canvas, float fromX, float fromY, float toX, float toY, float scale) {
+        String drawText = trimTextForLabel(label, Math.max(8, (int) (14 + scale * 10)));
+
         float midX = (fromX + toX) / 2f;
         float midY = (fromY + toY) / 2f;
 
         float textSize = Math.max(18f, 18f * scale);
         labelPaint.setTextSize(textSize);
 
-        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bgPaint.setColor(resolveColor());
-        bgPaint.setAlpha(220);
+        labelBgPaint.setColor(resolveColor());
+        labelBgPaint.setAlpha(220);
 
-        float textWidth = labelPaint.measureText(label);
+        float textWidth = labelPaint.measureText(drawText);
         float padding = Math.max(10f, 10f * scale);
 
         float left = midX - textWidth / 2f - padding;
@@ -140,11 +145,17 @@ public class Connection {
         float right = midX + textWidth / 2f + padding;
         float bottom = midY + 10f * scale;
 
-        canvas.drawRoundRect(left, top, right, bottom, 10f * scale, 10f * scale, bgPaint);
-        canvas.drawText(label, midX, midY, labelPaint);
+        canvas.drawRoundRect(left, top, right, bottom, 10f * scale, 10f * scale, labelBgPaint);
+        canvas.drawText(drawText, midX, midY, labelPaint);
     }
 
-    private void drawArrow(Canvas canvas, float fromX, float fromY, float toX, float toY, float lineWidth, float scale) {
+    private String trimTextForLabel(String text, int maxChars) {
+        if (text == null) return "";
+        if (text.length() <= maxChars) return text;
+        return text.substring(0, Math.max(1, maxChars - 1)) + "…";
+    }
+
+    private void drawArrow(Canvas canvas, float fromX, float fromY, float toX, float toY, float lineWidth) {
         float angle = (float) Math.atan2(toY - fromY, toX - fromX);
 
         float arrowLength = Math.max(16f, 14f + lineWidth * 1.7f);
