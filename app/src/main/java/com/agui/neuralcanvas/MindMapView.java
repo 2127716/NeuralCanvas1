@@ -155,6 +155,20 @@ public class MindMapView extends View {
         searchHighlightPaint.setAlpha(185);
     }
 
+    /**
+     * 清除所有选中状态，仅选中指定 ID 的节点
+     * @param nodeId 要选中的节点 ID，如果为 null 或不存在则清除所有选中
+     */
+    public void selectOnlyNode(String nodeId) {
+        clearSelections();
+        if (nodeId != null && nodes.containsKey(nodeId)) {
+            Node node = nodes.get(nodeId);
+            node.setSelected(true);
+            selectedNode = node;
+        }
+        invalidate();
+    }
+
     private float dp(float value) {
         return TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
