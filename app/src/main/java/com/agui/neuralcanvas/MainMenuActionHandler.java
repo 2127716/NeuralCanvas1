@@ -27,6 +27,16 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_inbox_clarify) {
+            activity.openInboxClarifier();
+            return true;
+        }
+
+        if (id == R.id.action_weekly_review) {
+            activity.openWeeklyReview();
+            return true;
+        }
+
         if (id == R.id.action_generate_woop) {
             activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WOOP);
             return true;
