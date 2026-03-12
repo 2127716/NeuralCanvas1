@@ -233,6 +233,164 @@ public class MainActivity extends AppCompatActivity
     }
 
     // =========================
+    // 新增的工作流和快捷操作方法
+    // =========================
+
+    public void openProjectsHubWorkflowView() {
+        ProjectsHubDialog.newInstance()
+                .show(getSupportFragmentManager(), "projects_hub");
+    }
+
+    public void openScientificDashboard() {
+        ScientificDashboardDialog.newInstance()
+                .show(getSupportFragmentManager(), "scientific_dashboard");
+    }
+
+    public void showQuickActionsForNode(Node node) {
+        if (node == null) return;
+
+        java.util.List<String> actions = QuickActionEngine.getDynamicActions(node);
+        String[] items = actions.toArray(new String[0]);
+
+        new AlertDialog.Builder(this)
+                .setTitle(safeTitle(node))
+                .setItems(items, (dialog, which) -> {
+                    String action = actions.get(which);
+                    QuickActionEngine.executeDynamicAction(this, node, action);
+                    mindMapView.invalidate();
+                    scheduleAutoSave();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    public void applyScientificTemplateToNode(Node node, ScientificTemplateEngine.TemplateType type) {
+        if (node == null || type == null) return;
+
+        mindMapView.selectOnlyNode(node.getId());
+
+        switch (type) {
+            case WOOP:
+                applyTemplateResult(ScientificTemplateEngine.generateWoop(node, mindMapView.getNodesInternal()));
+                break;
+            case IF_THEN:
+                applyTemplateResult(ScientificTemplateEngine.generateIfThen(node, mindMapView.getNodesInternal()));
+                break;
+            case DAILY_REVIEW:
+                applyTemplateResult(ScientificTemplateEngine.generateDailyReview(node, mindMapView.getNodesInternal()));
+                break;
+            case WEEKLY_REVIEW:
+                applyTemplateResult(ScientificTemplateEngine.generateWeeklyReview(node, mindMapView.getNodesInternal()));
+                break;
+            case AAR:
+                applyTemplateResult(ScientificTemplateEngine.generateAarReview(node, mindMapView.getNodesInternal()));
+                break;
+            case DECISION_TREE:
+                applyTemplateResult(ScientificTemplateEngine.generateDecisionTree(node, mindMapView.getNodesInternal()));
+                break;
+            case PREMORTEM:
+                applyTemplateResult(ScientificTemplateEngine.generatePremortem(node, mindMapView.getNodesInternal()));
+                break;
+            case EVIDENCE_REVIEW:
+                applyTemplateResult(ScientificTemplateEngine.generateEvidenceReview(node, mindMapView.getNodesInternal()));
+                break;
+            case RETRIEVAL_PRACTICE:
+                applyTemplateResult(ScientificTemplateEngine.generateRetrievalPractice(node, mindMapView.getNodesInternal()));
+                break;
+            case CONCEPT_DEEPENING:
+                applyTemplateResult(ScientificTemplateEngine.generateConceptDeepening(node, mindMapView.getNodesInternal()));
+                break;
+            case TRANSFER_PRACTICE:
+                applyTemplateResult(ScientificTemplateEngine.generateTransferPractice(node, mindMapView.getNodesInternal()));
+                break;
+            default:
+                break;
+        }
+
+        mindMapView.focusNodeById(node.getId());
+        mindMapView.invalidate();
+        scheduleAutoSave();
+    }
+
+    public void editNodeFromQuickAction(Node node) {
+        if (node == null) return;
+        showNodeEditDialog(node);
+    }
+
+    public void deleteNodeFromQuickAction(Node node) {
+        if (node == null) return;
+
+        new AlertDialog.Builder(this)
+                .setTitle("删除节点")
+                .setMessage("确定删除“" + safeTitle(node) + "”？")
+                .setPositiveButton("删除", (dialog, which) -> {
+                    mindMapView.removeNode(node.getId());
+                    mindMapView.invalidate();
+                    scheduleAutoSave();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    public void openInboxClarifierForSingleNode(Node node) {
+        if (node == null) return;
+
+        final Node.NodeType[] choices = new Node.NodeType[] {
+                Node.NodeType.TASK,
+                Node.NodeType.ACTION,
+                Node.NodeType.PROJECT,
+                Node.NodeType.IDEA,
+                Node.NodeType.CONCEPT,
+                Node.NodeType.QUESTION,
+                Node.NodeType.RESOURCE,
+                Node.NodeType.DECISION,
+                Node.NodeType.NOTE
+        };
+
+        String[] labels = new String[] {
+                "任务", "动作", "项目", "想法", "概念", "问题", "资源", "决策", "笔记"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("澄清分类")
+                .setItems(labels, (dialog, which) -> {
+                    Node.NodeType targetType = choices[which];
+                    node.setType(targetType);
+                    WorkflowEngine.normalizeNodeForWorkflow(node);
+
+                    if (targetType == Node.NodeType.PROJECT) {
+                        node.setProjectId(node.getId());
+                        node.addTags("Project", "InboxConverted");
+                    } else if (targetType == Node.NodeType.TASK
+                            || targetType == Node.NodeType.ACTION) {
+                        node.addTags("Actionable", "InboxConverted");
+                    } else if (targetType == Node.NodeType.DECISION) {
+                        node.addTags("Decision", "InboxConverted");
+                    } else if (targetType == Node.NodeType.CONCEPT
+                            || targetType == Node.NodeType.QUESTION
+                            || targetType == Node.NodeType.RESOURCE
+                            || targetType == Node.NodeType.NOTE) {
+                        node.addTags("Learning", "InboxConverted");
+                    } else {
+                        node.addTag("InboxConverted");
+                    }
+
+                    onNodeUpdated(node);
+                    mindMapView.invalidate();
+                    scheduleAutoSave();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private String safeTitle(Node node) {
+        if (node == null) return "(空节点)";
+        String title = node.getTitle();
+        if (title == null || title.trim().isEmpty()) return "(无标题)";
+        return title.trim();
+    }
+
+    // =========================
     // 原有模板生成逻辑
     // =========================
 
