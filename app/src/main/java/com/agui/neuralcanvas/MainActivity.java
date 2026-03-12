@@ -102,6 +102,9 @@ public class MainActivity extends AppCompatActivity
             mindMapView.addNode(newNode);
             showNodeEditDialog(newNode);
             return true;
+        } else if (id == R.id.action_projects_hub) {
+    ProjectsHubDialog.newInstance().show(getSupportFragmentManager(), "projects_hub");
+            return true;
         } else if (id == R.id.action_search) {
             showSearchDialog();
             return true;
