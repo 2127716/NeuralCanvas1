@@ -12,11 +12,19 @@ import java.util.UUID;
 public class Connection {
 
     public enum ConnectionType {
-        SEQUENCE(Color.parseColor("#67B7FF"), "顺序", Paint.Cap.ROUND),
-        PARALLEL(Color.parseColor("#57D38C"), "并列", Paint.Cap.ROUND),
-        BLOCKING(Color.parseColor("#FF6B6B"), "阻碍", Paint.Cap.ROUND),
-        DEPENDENCY(Color.parseColor("#FFB84D"), "依赖", Paint.Cap.ROUND),
-        REFERENCE(Color.parseColor("#B084F5"), "参考", Paint.Cap.ROUND);
+        SUPPORTS(Color.parseColor("#57D38C"), "支持", Paint.Cap.ROUND),
+        OPPOSES(Color.parseColor("#FF6B6B"), "反对", Paint.Cap.ROUND),
+        CAUSES(Color.parseColor("#FFA726"), "导致", Paint.Cap.ROUND),
+        DEPENDS_ON(Color.parseColor("#FFB84D"), "依赖", Paint.Cap.ROUND),
+        LEADS_TO(Color.parseColor("#67B7FF"), "导向", Paint.Cap.ROUND),
+        BELONGS_TO(Color.parseColor("#7E57C2"), "归属", Paint.Cap.ROUND),
+        EVIDENCE_FOR(Color.parseColor("#26A69A"), "证据支持", Paint.Cap.ROUND),
+        EVIDENCE_AGAINST(Color.parseColor("#EF5350"), "证据反驳", Paint.Cap.ROUND),
+        TRIGGERS(Color.parseColor("#5E35B1"), "触发", Paint.Cap.ROUND),
+        BLOCKS(Color.parseColor("#E53935"), "阻碍", Paint.Cap.ROUND),
+        MITIGATES(Color.parseColor("#43A047"), "缓解", Paint.Cap.ROUND),
+        ALTERNATIVE_TO(Color.parseColor("#AB47BC"), "替代", Paint.Cap.ROUND),
+        REFERENCES(Color.parseColor("#90CAF9"), "参考", Paint.Cap.ROUND);
 
         public final int color;
         public final String label;
@@ -38,6 +46,11 @@ public class Connection {
     private Integer customColor = null;
     private float strokeWidth = 4f;
 
+    // 扩展字段，后面给决策/证据系统用
+    private float confidence = 0.5f; // 0~1
+    private float weight = 1.0f;
+    private String note = "";
+
     private transient Paint linePaint;
     private transient Paint arrowPaint;
     private transient Paint labelPaint;
@@ -47,7 +60,7 @@ public class Connection {
         this.id = UUID.randomUUID().toString();
         this.fromNodeId = "";
         this.toNodeId = "";
-        this.type = ConnectionType.SEQUENCE;
+        this.type = ConnectionType.LEADS_TO;
         this.label = "";
         ensurePaints();
     }
@@ -56,7 +69,7 @@ public class Connection {
         this.id = UUID.randomUUID().toString();
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
-        this.type = type == null ? ConnectionType.SEQUENCE : type;
+        this.type = type == null ? ConnectionType.LEADS_TO : type;
         this.label = label == null ? "" : label;
         ensurePaints();
     }
@@ -117,16 +130,28 @@ public class Connection {
             canvas.drawLine(start.x, start.y, end.x, end.y, haloPaint);
         }
 
+        if (type == ConnectionType.BLOCKS || type == ConnectionType.OPPOSES || type == ConnectionType.EVIDENCE_AGAINST) {
+            linePaint.setPathEffect(new android.graphics.DashPathEffect(new float[]{16f, 10f}, 0));
+        } else {
+            linePaint.setPathEffect(null);
+        }
+
         canvas.drawLine(start.x, start.y, end.x, end.y, linePaint);
         drawArrow(canvas, start.x, start.y, end.x, end.y, effectiveWidth);
 
         if (label != null && !label.trim().isEmpty()) {
             drawLabel(canvas, start.x, start.y, end.x, end.y, scale);
+        } else if (type != null) {
+            drawLabel(canvas, start.x, start.y, end.x, end.y, scale, type.label);
         }
     }
 
     private void drawLabel(Canvas canvas, float fromX, float fromY, float toX, float toY, float scale) {
-        String drawText = trimTextForLabel(label, Math.max(8, (int) (14 + scale * 10)));
+        drawLabel(canvas, fromX, fromY, toX, toY, scale, label);
+    }
+
+    private void drawLabel(Canvas canvas, float fromX, float fromY, float toX, float toY, float scale, String rawText) {
+        String drawText = trimTextForLabel(rawText, Math.max(8, (int) (14 + scale * 10)));
 
         float midX = (fromX + toX) / 2f;
         float midY = (fromY + toY) / 2f;
@@ -233,14 +258,17 @@ public class Connection {
     public String getId() { return id; }
     public String getFromNodeId() { return fromNodeId; }
     public String getToNodeId() { return toNodeId; }
-    public ConnectionType getType() { return type; }
-    public String getLabel() { return label; }
+    public ConnectionType getType() { return type == null ? ConnectionType.LEADS_TO : type; }
+    public String getLabel() { return label == null ? "" : label; }
     public boolean isSelected() { return selected; }
     public Integer getCustomColor() { return customColor; }
     public float getStrokeWidth() { return strokeWidth; }
+    public float getConfidence() { return confidence; }
+    public float getWeight() { return weight; }
+    public String getNote() { return note == null ? "" : note; }
 
     public void setType(ConnectionType type) {
-        this.type = type == null ? ConnectionType.SEQUENCE : type;
+        this.type = type == null ? ConnectionType.LEADS_TO : type;
         ensurePaints();
         applyPaintStyle();
     }
@@ -263,5 +291,17 @@ public class Connection {
         this.strokeWidth = Math.max(2f, strokeWidth);
         ensurePaints();
         applyPaintStyle();
+    }
+
+    public void setConfidence(float confidence) {
+        this.confidence = Math.max(0f, Math.min(1f, confidence));
+    }
+
+    public void setWeight(float weight) {
+        this.weight = Math.max(0f, weight);
+    }
+
+    public void setNote(String note) {
+        this.note = note == null ? "" : note;
     }
 }
