@@ -138,7 +138,9 @@ public class ProjectsHubDialog extends DialogFragment {
         card.setLayoutParams(cardLp);
 
         String projectTitle = ProjectsHubBuilder.safe(projectNode.getTitle());
-        if (projectTitle.isEmpty()) projectTitle = "未命名项目";
+        if (projectTitle.isEmpty()) {
+            projectTitle = "未命名项目";
+        }
 
         TextView title = makeText("项目｜" + projectTitle, 16, true, "#F8FAFC");
         title.setOnClickListener(v -> {
@@ -169,4 +171,75 @@ public class ProjectsHubDialog extends DialogFragment {
         if (!content.isEmpty()) {
             TextView contentView = makeText(content, 13, false, "#CBD5E1");
             LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            contentLp.topMargin = dp(8);
+            contentView.setLayoutParams(contentLp);
+            card.addView(contentView);
+        }
+
+        card.addView(spacer(10));
+
+        addSection(card, "目标", group.goals, activity);
+        addSection(card, "关键结果 KR", group.krs, activity);
+        addSection(card, "执行动作", group.actions, activity);
+        addSection(card, "风险 / 障碍", group.risks, activity);
+        addSection(card, "复盘", group.reviews, activity);
+
+        return card;
+    }
+
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        MainActivity activity = (MainActivity) getActivity();
+        if (activity == null || activity.getMindMapView() == null) {
+            return super.onCreateDialog(savedInstanceState);
+        }
+
+        ProjectsHubBuilder.ProjectsHubData data =
+                ProjectsHubBuilder.build(activity.getMindMapView().getNodesInternal());
+
+        ScrollView scrollView = new ScrollView(requireContext());
+
+        LinearLayout root = new LinearLayout(requireContext());
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(18), dp(18), dp(18), dp(18));
+        root.setBackgroundColor(Color.parseColor("#0B1020"));
+        scrollView.addView(root);
+
+        TextView title = makeText("项目中心", 20, true, "#F8FAFC");
+        root.addView(title);
+
+        TextView sub = makeText("项目归组与排序已拆到 ProjectsHubBuilder", 13, false, "#94A3B8");
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        subLp.topMargin = dp(6);
+        sub.setLayoutParams(subLp);
+        root.addView(sub);
+
+        root.addView(spacer(14));
+
+        if (data.groups.isEmpty()) {
+            TextView empty = makeText(
+                    "当前没有 PROJECT 类型节点。先建项目节点，再把相关节点挂到这个项目下。",
+                    14,
+                    false,
+                    "#CBD5E1"
+            );
+            root.addView(empty);
+        } else {
+            for (ProjectsHubBuilder.ProjectGroup group : data.groups) {
+                root.addView(buildProjectCard(group, activity));
+            }
+        }
+
+        return new AlertDialog.Builder(requireContext())
+                .setView(scrollView)
+                .setPositiveButton("关闭", null)
+                .create();
+    }
+}
