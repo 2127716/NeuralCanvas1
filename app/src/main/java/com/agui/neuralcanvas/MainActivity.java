@@ -105,6 +105,9 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_search) {
             showSearchDialog();
             return true;
+        } else if (id == R.id.action_dashboard) {
+    ScientificDashboardDialog.newInstance().show(getSupportFragmentManager(), "scientific_dashboard");
+            return true;
         } else if (id == R.id.action_generate_woop) {
             generateWoopFromSelectedNode();
             return true;
