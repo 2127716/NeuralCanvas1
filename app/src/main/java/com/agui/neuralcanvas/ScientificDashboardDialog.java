@@ -134,6 +134,16 @@ public class ScientificDashboardDialog extends DialogFragment {
         return node != null && node.getType() == Node.NodeType.DECISION;
     }
 
+    private boolean isLearningNode(Node node) {
+        if (node == null) return false;
+        return node.getType() == Node.NodeType.CONCEPT
+                || node.getType() == Node.NodeType.NOTE
+                || node.getType() == Node.NodeType.QUESTION
+                || node.getType() == Node.NodeType.SOURCE
+                || node.getType() == Node.NodeType.INSIGHT
+                || node.getType() == Node.NodeType.EVIDENCE;
+    }
+
     private int statusRank(Node.NodeStatus status) {
         if (status == null) return 99;
         switch (status) {
@@ -214,25 +224,15 @@ public class ScientificDashboardDialog extends DialogFragment {
         String projectId = projectNode.getId();
         String title = safe(projectNode.getTitle(), "项目");
 
-        Node goalNode = new Node(
-                "Goal｜" + title,
-                "这个项目真正要实现的结果是什么？",
-                baseX - 320f,
-                baseY + 220f,
-                Node.NodeType.GOAL
-        );
+        Node goalNode = new Node("Goal｜" + title, "这个项目真正要实现的结果是什么？",
+                baseX - 320f, baseY + 220f, Node.NodeType.GOAL);
         goalNode.setShape(Node.NodeShape.OVAL);
         goalNode.setStatus(Node.NodeStatus.ACTIVE);
         goalNode.setProjectId(projectId);
         goalNode.setTagsFromString("Project,Goal,目标");
 
-        Node krNode = new Node(
-                "KR｜" + title,
-                "写一个可量化关键结果",
-                baseX,
-                baseY + 220f,
-                Node.NodeType.KEY_RESULT
-        );
+        Node krNode = new Node("KR｜" + title, "写一个可量化关键结果",
+                baseX, baseY + 220f, Node.NodeType.KEY_RESULT);
         krNode.setShape(Node.NodeShape.HEXAGON);
         krNode.setStatus(Node.NodeStatus.ACTIVE);
         krNode.setProjectId(projectId);
@@ -240,26 +240,16 @@ public class ScientificDashboardDialog extends DialogFragment {
         krNode.setKrCurrent(0f);
         krNode.setTagsFromString("Project,KR,关键结果");
 
-        Node actionNode = new Node(
-                "First Action｜" + title,
-                "这个项目最小的下一步是什么？",
-                baseX + 320f,
-                baseY + 220f,
-                Node.NodeType.ACTION
-        );
+        Node actionNode = new Node("First Action｜" + title, "这个项目最小的下一步是什么？",
+                baseX + 320f, baseY + 220f, Node.NodeType.ACTION);
         actionNode.setShape(Node.NodeShape.RECT);
         actionNode.setStatus(Node.NodeStatus.PLANNED);
         actionNode.setProjectId(projectId);
         actionNode.setTriggerCondition("如果我要开始推进这个项目，那么先做这个最小动作");
         actionNode.setTagsFromString("Project,FirstAction,执行");
 
-        Node reviewNode = new Node(
-                "Weekly Review｜" + title,
-                "本周这个项目推进了什么？卡在哪？下周怎么调？",
-                baseX,
-                baseY + 460f,
-                Node.NodeType.REVIEW
-        );
+        Node reviewNode = new Node("Weekly Review｜" + title, "本周这个项目推进了什么？卡在哪？下周怎么调？",
+                baseX, baseY + 460f, Node.NodeType.REVIEW);
         reviewNode.setShape(Node.NodeShape.OVAL);
         reviewNode.setStatus(Node.NodeStatus.REVIEW);
         reviewNode.setProjectId(projectId);
@@ -370,6 +360,56 @@ public class ScientificDashboardDialog extends DialogFragment {
         activity.onGraphMutatedByAi();
     }
 
+    private void generateLearningStarterNodes(Node learningNode, MainActivity activity) {
+        if (learningNode == null || activity == null || activity.getMindMapView() == null) return;
+
+        MindMapView view = activity.getMindMapView();
+
+        float baseX = learningNode.getX();
+        float baseY = learningNode.getY();
+        String ownerId = safe(learningNode.getProjectId(), "");
+        if (ownerId.isEmpty()) ownerId = learningNode.getId();
+        String title = safe(learningNode.getTitle(), "知识点");
+
+        Node retrievalNode = new Node("Retrieval｜" + title,
+                "不用看原文，试着回答：它是什么？核心机制/步骤是什么？",
+                baseX - 360f, baseY + 180f, Node.NodeType.QUESTION);
+        retrievalNode.setShape(Node.NodeShape.OVAL);
+        retrievalNode.setStatus(Node.NodeStatus.ACTIVE);
+        retrievalNode.setProjectId(ownerId);
+        retrievalNode.setReviewAt("尽快第一次回忆");
+        retrievalNode.setTagsFromString("Learning,Retrieval,检索练习");
+
+        Node deepeningNode = new Node("Deepening｜" + title,
+                "用你自己的话重述定义，举例，并找一个反例。",
+                baseX, baseY + 180f, Node.NodeType.CONCEPT);
+        deepeningNode.setShape(Node.NodeShape.HEXAGON);
+        deepeningNode.setStatus(Node.NodeStatus.ACTIVE);
+        deepeningNode.setProjectId(ownerId);
+        deepeningNode.setTagsFromString("Learning,Deepening,概念深化");
+
+        Node transferNode = new Node("Transfer｜" + title,
+                "把它放到一个新场景中，设计一个小应用任务验证迁移能力。",
+                baseX + 360f, baseY + 180f, Node.NodeType.EXPERIMENT);
+        transferNode.setShape(Node.NodeShape.RECT);
+        transferNode.setStatus(Node.NodeStatus.PLANNED);
+        transferNode.setProjectId(ownerId);
+        transferNode.setTriggerCondition("如果我要确认自己真的会了，那么先做这个迁移验证");
+        transferNode.setTagsFromString("Learning,Transfer,迁移练习");
+
+        view.addNode(retrievalNode);
+        view.addNode(deepeningNode);
+        view.addNode(transferNode);
+
+        view.addConnection(new Connection(learningNode.getId(), retrievalNode.getId(), Connection.ConnectionType.LEADS_TO, "主动回忆"));
+        view.addConnection(new Connection(learningNode.getId(), deepeningNode.getId(), Connection.ConnectionType.LEADS_TO, "概念深化"));
+        view.addConnection(new Connection(learningNode.getId(), transferNode.getId(), Connection.ConnectionType.LEADS_TO, "迁移验证"));
+        view.addConnection(new Connection(retrievalNode.getId(), deepeningNode.getId(), Connection.ConnectionType.TRIGGERS, "回忆暴露薄弱点"));
+        view.addConnection(new Connection(deepeningNode.getId(), transferNode.getId(), Connection.ConnectionType.TRIGGERS, "理解后迁移"));
+
+        activity.onGraphMutatedByAi();
+    }
+
     private void askGenerateProjectStarter(final Node projectNode, final MainActivity activity) {
         if (projectNode == null || activity == null) return;
 
@@ -389,6 +429,17 @@ public class ScientificDashboardDialog extends DialogFragment {
                 .setMessage("要不要立刻生成 Option A/B/C、Criterion、Risk、Evidence、Next Action？")
                 .setNegativeButton("先不用", null)
                 .setPositiveButton("立即生成", (d, w) -> generateDecisionStarterNodes(decisionNode, activity))
+                .show();
+    }
+
+    private void askGenerateLearningStarter(final Node learningNode, final MainActivity activity) {
+        if (learningNode == null || activity == null) return;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("学习创建向导")
+                .setMessage("要不要立刻生成 Retrieval Practice、Concept Deepening、Transfer Practice？")
+                .setNegativeButton("先不用", null)
+                .setPositiveButton("立即生成", (d, w) -> generateLearningStarterNodes(learningNode, activity))
                 .show();
     }
 
@@ -512,6 +563,11 @@ public class ScientificDashboardDialog extends DialogFragment {
 
             if (isDecisionNode(node)) {
                 askGenerateDecisionStarter(node, activity);
+                return true;
+            }
+
+            if (isLearningNode(node)) {
+                askGenerateLearningStarter(node, activity);
                 return true;
             }
 
@@ -683,7 +739,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("单击聚焦；长按可 Inbox 澄清、建项目/决策骨架、快速完成或推进 KR", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("单击聚焦；长按可澄清、建项目/决策/学习骨架、快速完成或推进 KR", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
