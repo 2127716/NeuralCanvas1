@@ -15,6 +15,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_dashboard"
+        android:title="工作台"
+        android:icon="@android:drawable/ic_menu_agenda"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_more"
         android:title="更多"
         android:icon="@android:drawable/ic_menu_more"
