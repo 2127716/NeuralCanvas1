@@ -105,6 +105,12 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_search) {
             showSearchDialog();
             return true;
+        } else if (id == R.id.action_generate_woop) {
+            generateWoopFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_if_then) {
+            generateIfThenFromSelectedNode();
+            return true;
         } else if (id == R.id.action_ai_assistant) {
             AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
             return true;
@@ -120,6 +126,58 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void generateWoopFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个目标/任务/项目节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ScientificTemplateEngine.TemplateResult result =
+                ScientificTemplateEngine.generateWoop(baseNode, mindMapView.getNodesInternal());
+
+        applyTemplateResult(result);
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 WOOP 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateIfThenFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个任务/行动/目标节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ScientificTemplateEngine.TemplateResult result =
+                ScientificTemplateEngine.generateIfThen(baseNode, mindMapView.getNodesInternal());
+
+        applyTemplateResult(result);
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 If-Then 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private Node getSingleSelectedNode() {
+        List<String> selectedIds = mindMapView.getSelectedNodeIds();
+        if (selectedIds == null || selectedIds.isEmpty()) return null;
+        String firstId = selectedIds.get(0);
+        return mindMapView.getNodesInternal().get(firstId);
+    }
+
+    private void applyTemplateResult(ScientificTemplateEngine.TemplateResult result) {
+        if (result == null) return;
+
+        for (Node node : result.createdNodes) {
+            mindMapView.addNode(node);
+        }
+
+        for (Connection connection : result.createdConnections) {
+            mindMapView.addConnection(connection);
+        }
+
+        mindMapView.invalidate();
+        scheduleAutoSave();
     }
 
     private void confirmClearAll() {
