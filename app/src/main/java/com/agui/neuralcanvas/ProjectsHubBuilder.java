@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ProjectsHubBuilder {
@@ -103,18 +104,48 @@ public class ProjectsHubBuilder {
                         || node.getStatus() == Node.NodeStatus.REVIEW);
     }
 
+    public static String safe(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    public static String formatPercent(float current, float target) {
+        if (target <= 0f) return "";
+        float percent = (current / target) * 100f;
+        if (percent < 0f) percent = 0f;
+        return String.format(Locale.getDefault(), "%.0f%%", percent);
+    }
+
     public static String buildNodeChipText(Node node) {
-        return NodeUiTextFormatter.buildChipText(node);
+        String title = safe(node.getTitle());
+        if (title.isEmpty()) title = "未命名节点";
+
+        String line = "• " + title + " [" + node.getType().label + "]";
+
+        List<String> extras = new ArrayList<>();
+        if (!safe(node.getDueAt()).isEmpty()) extras.add("截止:" + node.getDueAt());
+        if (!safe(node.getReviewAt()).isEmpty()) extras.add("复盘:" + node.getReviewAt());
+        if (node.getPriority() > 0) extras.add("P" + node.getPriority());
+        if (node.getKrTarget() > 0f) {
+            extras.add("KR " + node.getKrCurrent() + "/" + node.getKrTarget()
+                    + " (" + formatPercent(node.getKrCurrent(), node.getKrTarget()) + ")");
+        }
+
+        if (!extras.isEmpty()) {
+            line += "\n  " + android.text.TextUtils.join(" ｜ ", extras);
+        }
+
+        return line;
     }
 
     private static void sortProjects(List<Node> list) {
         Collections.sort(list, new Comparator<Node>() {
             @Override
             public int compare(Node a, Node b) {
-                int p = Integer.compare(b.getPriority(), a.getPriority());
+                int pa = a.getPriority();
+                int pb = b.getPriority();
+                int p = Integer.compare(pb, pa);
                 if (p != 0) return p;
-                return NodeUiTextFormatter.safe(a.getTitle())
-                        .compareToIgnoreCase(NodeUiTextFormatter.safe(b.getTitle()));
+                return safe(a.getTitle()).compareToIgnoreCase(safe(b.getTitle()));
             }
         });
     }
@@ -125,8 +156,7 @@ public class ProjectsHubBuilder {
             public int compare(Node a, Node b) {
                 int p = Integer.compare(b.getPriority(), a.getPriority());
                 if (p != 0) return p;
-                return NodeUiTextFormatter.safe(a.getTitle())
-                        .compareToIgnoreCase(NodeUiTextFormatter.safe(b.getTitle()));
+                return safe(a.getTitle()).compareToIgnoreCase(safe(b.getTitle()));
             }
         });
     }
@@ -137,8 +167,7 @@ public class ProjectsHubBuilder {
             public int compare(Node a, Node b) {
                 int p = Integer.compare(b.getPriority(), a.getPriority());
                 if (p != 0) return p;
-                return NodeUiTextFormatter.safe(a.getTitle())
-                        .compareToIgnoreCase(NodeUiTextFormatter.safe(b.getTitle()));
+                return safe(a.getTitle()).compareToIgnoreCase(safe(b.getTitle()));
             }
         });
     }
@@ -160,8 +189,7 @@ public class ProjectsHubBuilder {
             public int compare(Node a, Node b) {
                 int p = Integer.compare(b.getPriority(), a.getPriority());
                 if (p != 0) return p;
-                return NodeUiTextFormatter.safe(a.getTitle())
-                        .compareToIgnoreCase(NodeUiTextFormatter.safe(b.getTitle()));
+                return safe(a.getTitle()).compareToIgnoreCase(safe(b.getTitle()));
             }
         });
     }
@@ -170,8 +198,7 @@ public class ProjectsHubBuilder {
         Collections.sort(list, new Comparator<Node>() {
             @Override
             public int compare(Node a, Node b) {
-                return NodeUiTextFormatter.safe(a.getTitle())
-                        .compareToIgnoreCase(NodeUiTextFormatter.safe(b.getTitle()));
+                return safe(a.getTitle()).compareToIgnoreCase(safe(b.getTitle()));
             }
         });
     }
