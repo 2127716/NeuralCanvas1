@@ -129,6 +129,15 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_generate_evidence_review) {
             generateEvidenceReviewFromSelectedNode();
             return true;
+        } else if (id == R.id.action_generate_retrieval_practice) {
+            generateRetrievalPracticeFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_concept_deepening) {
+            generateConceptDeepeningFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_transfer_practice) {
+            generateTransferPracticeFromSelectedNode();
+            return true;
         } else if (id == R.id.action_ai_assistant) {
             AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
             return true;
@@ -232,6 +241,39 @@ public class MainActivity extends AppCompatActivity
         applyTemplateResult(ScientificTemplateEngine.generateEvidenceReview(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成证据评估子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateRetrievalPracticeFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个知识节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateRetrievalPractice(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成检索练习子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateConceptDeepeningFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个概念节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateConceptDeepening(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成概念深化子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateTransferPracticeFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个知识/方法节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateTransferPractice(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成应用迁移子图", Toast.LENGTH_SHORT).show();
     }
 
     private Node getSingleSelectedNode() {
