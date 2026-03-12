@@ -1,12 +1,10 @@
 package com.agui.neuralcanvas;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -93,7 +91,6 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    
     @Override
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
         if (MainMenuActionHandler.handle(this, item.getItemId())) {
@@ -102,8 +99,113 @@ public class MainActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-        
+    // =========================
+    // 给 MainMenuActionHandler 用的公开方法
+    // =========================
 
+    public void showAddNodeDialog() {
+        float baseX = 120f;
+        float baseY = 120f;
+
+        Node newNode = new Node(
+                "新节点",
+                "输入内容",
+                baseX,
+                baseY,
+                Node.NodeType.CONCEPT
+        );
+        mindMapView.addNode(newNode);
+        showNodeEditDialog(newNode);
+    }
+
+    public void showSearchDialog() {
+        DialogFragment dialog = SearchDialog.newInstance(mindMapView);
+        dialog.show(getSupportFragmentManager(), "search_dialog");
+    }
+
+    public void generateScientificTemplate(ScientificTemplateEngine.TemplateType type) {
+        if (type == null) return;
+
+        switch (type) {
+            case WOOP:
+                generateWoopFromSelectedNode();
+                break;
+            case IF_THEN:
+                generateIfThenFromSelectedNode();
+                break;
+            case DAILY_REVIEW:
+                generateDailyReviewFromSelectedNode();
+                break;
+            case WEEKLY_REVIEW:
+                generateWeeklyReviewFromSelectedNode();
+                break;
+            case AAR:
+                generateAarFromSelectedNode();
+                break;
+            case DECISION_TREE:
+                generateDecisionTreeFromSelectedNode();
+                break;
+            case PREMORTEM:
+                generatePremortemFromSelectedNode();
+                break;
+            case EVIDENCE_REVIEW:
+                generateEvidenceReviewFromSelectedNode();
+                break;
+            case RETRIEVAL_PRACTICE:
+                generateRetrievalPracticeFromSelectedNode();
+                break;
+            case CONCEPT_DEEPENING:
+                generateConceptDeepeningFromSelectedNode();
+                break;
+            case TRANSFER_PRACTICE:
+                generateTransferPracticeFromSelectedNode();
+                break;
+            default:
+                Toast.makeText(this, "暂不支持该模板", Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    public void runAiGapCheck() {
+        generateAiGapCheckFromSelectedNode();
+    }
+
+    public void runAiExecutionPatch() {
+        generateAiExecutionPatchFromSelectedNode();
+    }
+
+    public void runAiLearningPatch() {
+        generateAiLearningPatchFromSelectedNode();
+    }
+
+    public void showAiAssistantDialog() {
+        Toast.makeText(this, "AI 助手功能待继续接入", Toast.LENGTH_SHORT).show();
+    }
+
+    public void showKnowledgeImportDialog() {
+        Toast.makeText(this, "知识导入功能待继续接入", Toast.LENGTH_SHORT).show();
+    }
+
+    public void showHelpDialog() {
+        Toast.makeText(this, "帮助页面待继续完善", Toast.LENGTH_SHORT).show();
+    }
+
+    public void confirmClearAll() {
+        new AlertDialog.Builder(this)
+                .setTitle("清除全部")
+                .setMessage("确定删除全部节点和连线吗？此操作会覆盖当前自动保存数据。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("确定", (dialog, which) -> {
+                    mindMapView.clearAll();
+                    saveCurrentDataSilently();
+                    Toast.makeText(this, "已清除全部内容", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    // =========================
+    // 原有模板生成逻辑
+    // =========================
 
     private void generateWoopFromSelectedNode() {
         Node baseNode = getSingleSelectedNode();
@@ -281,19 +383,6 @@ public class MainActivity extends AppCompatActivity
         scheduleAutoSave();
     }
 
-    private void confirmClearAll() {
-        new AlertDialog.Builder(this)
-                .setTitle("清除全部")
-                .setMessage("确定删除全部节点和连线吗？此操作会覆盖当前自动保存数据。")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("确定", (dialog, which) -> {
-                    mindMapView.clearAll();
-                    saveCurrentDataSilently();
-                    Toast.makeText(this, "已清除全部内容", Toast.LENGTH_SHORT).show();
-                })
-                .show();
-    }
-
     public void showNodeEditDialog(Node node) {
         DialogFragment dialog = NodeEditDialog.newInstance(node, mindMapView);
         dialog.show(getSupportFragmentManager(), "node_edit_dialog");
@@ -347,11 +436,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onDataChanged() {
         scheduleAutoSave();
-    }
-
-    private void showSearchDialog() {
-        DialogFragment dialog = SearchDialog.newInstance(mindMapView);
-        dialog.show(getSupportFragmentManager(), "search_dialog");
     }
 
     @Override
