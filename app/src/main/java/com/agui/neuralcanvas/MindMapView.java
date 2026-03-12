@@ -875,55 +875,176 @@ public class MindMapView extends View {
             if (w >= 10f) widthIndex = 3;
             else if (w >= 8f) widthIndex = 2;
             else if (w >= 6f) widthIndex = 1;
-            widthSpinner.setSelection(widthIndex);
-        }
+private void showEditConnectionDialog(Node from, Node to) {
+    LinearLayout layout = new LinearLayout(getContext());
+    layout.setOrientation(LinearLayout.VERTICAL);
+    int padding = (int) dp(18f);
+    layout.setPadding(padding, padding, padding, padding);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
-                .setTitle(existing != null ? "编辑连线" : "新建连线")
-                .setView(layout)
-                .setNegativeButton("取消", (d, w) -> cancelPendingAction())
-                .setPositiveButton("确定", (d, w) -> {
-                    String label = input.getText().toString().trim();
-                    Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
-                    float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
+    EditText input = new EditText(getContext());
+    input.setHint("输入连线文字（可为空）");
+    LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    inputParams.bottomMargin = (int) dp(14f);
+    input.setLayoutParams(inputParams);
+    layout.addView(input);
 
-                    Connection ex = findConnectionBetween(from.getId(), to.getId());
-                    boolean changedOnly = false;
+    Spinner typeSpinner = new Spinner(getContext());
+    LinearLayout.LayoutParams typeParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    typeParams.bottomMargin = (int) dp(14f);
+    typeSpinner.setLayoutParams(typeParams);
 
-                    if (ex != null) {
-                        ex.setLabel(label);
-                        ex.setCustomColor(selectedColor);
-                        ex.setStrokeWidth(selectedWidth);
-                        changedOnly = true;
-                    } else {
-                        Connection c = new Connection(
-                                from.getId(),
-                                to.getId(),
-                                Connection.ConnectionType.SEQUENCE,
-                                label
-                        );
-                        c.setCustomColor(selectedColor);
-                        c.setStrokeWidth(selectedWidth);
-                        addConnection(c);
-                    }
-
-                    cancelPendingAction();
-                    invalidate();
-
-                    if (changedOnly) {
-                        notifyDataChanged();
-                    }
-                });
-
-        if (existing != null) {
-            builder.setNeutralButton("删除连线", (d, w) -> {
-                removeConnection(existing.getId());
-                cancelPendingAction();
-            });
-        }
-
-        builder.show();
+    String[] typeNames = new String[Connection.ConnectionType.values().length];
+    for (int i = 0; i < Connection.ConnectionType.values().length; i++) {
+        typeNames[i] = Connection.ConnectionType.values()[i].label;
     }
+
+    ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            typeNames
+    );
+    typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    typeSpinner.setAdapter(typeAdapter);
+    layout.addView(typeSpinner);
+
+    Spinner colorSpinner = new Spinner(getContext());
+    LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    colorParams.bottomMargin = (int) dp(14f);
+    colorSpinner.setLayoutParams(colorParams);
+
+    String[] colorNames = {"默认跟随类型颜色", "绿色", "红色", "橙色", "黄色", "紫色", "白色", "蓝色"};
+    Integer[] colorValues = {
+            null,
+            Color.parseColor("#57D38C"),
+            Color.parseColor("#FF6B6B"),
+            Color.parseColor("#FFB84D"),
+            Color.parseColor("#FFD54F"),
+            Color.parseColor("#B084F5"),
+            Color.WHITE,
+            Color.parseColor("#67B7FF")
+    };
+
+    ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            colorNames
+    );
+    colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    colorSpinner.setAdapter(colorAdapter);
+    layout.addView(colorSpinner);
+
+    Spinner widthSpinner = new Spinner(getContext());
+    LinearLayout.LayoutParams widthParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+    widthSpinner.setLayoutParams(widthParams);
+
+    String[] widthNames = {"细", "中", "粗", "超粗"};
+    float[] widthValues = {4f, 6f, 8f, 10f};
+
+    ArrayAdapter<String> widthAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            widthNames
+    );
+    widthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    widthSpinner.setAdapter(widthAdapter);
+    layout.addView(widthSpinner);
+
+    Connection existing = findConnectionBetween(from.getId(), to.getId());
+    if (existing != null) {
+        input.setText(existing.getLabel() == null ? "" : existing.getLabel());
+
+        int typeIndex = 0;
+        for (int i = 0; i < Connection.ConnectionType.values().length; i++) {
+            if (Connection.ConnectionType.values()[i] == existing.getType()) {
+                typeIndex = i;
+                break;
+            }
+        }
+        typeSpinner.setSelection(typeIndex);
+
+        Integer existingColor = existing.getCustomColor();
+        int colorIndex = 0;
+        for (int i = 0; i < colorValues.length; i++) {
+            Integer value = colorValues[i];
+            if ((value == null && existingColor == null)
+                    || (value != null && value.equals(existingColor))) {
+                colorIndex = i;
+                break;
+            }
+        }
+        colorSpinner.setSelection(colorIndex);
+
+        float w = existing.getStrokeWidth();
+        int widthIndex = 0;
+        if (w >= 10f) widthIndex = 3;
+        else if (w >= 8f) widthIndex = 2;
+        else if (w >= 6f) widthIndex = 1;
+        widthSpinner.setSelection(widthIndex);
+    } else {
+        typeSpinner.setSelection(Connection.ConnectionType.LEADS_TO.ordinal());
+    }
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(getContext())
+            .setTitle(existing != null ? "编辑连线" : "新建连线")
+            .setView(layout)
+            .setNegativeButton("取消", (d, w) -> cancelPendingAction())
+            .setPositiveButton("确定", (d, w) -> {
+                String label = input.getText().toString().trim();
+                Connection.ConnectionType selectedType =
+                        Connection.ConnectionType.values()[typeSpinner.getSelectedItemPosition()];
+                Integer selectedColor = colorValues[colorSpinner.getSelectedItemPosition()];
+                float selectedWidth = widthValues[widthSpinner.getSelectedItemPosition()];
+
+                Connection ex = findConnectionBetween(from.getId(), to.getId());
+                boolean changedOnly = false;
+
+                if (ex != null) {
+                    ex.setType(selectedType);
+                    ex.setLabel(label);
+                    ex.setCustomColor(selectedColor);
+                    ex.setStrokeWidth(selectedWidth);
+                    changedOnly = true;
+                } else {
+                    Connection c = new Connection(
+                            from.getId(),
+                            to.getId(),
+                            selectedType,
+                            label
+                    );
+                    c.setCustomColor(selectedColor);
+                    c.setStrokeWidth(selectedWidth);
+                    addConnection(c);
+                }
+
+                cancelPendingAction();
+                invalidate();
+
+                if (changedOnly) {
+                    notifyDataChanged();
+                }
+            });
+
+    if (existing != null) {
+        builder.setNeutralButton("删除连线", (d, w) -> {
+            removeConnection(existing.getId());
+            cancelPendingAction();
+        });
+    }
+
+    builder.show();
+}
 
     private void showEditExistingConnectionDialog(Connection connection) {
         if (connection == null) return;
