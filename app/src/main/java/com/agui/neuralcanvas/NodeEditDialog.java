@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.TypedValue;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -17,6 +18,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class NodeEditDialog extends DialogFragment {
 
@@ -62,7 +67,7 @@ public class NodeEditDialog extends DialogFragment {
         return et;
     }
 
-    private void addWithTopMargin(LinearLayout root, android.view.View view, int topDp) {
+    private void addWithTopMargin(LinearLayout root, View view, int topDp) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -87,6 +92,61 @@ public class NodeEditDialog extends DialogFragment {
         } catch (Exception e) {
             return defaultValue;
         }
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static class ProjectOption {
+        String id;
+        String label;
+
+        ProjectOption(String id, String label) {
+            this.id = id;
+            this.label = label;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    private List<ProjectOption> buildProjectOptions() {
+        List<ProjectOption> list = new ArrayList<>();
+        list.add(new ProjectOption("", "无所属项目"));
+
+        if (currentMindMapView == null) return list;
+
+        Map<String, Node> allNodes = currentMindMapView.getNodesInternal();
+        if (allNodes == null) return list;
+
+        for (Node node : allNodes.values()) {
+            if (node == null) continue;
+            if (node.getType() != Node.NodeType.PROJECT) continue;
+
+            String title = safe(node.getTitle());
+            if (title.isEmpty()) {
+                title = "未命名项目";
+            }
+
+            String label = title + "  (" + node.getId() + ")";
+            list.add(new ProjectOption(node.getId(), label));
+        }
+
+        return list;
+    }
+
+    private int findProjectSelectionIndex(List<ProjectOption> options, String targetProjectId) {
+        String target = safe(targetProjectId);
+        for (int i = 0; i < options.size(); i++) {
+            if (safe(options.get(i).id).equals(target)) {
+                return i;
+            }
+        }
+        return 0;
     }
 
     @NonNull
@@ -230,12 +290,30 @@ public class NodeEditDialog extends DialogFragment {
         TextView relationTitle = buildSectionTitle("归属与追踪");
         addWithTopMargin(root, relationTitle, 22);
 
+        TextView projectHint = new TextView(requireContext());
+        projectHint.setText("所属项目（优先用选择器，不要再手填 UUID）");
+        projectHint.setTextColor(Color.parseColor("#475569"));
+        projectHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        addWithTopMargin(root, projectHint, 10);
+
+        Spinner projectSpinner = new Spinner(requireContext());
+        List<ProjectOption> projectOptions = buildProjectOptions();
+        ArrayAdapter<ProjectOption> projectAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                projectOptions
+        );
+        projectAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        projectSpinner.setAdapter(projectAdapter);
+        projectSpinner.setSelection(findProjectSelectionIndex(projectOptions, currentNode.getProjectId()));
+        addWithTopMargin(root, projectSpinner, 8);
+
         EditText projectIdInput = buildEditText(
-                "所属项目ID（先手填，后面我再帮你做选择器）",
+                "所属项目ID（高级备用项，通常不用填）",
                 currentNode.getProjectId(),
                 InputType.TYPE_CLASS_TEXT
         );
-        addWithTopMargin(root, projectIdInput, 10);
+        addWithTopMargin(root, projectIdInput, 12);
 
         EditText areaIdInput = buildEditText(
                 "所属领域ID",
@@ -246,17 +324,23 @@ public class NodeEditDialog extends DialogFragment {
 
         EditText krTargetInput = buildEditText(
                 "KR目标值",
-                String.valueOf(currentNode.getKrTarget()),
+                currentNode.getKrTarget() == 0f ? "" : String.valueOf(currentNode.getKrTarget()),
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
         addWithTopMargin(root, krTargetInput, 14);
 
         EditText krCurrentInput = buildEditText(
                 "KR当前值",
-                String.valueOf(currentNode.getKrCurrent()),
+                currentNode.getKrCurrent() == 0f ? "" : String.valueOf(currentNode.getKrCurrent()),
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
         addWithTopMargin(root, krCurrentInput, 14);
+
+        TextView krHint = new TextView(requireContext());
+        krHint.setText("KR 节点建议填写目标值和当前值；普通节点可以留空");
+        krHint.setTextColor(Color.parseColor("#64748B"));
+        krHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        addWithTopMargin(root, krHint, 8);
 
         TextView advancedTitle = buildSectionTitle("证据 / 来源 / 扩展");
         addWithTopMargin(root, advancedTitle, 22);
@@ -308,7 +392,16 @@ public class NodeEditDialog extends DialogFragment {
                     currentNode.setActualEffort(parseFloatSafe(actualEffortInput.getText().toString(), 0f));
                     currentNode.setConfidence(parseFloatSafe(confidenceInput.getText().toString(), 0.5f));
                     currentNode.setTriggerCondition(triggerInput.getText().toString().trim());
-                    currentNode.setProjectId(projectIdInput.getText().toString().trim());
+
+                    ProjectOption selectedProject = (ProjectOption) projectSpinner.getSelectedItem();
+                    String selectedProjectId = selectedProject == null ? "" : safe(selectedProject.id);
+                    String backupProjectId = projectIdInput.getText().toString().trim();
+                    if (!selectedProjectId.isEmpty()) {
+                        currentNode.setProjectId(selectedProjectId);
+                    } else {
+                        currentNode.setProjectId(backupProjectId);
+                    }
+
                     currentNode.setAreaId(areaIdInput.getText().toString().trim());
                     currentNode.setKrTarget(parseFloatSafe(krTargetInput.getText().toString(), 0f));
                     currentNode.setKrCurrent(parseFloatSafe(krCurrentInput.getText().toString(), 0f));
