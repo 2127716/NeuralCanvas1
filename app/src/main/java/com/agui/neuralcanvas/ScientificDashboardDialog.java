@@ -1,6 +1,7 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -18,6 +19,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 
+import java.util.Map;
+
 public class ScientificDashboardDialog extends DialogFragment {
 
     public static ScientificDashboardDialog newInstance() {
@@ -30,6 +33,10 @@ public class ScientificDashboardDialog extends DialogFragment {
                 value,
                 requireContext().getResources().getDisplayMetrics()
         );
+    }
+
+    private int dp(Context context, int value) {
+        return (int) (value * context.getResources().getDisplayMetrics().density);
     }
 
     private android.graphics.drawable.GradientDrawable createRoundedDrawable(String color) {
@@ -194,6 +201,37 @@ public class ScientificDashboardDialog extends DialogFragment {
         root.addView(buildSpacer(18));
     }
 
+    private View buildWorkflowSummarySection(Context context,
+                                             Map<String, Node> nodes,
+                                             Map<String, Connection> connections) {
+        WorkflowSnapshot snapshot = WorkflowSnapshot.from(nodes, connections);
+
+        LinearLayout section = new LinearLayout(context);
+        section.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(context, 12);
+        section.setPadding(padding, padding, padding, padding);
+
+        TextView title = new TextView(context);
+        title.setText("工作流概览");
+        title.setTextSize(16f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        section.addView(title);
+
+        TextView content = new TextView(context);
+        content.setText(
+                "Inbox： " + snapshot.inboxCount + "\n" +
+                "项目： " + snapshot.projectCount + "\n" +
+                "下一步动作： " + snapshot.nextActionCount + "\n" +
+                "待复盘： " + snapshot.reviewDueCount + "\n" +
+                "卡住项目： " + snapshot.stuckProjectCount
+        );
+        content.setTextSize(14f);
+        content.setPadding(0, dp(context, 8), 0, 0);
+        section.addView(content);
+
+        return section;
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -202,8 +240,10 @@ public class ScientificDashboardDialog extends DialogFragment {
             return super.onCreateDialog(savedInstanceState);
         }
 
+        Map<String, Node> nodes = activity.getMindMapView().getNodesInternal();
+        Map<String, Connection> connections = activity.getMindMapView().getConnectionsInternal();
         DashboardSectionBuilder.DashboardData data =
-                DashboardSectionBuilder.build(activity.getMindMapView().getNodesInternal());
+                DashboardSectionBuilder.build(nodes);
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
@@ -226,6 +266,10 @@ public class ScientificDashboardDialog extends DialogFragment {
         subtitle.setLayoutParams(subLp);
         root.addView(subtitle);
 
+        root.addView(buildSpacer(16));
+
+        // 添加工作流概览卡片
+        root.addView(buildWorkflowSummarySection(requireContext(), nodes, connections));
         root.addView(buildSpacer(16));
 
         HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
