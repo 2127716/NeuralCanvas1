@@ -61,8 +61,6 @@ public class ScientificTemplateEngine {
         planNode.setStatus(Node.NodeStatus.PLANNED);
         planNode.setProjectId(baseNode.getId());
         planNode.setTagsFromString("WOOP,Plan,行动");
-
-        // 默认给 plan 一个触发条件模板，后续你可以在编辑框里改
         planNode.setTriggerCondition("如果【障碍出现】，那么我立刻执行【最小下一步动作】");
 
         result.createdNodes.add(wishNode);
@@ -117,7 +115,6 @@ public class ScientificTemplateEngine {
         actionNode.setTagsFromString("If-Then,Action,执行");
         actionNode.setTriggerCondition("如果【触发条件】发生，那么我立刻【执行动作】");
 
-        // 如果基础节点本身就是任务/行动，就让 Then 更贴近它
         if (baseNode.getType() == Node.NodeType.TASK || baseNode.getType() == Node.NodeType.ACTION) {
             actionNode.setContent("那么我立刻执行：" + safeTitle(baseNode));
         }
@@ -148,6 +145,217 @@ public class ScientificTemplateEngine {
         result.createdConnections.add(c4);
 
         return result;
+    }
+
+    public static TemplateResult generateDailyReview(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node summaryNode = new Node(
+                "今日推进",
+                "今天我实际推进了什么？有没有哪一步真正前进？",
+                cx - 280f, cy - 180f,
+                Node.NodeType.REVIEW
+        );
+        summaryNode.setShape(Node.NodeShape.OVAL);
+        summaryNode.setStatus(Node.NodeStatus.REVIEW);
+        summaryNode.setProjectId(ownerId);
+        summaryNode.setTagsFromString("每日复盘,推进,Review");
+
+        Node blockerNode = new Node(
+                "今日卡点",
+                "我卡在哪？是注意力、时间、信息不足、情绪波动，还是任务过大？",
+                cx + 220f, cy - 180f,
+                Node.NodeType.OBSTACLE
+        );
+        blockerNode.setShape(Node.NodeShape.DIAMOND);
+        blockerNode.setStatus(Node.NodeStatus.REVIEW);
+        blockerNode.setProjectId(ownerId);
+        blockerNode.setTagsFromString("每日复盘,卡点,Obstacle");
+
+        Node lessonNode = new Node(
+                "今日经验",
+                "今天最值得保留或修正的一条经验是什么？",
+                cx - 280f, cy + 180f,
+                Node.NodeType.INSIGHT
+        );
+        lessonNode.setShape(Node.NodeShape.HEXAGON);
+        lessonNode.setStatus(Node.NodeStatus.REVIEW);
+        lessonNode.setProjectId(ownerId);
+        lessonNode.setTagsFromString("每日复盘,经验,Insight");
+
+        Node nextNode = new Node(
+                "明日最小下一步",
+                "明天最关键、最小、最明确的一步是什么？",
+                cx + 220f, cy + 180f,
+                Node.NodeType.ACTION
+        );
+        nextNode.setShape(Node.NodeShape.RECT);
+        nextNode.setStatus(Node.NodeStatus.PLANNED);
+        nextNode.setProjectId(ownerId);
+        nextNode.setTagsFromString("每日复盘,下一步,Action");
+        nextNode.setTriggerCondition("如果明天开始工作，那么我先执行这个最小下一步");
+
+        result.createdNodes.add(summaryNode);
+        result.createdNodes.add(blockerNode);
+        result.createdNodes.add(lessonNode);
+        result.createdNodes.add(nextNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), summaryNode.getId(), Connection.ConnectionType.LEADS_TO, "今日推进"));
+        result.createdConnections.add(new Connection(baseNode.getId(), blockerNode.getId(), Connection.ConnectionType.BLOCKS, "今日卡点"));
+        result.createdConnections.add(new Connection(summaryNode.getId(), lessonNode.getId(), Connection.ConnectionType.LEADS_TO, "提炼经验"));
+        result.createdConnections.add(new Connection(lessonNode.getId(), nextNode.getId(), Connection.ConnectionType.TRIGGERS, "经验转行动"));
+        result.createdConnections.add(new Connection(nextNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "推动原节点"));
+
+        return result;
+    }
+
+    public static TemplateResult generateWeeklyReview(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node progressNode = new Node(
+                "本周进展",
+                "本周有哪些真正的推进？哪些目标/KR有量化变化？",
+                cx - 320f, cy - 220f,
+                Node.NodeType.REVIEW
+        );
+        progressNode.setShape(Node.NodeShape.OVAL);
+        progressNode.setStatus(Node.NodeStatus.REVIEW);
+        progressNode.setProjectId(ownerId);
+        progressNode.setTagsFromString("每周复盘,进展,Review");
+
+        Node patternNode = new Node(
+                "重复模式",
+                "这周反复出现的好模式/坏模式是什么？",
+                cx + 260f, cy - 220f,
+                Node.NodeType.INSIGHT
+        );
+        patternNode.setShape(Node.NodeShape.HEXAGON);
+        patternNode.setStatus(Node.NodeStatus.REVIEW);
+        patternNode.setProjectId(ownerId);
+        patternNode.setTagsFromString("每周复盘,模式,Insight");
+
+        Node blockerNode = new Node(
+                "系统性阻碍",
+                "真正拖慢我的系统性因素是什么？例如计划过大、环境分心、估时错误。",
+                cx - 320f, cy + 200f,
+                Node.NodeType.OBSTACLE
+        );
+        blockerNode.setShape(Node.NodeShape.DIAMOND);
+        blockerNode.setStatus(Node.NodeStatus.REVIEW);
+        blockerNode.setProjectId(ownerId);
+        blockerNode.setTagsFromString("每周复盘,阻碍,Obstacle");
+
+        Node adjustNode = new Node(
+                "下周调整",
+                "下周要删掉什么、保留什么、强化什么？",
+                cx + 260f, cy + 200f,
+                Node.NodeType.ACTION
+        );
+        adjustNode.setShape(Node.NodeShape.RECT);
+        adjustNode.setStatus(Node.NodeStatus.PLANNED);
+        adjustNode.setProjectId(ownerId);
+        adjustNode.setTagsFromString("每周复盘,调整,Action");
+        adjustNode.setTriggerCondition("如果下周开始规划，那么我先执行这里的调整动作");
+
+        result.createdNodes.add(progressNode);
+        result.createdNodes.add(patternNode);
+        result.createdNodes.add(blockerNode);
+        result.createdNodes.add(adjustNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), progressNode.getId(), Connection.ConnectionType.LEADS_TO, "周进展"));
+        result.createdConnections.add(new Connection(progressNode.getId(), patternNode.getId(), Connection.ConnectionType.LEADS_TO, "归纳模式"));
+        result.createdConnections.add(new Connection(baseNode.getId(), blockerNode.getId(), Connection.ConnectionType.BLOCKS, "系统阻碍"));
+        result.createdConnections.add(new Connection(patternNode.getId(), adjustNode.getId(), Connection.ConnectionType.TRIGGERS, "模式指导调整"));
+        result.createdConnections.add(new Connection(blockerNode.getId(), adjustNode.getId(), Connection.ConnectionType.TRIGGERS, "阻碍倒逼调整"));
+        result.createdConnections.add(new Connection(adjustNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "推动下周"));
+
+        return result;
+    }
+
+    public static TemplateResult generateAarReview(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node expectedNode = new Node(
+                "AAR｜预期",
+                "原本预期会发生什么？目标、时间、质量标准是什么？",
+                cx - 320f, cy - 220f,
+                Node.NodeType.REVIEW
+        );
+        expectedNode.setShape(Node.NodeShape.OVAL);
+        expectedNode.setStatus(Node.NodeStatus.REVIEW);
+        expectedNode.setProjectId(ownerId);
+        expectedNode.setTagsFromString("AAR,预期,Review");
+
+        Node actualNode = new Node(
+                "AAR｜实际",
+                "实际发生了什么？结果如何？和预期差在哪里？",
+                cx + 260f, cy - 220f,
+                Node.NodeType.REVIEW
+        );
+        actualNode.setShape(Node.NodeShape.OVAL);
+        actualNode.setStatus(Node.NodeStatus.REVIEW);
+        actualNode.setProjectId(ownerId);
+        actualNode.setTagsFromString("AAR,实际,Review");
+
+        Node reasonNode = new Node(
+                "AAR｜原因",
+                "为什么会有差异？是计划、执行、环境、资源、判断还是沟通问题？",
+                cx - 320f, cy + 200f,
+                Node.NodeType.OBSTACLE
+        );
+        reasonNode.setShape(Node.NodeShape.DIAMOND);
+        reasonNode.setStatus(Node.NodeStatus.REVIEW);
+        reasonNode.setProjectId(ownerId);
+        reasonNode.setTagsFromString("AAR,原因,Obstacle");
+
+        Node improveNode = new Node(
+                "AAR｜改进",
+                "下次我具体要怎么做得更好？哪些动作应该标准化？",
+                cx + 260f, cy + 200f,
+                Node.NodeType.ACTION
+        );
+        improveNode.setShape(Node.NodeShape.RECT);
+        improveNode.setStatus(Node.NodeStatus.PLANNED);
+        improveNode.setProjectId(ownerId);
+        improveNode.setTagsFromString("AAR,改进,Action");
+        improveNode.setTriggerCondition("如果下次遇到相似任务，那么我优先执行这些改进行动");
+
+        result.createdNodes.add(expectedNode);
+        result.createdNodes.add(actualNode);
+        result.createdNodes.add(reasonNode);
+        result.createdNodes.add(improveNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), expectedNode.getId(), Connection.ConnectionType.LEADS_TO, "原预期"));
+        result.createdConnections.add(new Connection(baseNode.getId(), actualNode.getId(), Connection.ConnectionType.LEADS_TO, "实际结果"));
+        result.createdConnections.add(new Connection(expectedNode.getId(), reasonNode.getId(), Connection.ConnectionType.LEADS_TO, "找偏差来源"));
+        result.createdConnections.add(new Connection(actualNode.getId(), reasonNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "实际证据"));
+        result.createdConnections.add(new Connection(reasonNode.getId(), improveNode.getId(), Connection.ConnectionType.TRIGGERS, "原因导出改进"));
+        result.createdConnections.add(new Connection(improveNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "提升下一轮"));
+
+        return result;
+    }
+
+    private static String resolveOwnerId(Node baseNode) {
+        if (baseNode == null) return "";
+        if (baseNode.getProjectId() != null && !baseNode.getProjectId().trim().isEmpty()) {
+            return baseNode.getProjectId().trim();
+        }
+        return baseNode.getId();
     }
 
     private static String safeTitle(Node node) {
