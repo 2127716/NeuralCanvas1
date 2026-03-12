@@ -111,8 +111,8 @@ public class ScientificDashboardDialog extends DialogFragment {
     private boolean isReviewNode(Node node) {
         return node != null &&
                 (node.getType() == Node.NodeType.REVIEW ||
-                 node.getStatus() == Node.NodeStatus.REVIEW ||
-                 !safe(node.getReviewAt(), "").isEmpty());
+                        node.getStatus() == Node.NodeStatus.REVIEW ||
+                        !safe(node.getReviewAt(), "").isEmpty());
     }
 
     private boolean isInboxNode(Node node) {
@@ -188,7 +188,19 @@ public class ScientificDashboardDialog extends DialogFragment {
         return TextUtils.join(" ｜ ", parts);
     }
 
-    private TextView buildNodeRow(Node node, String extra, MainActivity activity) {
+    private void markDone(Node node, MainActivity activity) {
+        if (node == null || activity == null) return;
+        node.setStatus(Node.NodeStatus.DONE);
+        activity.onNodeUpdated(node);
+    }
+
+    private void addKrValue(Node node, float delta, MainActivity activity) {
+        if (node == null || activity == null) return;
+        node.setKrCurrent(node.getKrCurrent() + delta);
+        activity.onNodeUpdated(node);
+    }
+
+    private TextView buildNodeRow(final Node node, String extra, final MainActivity activity) {
         TextView tv = new TextView(requireContext());
         String title = safe(node.getTitle(), "未命名节点");
         String type = node.getType() == null ? "" : node.getType().label;
@@ -216,6 +228,33 @@ public class ScientificDashboardDialog extends DialogFragment {
                 activity.getMindMapView().selectNodeById(node.getId());
                 dismiss();
             }
+        });
+
+        tv.setOnLongClickListener(v -> {
+            if (activity == null) return true;
+
+            if (isKrNode(node)) {
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("快速更新 KR")
+                        .setMessage("当前值：" + node.getKrCurrent() + " / " + node.getKrTarget())
+                        .setNegativeButton("取消", null)
+                        .setNeutralButton("+1", (d, w) -> addKrValue(node, 1f, activity))
+                        .setPositiveButton("+5", (d, w) -> addKrValue(node, 5f, activity))
+                        .show();
+                return true;
+            }
+
+            if (isExecutionNode(node) || isReviewNode(node)) {
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("快速操作")
+                        .setMessage("把这个节点标记为已完成？")
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("标记 DONE", (d, w) -> markDone(node, activity))
+                        .show();
+                return true;
+            }
+
+            return true;
         });
 
         return tv;
@@ -362,7 +401,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("自动按紧急度、优先级、状态、启动难度排序", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("单击聚焦节点；长按可快速完成或推进 KR", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
