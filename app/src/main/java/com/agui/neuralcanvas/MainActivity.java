@@ -204,14 +204,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     // =========================
-    // 新增的 Inbox Clarify 和 Weekly Review 方法
+    // 公开的 Inbox Clarify 和 Weekly Review 方法
     // =========================
 
-    private void openInboxClarifier() {
+    public void openInboxClarifier() {
         InboxClarifierDialog.show(this, mindMapView.getNodesInternal(), new InboxClarifierDialog.Callback() {
             @Override
             public void onNodeConverted(Node node) {
                 onNodeUpdated(node);
+                mindMapView.invalidate();
+                scheduleAutoSave();
             }
 
             @Override
@@ -222,7 +224,7 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    private void openWeeklyReview() {
+    public void openWeeklyReview() {
         WeeklyReviewDialog.show(
                 this,
                 mindMapView.getNodesInternal(),
