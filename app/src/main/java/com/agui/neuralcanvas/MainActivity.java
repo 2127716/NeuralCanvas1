@@ -111,6 +111,15 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_generate_if_then) {
             generateIfThenFromSelectedNode();
             return true;
+        } else if (id == R.id.action_generate_daily_review) {
+            generateDailyReviewFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_weekly_review) {
+            generateWeeklyReviewFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_aar) {
+            generateAarFromSelectedNode();
+            return true;
         } else if (id == R.id.action_ai_assistant) {
             AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
             return true;
@@ -156,6 +165,51 @@ public class MainActivity extends AppCompatActivity
         applyTemplateResult(result);
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成 If-Then 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateDailyReviewFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个要复盘的节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ScientificTemplateEngine.TemplateResult result =
+                ScientificTemplateEngine.generateDailyReview(baseNode, mindMapView.getNodesInternal());
+
+        applyTemplateResult(result);
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成每日复盘子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateWeeklyReviewFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个要周复盘的节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ScientificTemplateEngine.TemplateResult result =
+                ScientificTemplateEngine.generateWeeklyReview(baseNode, mindMapView.getNodesInternal());
+
+        applyTemplateResult(result);
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成每周复盘子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateAarFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个要做AAR的节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ScientificTemplateEngine.TemplateResult result =
+                ScientificTemplateEngine.generateAarReview(baseNode, mindMapView.getNodesInternal());
+
+        applyTemplateResult(result);
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成AAR复盘子图", Toast.LENGTH_SHORT).show();
     }
 
     private Node getSingleSelectedNode() {
