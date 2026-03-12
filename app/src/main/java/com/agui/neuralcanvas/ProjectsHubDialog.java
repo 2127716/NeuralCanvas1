@@ -16,7 +16,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ProjectsHubDialog extends DialogFragment {
@@ -103,6 +106,13 @@ public class ProjectsHubDialog extends DialogFragment {
                         || node.getStatus() == Node.NodeStatus.REVIEW);
     }
 
+    private String formatPercent(float current, float target) {
+        if (target <= 0f) return "";
+        float percent = (current / target) * 100f;
+        if (percent < 0f) percent = 0f;
+        return String.format(Locale.getDefault(), "%.0f%%", percent);
+    }
+
     private TextView buildNodeChip(Node node, MainActivity activity) {
         String title = safe(node.getTitle(), "未命名节点");
         String line = "• " + title + " [" + node.getType().label + "]";
@@ -111,7 +121,10 @@ public class ProjectsHubDialog extends DialogFragment {
         if (!safe(node.getDueAt(), "").isEmpty()) extras.add("截止:" + node.getDueAt());
         if (!safe(node.getReviewAt(), "").isEmpty()) extras.add("复盘:" + node.getReviewAt());
         if (node.getPriority() > 0) extras.add("P" + node.getPriority());
-        if (node.getKrTarget() > 0f) extras.add("KR " + node.getKrCurrent() + "/" + node.getKrTarget());
+        if (node.getKrTarget() > 0f) {
+            extras.add("KR " + node.getKrCurrent() + "/" + node.getKrTarget()
+                    + " (" + formatPercent(node.getKrCurrent(), node.getKrTarget()) + ")");
+        }
 
         if (!extras.isEmpty()) {
             line += "\n  " + TextUtils.join(" ｜ ", extras);
@@ -137,6 +150,28 @@ public class ProjectsHubDialog extends DialogFragment {
         });
 
         return tv;
+    }
+
+    private void sortKrList(List<Node> list) {
+        Collections.sort(list, new Comparator<Node>() {
+            @Override
+            public int compare(Node a, Node b) {
+                float ap = a.getKrTarget() > 0f ? a.getKrCurrent() / a.getKrTarget() : -1f;
+                float bp = b.getKrTarget() > 0f ? b.getKrCurrent() / b.getKrTarget() : -1f;
+                return Float.compare(bp, ap);
+            }
+        });
+    }
+
+    private void sortActionList(List<Node> list) {
+        Collections.sort(list, new Comparator<Node>() {
+            @Override
+            public int compare(Node a, Node b) {
+                int p = Integer.compare(b.getPriority(), a.getPriority());
+                if (p != 0) return p;
+                return safe(a.getTitle(), "").compareToIgnoreCase(safe(b.getTitle(), ""));
+            }
+        });
     }
 
     private LinearLayout buildProjectCard(Node projectNode, List<Node> allNodes, MainActivity activity) {
@@ -171,6 +206,9 @@ public class ProjectsHubDialog extends DialogFragment {
             else if (isReview(node)) reviews.add(node);
             else if (isActionLike(node)) actions.add(node);
         }
+
+        sortKrList(krs);
+        sortActionList(actions);
 
         TextView title = makeText("项目｜" + safe(projectNode.getTitle(), "未命名项目"), 16, true, "#F8FAFC");
         title.setOnClickListener(v -> {
@@ -283,7 +321,7 @@ public class ProjectsHubDialog extends DialogFragment {
         TextView title = makeText("项目中心", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView sub = makeText("把 Project / Goal / KR / Action / Review 串起来", 13, false, "#94A3B8");
+        TextView sub = makeText("Project / Goal / KR / Action / Review 已串起来", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -295,7 +333,7 @@ public class ProjectsHubDialog extends DialogFragment {
         root.addView(spacer(14));
 
         if (projects.isEmpty()) {
-            TextView empty = makeText("当前没有 PROJECT 类型节点。你可以先新建一个项目节点，再把相关子节点的 projectId 指向它。", 14, false, "#CBD5E1");
+            TextView empty = makeText("当前没有 PROJECT 类型节点。先建项目节点，再把相关节点挂到这个项目下。", 14, false, "#CBD5E1");
             root.addView(empty);
         } else {
             for (Node project : projects) {
