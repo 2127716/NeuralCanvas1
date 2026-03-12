@@ -93,82 +93,17 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_add_node) {
-            Node newNode = new Node("新节点", "输入内容", -84f, -84f, Node.NodeType.CONCEPT);
-            mindMapView.addNode(newNode);
-            showNodeEditDialog(newNode);
-            return true;
-        } else if (id == R.id.action_projects_hub) {
-    ProjectsHubDialog.newInstance().show(getSupportFragmentManager(), "projects_hub");
-            return true;
-        } else if (id == R.id.action_search) {
-            showSearchDialog();
-            return true;
-        } else if (id == R.id.action_dashboard) {
-    ScientificDashboardDialog.newInstance().show(getSupportFragmentManager(), "scientific_dashboard");
-            return true;
-        } else if (id == R.id.action_generate_woop) {
-            generateWoopFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_if_then) {
-            generateIfThenFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_daily_review) {
-            generateDailyReviewFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_weekly_review) {
-            generateWeeklyReviewFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_aar) {
-            generateAarFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_decision_tree) {
-            generateDecisionTreeFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_premortem) {
-            generatePremortemFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_evidence_review) {
-            generateEvidenceReviewFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_retrieval_practice) {
-            generateRetrievalPracticeFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_concept_deepening) {
-            generateConceptDeepeningFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_generate_transfer_practice) {
-            generateTransferPracticeFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_ai_gap_check) {
-            generateAiGapCheckFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_ai_execution_patch) {
-            generateAiExecutionPatchFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_ai_learning_patch) {
-            generateAiLearningPatchFromSelectedNode();
-            return true;
-        } else if (id == R.id.action_ai_assistant) {
-            AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
-            return true;
-        } else if (id == R.id.action_import_knowledge) {
-            KnowledgeImportDialog.newInstance().show(getSupportFragmentManager(), "knowledge_import");
-            return true;
-        } else if (id == R.id.action_clear_all) {
-            confirmClearAll();
-            return true;
-        } else if (id == R.id.action_help) {
-            startActivity(new Intent(this, HelpActivity.class));
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (MainMenuActionHandler.handle(this, item.getItemId())) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
+
+        
+
 
     private void generateWoopFromSelectedNode() {
         Node baseNode = getSingleSelectedNode();
