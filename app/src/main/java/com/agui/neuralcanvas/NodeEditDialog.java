@@ -149,6 +149,95 @@ public class NodeEditDialog extends DialogFragment {
         return 0;
     }
 
+    // 新增：构建科学动作区（快捷动作、WOOP、If-Then、周复盘、检索练习、Premortem）
+    private View buildActionBar(MainActivity activity, Node node) {
+        LinearLayout wrap = new LinearLayout(requireContext());
+        wrap.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = buildSectionTitle("科学动作");
+        wrap.addView(title);
+
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView quick = buildActionChip("快捷动作");
+        quick.setOnClickListener(v -> {
+            dismiss();
+            activity.showQuickActionsForNode(node);
+        });
+        row.addView(quick);
+
+        TextView woop = buildActionChip("WOOP");
+        woop.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.WOOP);
+        });
+        row.addView(woop);
+
+        TextView ifThen = buildActionChip("If-Then");
+        ifThen.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.IF_THEN);
+        });
+        row.addView(ifThen);
+
+        wrap.addView(row);
+
+        LinearLayout row2 = new LinearLayout(requireContext());
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView weekly = buildActionChip("周复盘");
+        weekly.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.WEEKLY_REVIEW);
+        });
+        row2.addView(weekly);
+
+        TextView retrieval = buildActionChip("检索练习");
+        retrieval.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.RETRIEVAL_PRACTICE);
+        });
+        row2.addView(retrieval);
+
+        TextView premortem = buildActionChip("Premortem");
+        premortem.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.PREMORTEM);
+        });
+        row2.addView(premortem);
+
+        wrap.addView(row2);
+        return wrap;
+    }
+
+    // 新增：构建动作区的单个 Chip 按钮
+    private TextView buildActionChip(String text) {
+        TextView tv = new TextView(requireContext());
+        tv.setText(text);
+        tv.setTextColor(Color.parseColor("#F8FAFC"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tv.setGravity(android.view.Gravity.CENTER);
+        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(Color.parseColor("#1D4ED8"));
+        bg.setCornerRadius(dp(12));
+        tv.setBackground(bg);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+        );
+        lp.leftMargin = dp(4);
+        lp.rightMargin = dp(4);
+        lp.topMargin = dp(8);
+        tv.setLayoutParams(lp);
+
+        return tv;
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -164,6 +253,13 @@ public class NodeEditDialog extends DialogFragment {
         int p = dp(20);
         root.setPadding(p, p, p, p);
         scrollView.addView(root);
+
+        // 新增：在编辑页最顶部插入科学动作区
+        MainActivity activity = (MainActivity) getActivity();
+        if (activity != null) {
+            root.addView(buildActionBar(activity, currentNode));
+            addWithTopMargin(root, new View(requireContext()), 12);
+        }
 
         TextView basicTitle = buildSectionTitle("基础信息");
         root.addView(basicTitle);
@@ -408,6 +504,9 @@ public class NodeEditDialog extends DialogFragment {
                     currentNode.setEvidenceStrength(parseFloatSafe(evidenceStrengthInput.getText().toString(), 0.5f));
                     currentNode.setNoteSource(noteSourceInput.getText().toString().trim());
                     currentNode.setMetaJson(metaJsonInput.getText().toString().trim());
+
+                    // 新增：保存时执行工作流归一化
+                    WorkflowEngine.normalizeNodeForWorkflow(currentNode);
 
                     if (getActivity() instanceof NodeEditListener) {
                         ((NodeEditListener) getActivity()).onNodeUpdated(currentNode);
