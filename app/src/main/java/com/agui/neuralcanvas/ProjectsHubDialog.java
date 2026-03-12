@@ -190,6 +190,43 @@ public class ProjectsHubDialog extends DialogFragment {
         return card;
     }
 
+    /**
+     * 新增方法：构建顶部工作流概览卡片
+     */
+    private LinearLayout buildWorkflowOverview(MainActivity activity) {
+        WorkflowSnapshot snapshot = WorkflowSnapshot.from(
+                activity.getMindMapView().getNodesInternal(),
+                activity.getMindMapView().getConnectionsInternal()
+        );
+
+        LinearLayout card = new LinearLayout(requireContext());
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(14), dp(14), dp(14), dp(14));
+        card.setBackground(bg("#111827"));
+
+        TextView title = makeText("项目工作流概览", 15, true, "#F8FAFC");
+        card.addView(title);
+
+        TextView body = makeText(
+                "项目数：" + snapshot.projectCount
+                        + "\n下一步动作：" + snapshot.nextActionCount
+                        + "\n待复盘：" + snapshot.reviewDueCount
+                        + "\n卡住项目：" + snapshot.stuckProjectCount,
+                13,
+                false,
+                "#CBD5E1"
+        );
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = dp(8);
+        body.setLayoutParams(lp);
+        card.addView(body);
+
+        return card;
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -221,6 +258,10 @@ public class ProjectsHubDialog extends DialogFragment {
         sub.setLayoutParams(subLp);
         root.addView(sub);
 
+        root.addView(spacer(14));
+
+        // 插入工作流概览卡片（新增代码）
+        root.addView(buildWorkflowOverview(activity));
         root.addView(spacer(14));
 
         if (data.groups.isEmpty()) {
