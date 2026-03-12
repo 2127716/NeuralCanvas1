@@ -238,7 +238,7 @@ public class AiGraphExecutor {
         try {
             return Connection.ConnectionType.valueOf(value.trim().toUpperCase());
         } catch (Exception e) {
-            return Connection.ConnectionType.SEQUENCE;
+            return Connection.ConnectionType.LEADS_TO;
         }
     }
 
