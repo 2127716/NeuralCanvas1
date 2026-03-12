@@ -54,6 +54,15 @@
                 android:id="@+id/action_generate_transfer_practice"
                 android:title="生成应用迁移" />
             <item
+                android:id="@+id/action_ai_gap_check"
+                android:title="AI检查缺口" />
+            <item
+                android:id="@+id/action_ai_execution_patch"
+                android:title="AI补全执行链" />
+            <item
+                android:id="@+id/action_ai_learning_patch"
+                android:title="AI补全学习链" />
+            <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
             <item
