@@ -6,6 +6,20 @@ import java.util.Map;
 
 public class ScientificTemplateEngine {
 
+    public enum TemplateType {
+        WOOP,
+        IF_THEN,
+        DAILY_REVIEW,
+        WEEKLY_REVIEW,
+        AAR,
+        DECISION_TREE,
+        PREMORTEM,
+        EVIDENCE_REVIEW,
+        RETRIEVAL_PRACTICE,
+        CONCEPT_DEEPENING,
+        TRANSFER_PRACTICE
+    }
+
     public static class TemplateResult {
         public final List<Node> createdNodes = new ArrayList<>();
         public final List<Connection> createdConnections = new ArrayList<>();
@@ -555,8 +569,6 @@ public class ScientificTemplateEngine {
         return result;
     }
 
-    // ===== 第七批：AI/规则补全层 =====
-
     public static TemplateResult generateAiGapCheck(Node baseNode, Map<String, Node> existingNodes) {
         TemplateResult result = new TemplateResult();
         if (baseNode == null || existingNodes == null) return result;
@@ -588,51 +600,42 @@ public class ScientificTemplateEngine {
         result.createdNodes.add(summaryNode);
         result.createdConnections.add(new Connection(baseNode.getId(), summaryNode.getId(), Connection.ConnectionType.LEADS_TO, "结构检查"));
 
-        int createdIndex = 0;
-
         if (!hasObstacle) {
             Node n = createGapNode("缺少障碍分析", "当前结构里缺少明确障碍。最可能卡住你的是什么？", cx - 360f, cy, ownerId, Node.NodeType.OBSTACLE, "AI,Gap,Obstacle");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.BLOCKS, "待补充"));
-            createdIndex++;
         }
         if (!hasAction) {
             Node n = createGapNode("缺少下一步", "当前结构里缺少明确的下一步行动。现在最小的一步是什么？", cx, cy, ownerId, Node.NodeType.ACTION, "AI,Gap,NextAction");
             n.setTriggerCondition("如果我要推进这个节点，那么先执行这里的一步");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
-            createdIndex++;
         }
         if (!hasRisk) {
             Node n = createGapNode("缺少风险审查", "当前结构里缺少风险节点。最坏会出什么问题？", cx + 360f, cy, ownerId, Node.NodeType.RISK, "AI,Gap,Risk");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.BLOCKS, "待补充"));
-            createdIndex++;
         }
         if (!hasSupportEvidence) {
             Node n = createGapNode("缺少证据", "当前结构里缺少支撑/反驳证据。你是凭什么判断的？", cx - 240f, cy + 280f, ownerId, Node.NodeType.EVIDENCE, "AI,Gap,Evidence");
             n.setEvidenceStrength(0.5f);
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "待补充"));
-            createdIndex++;
         }
         if (!hasReview) {
             Node n = createGapNode("缺少复盘", "当前结构里缺少复盘节点。如何知道自己做得对不对？", cx + 240f, cy + 280f, ownerId, Node.NodeType.REVIEW, "AI,Gap,Review");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
-            createdIndex++;
         }
         if (!hasExample) {
             Node n = createGapNode("缺少例子", "当前知识结构里缺少具体例子。能举一个真实例子吗？", cx - 480f, cy + 520f, ownerId, Node.NodeType.RESOURCE, "AI,Gap,Example");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
-            createdIndex++;
         }
         if (!hasCounterExample) {
             Node n = createGapNode("缺少反例", "当前知识结构里缺少反例。什么看起来像它但其实不是？", cx, cy + 520f, ownerId, Node.NodeType.QUESTION, "AI,Gap,Counterexample");
             result.createdNodes.add(n);
             result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.OPPOSES, "待补充"));
-            createdIndex++;
         }
         if (!hasTransfer) {
             Node n = createGapNode("缺少迁移验证", "当前知识结构里缺少迁移验证。换个场景你还会用吗？", cx + 480f, cy + 520f, ownerId, Node.NodeType.EXPERIMENT, "AI,Gap,Transfer");
