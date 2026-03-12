@@ -130,6 +130,10 @@ public class ScientificDashboardDialog extends DialogFragment {
         return node != null && node.getType() == Node.NodeType.KEY_RESULT;
     }
 
+    private boolean isDecisionNode(Node node) {
+        return node != null && node.getType() == Node.NodeType.DECISION;
+    }
+
     private int statusRank(Node.NodeStatus status) {
         if (status == null) return 99;
         switch (status) {
@@ -200,6 +204,274 @@ public class ScientificDashboardDialog extends DialogFragment {
         activity.onNodeUpdated(node);
     }
 
+    private void generateProjectStarterNodes(Node projectNode, MainActivity activity) {
+        if (projectNode == null || activity == null || activity.getMindMapView() == null) return;
+
+        MindMapView view = activity.getMindMapView();
+
+        float baseX = projectNode.getX();
+        float baseY = projectNode.getY();
+        String projectId = projectNode.getId();
+        String title = safe(projectNode.getTitle(), "项目");
+
+        Node goalNode = new Node(
+                "Goal｜" + title,
+                "这个项目真正要实现的结果是什么？",
+                baseX - 320f,
+                baseY + 220f,
+                Node.NodeType.GOAL
+        );
+        goalNode.setShape(Node.NodeShape.OVAL);
+        goalNode.setStatus(Node.NodeStatus.ACTIVE);
+        goalNode.setProjectId(projectId);
+        goalNode.setTagsFromString("Project,Goal,目标");
+
+        Node krNode = new Node(
+                "KR｜" + title,
+                "写一个可量化关键结果",
+                baseX,
+                baseY + 220f,
+                Node.NodeType.KEY_RESULT
+        );
+        krNode.setShape(Node.NodeShape.HEXAGON);
+        krNode.setStatus(Node.NodeStatus.ACTIVE);
+        krNode.setProjectId(projectId);
+        krNode.setKrTarget(1f);
+        krNode.setKrCurrent(0f);
+        krNode.setTagsFromString("Project,KR,关键结果");
+
+        Node actionNode = new Node(
+                "First Action｜" + title,
+                "这个项目最小的下一步是什么？",
+                baseX + 320f,
+                baseY + 220f,
+                Node.NodeType.ACTION
+        );
+        actionNode.setShape(Node.NodeShape.RECT);
+        actionNode.setStatus(Node.NodeStatus.PLANNED);
+        actionNode.setProjectId(projectId);
+        actionNode.setTriggerCondition("如果我要开始推进这个项目，那么先做这个最小动作");
+        actionNode.setTagsFromString("Project,FirstAction,执行");
+
+        Node reviewNode = new Node(
+                "Weekly Review｜" + title,
+                "本周这个项目推进了什么？卡在哪？下周怎么调？",
+                baseX,
+                baseY + 460f,
+                Node.NodeType.REVIEW
+        );
+        reviewNode.setShape(Node.NodeShape.OVAL);
+        reviewNode.setStatus(Node.NodeStatus.REVIEW);
+        reviewNode.setProjectId(projectId);
+        reviewNode.setTagsFromString("Project,WeeklyReview,复盘");
+
+        view.addNode(goalNode);
+        view.addNode(krNode);
+        view.addNode(actionNode);
+        view.addNode(reviewNode);
+
+        view.addConnection(new Connection(projectNode.getId(), goalNode.getId(), Connection.ConnectionType.LEADS_TO, "项目目标"));
+        view.addConnection(new Connection(projectNode.getId(), krNode.getId(), Connection.ConnectionType.LEADS_TO, "关键结果"));
+        view.addConnection(new Connection(projectNode.getId(), actionNode.getId(), Connection.ConnectionType.LEADS_TO, "第一步"));
+        view.addConnection(new Connection(projectNode.getId(), reviewNode.getId(), Connection.ConnectionType.LEADS_TO, "每周复盘"));
+        view.addConnection(new Connection(goalNode.getId(), krNode.getId(), Connection.ConnectionType.SUPPORTS, "目标量化"));
+        view.addConnection(new Connection(actionNode.getId(), goalNode.getId(), Connection.ConnectionType.SUPPORTS, "行动推进目标"));
+        view.addConnection(new Connection(reviewNode.getId(), actionNode.getId(), Connection.ConnectionType.TRIGGERS, "复盘指导下一步"));
+
+        activity.onGraphMutatedByAi();
+    }
+
+    private void generateDecisionStarterNodes(Node decisionNode, MainActivity activity) {
+        if (decisionNode == null || activity == null || activity.getMindMapView() == null) return;
+
+        MindMapView view = activity.getMindMapView();
+
+        float baseX = decisionNode.getX();
+        float baseY = decisionNode.getY();
+        String ownerId = safe(decisionNode.getProjectId(), "");
+        if (ownerId.isEmpty()) ownerId = decisionNode.getId();
+
+        Node optionA = new Node("Option A", "方案A的核心做法、成本、收益是什么？",
+                baseX - 420f, baseY + 60f, Node.NodeType.OPTION);
+        optionA.setShape(Node.NodeShape.RECT);
+        optionA.setStatus(Node.NodeStatus.PLANNED);
+        optionA.setProjectId(ownerId);
+        optionA.setTagsFromString("Decision,Option,A");
+
+        Node optionB = new Node("Option B", "方案B的核心做法、成本、收益是什么？",
+                baseX, baseY + 60f, Node.NodeType.OPTION);
+        optionB.setShape(Node.NodeShape.RECT);
+        optionB.setStatus(Node.NodeStatus.PLANNED);
+        optionB.setProjectId(ownerId);
+        optionB.setTagsFromString("Decision,Option,B");
+
+        Node optionC = new Node("Option C", "方案C的核心做法、成本、收益是什么？",
+                baseX + 420f, baseY + 60f, Node.NodeType.OPTION);
+        optionC.setShape(Node.NodeShape.RECT);
+        optionC.setStatus(Node.NodeStatus.PLANNED);
+        optionC.setProjectId(ownerId);
+        optionC.setTagsFromString("Decision,Option,C");
+
+        Node criterionNode = new Node("Criterion", "写 3~6 个准则：时间、成本、长期收益、可逆性、风险等",
+                baseX - 260f, baseY + 320f, Node.NodeType.CRITERION);
+        criterionNode.setShape(Node.NodeShape.HEXAGON);
+        criterionNode.setStatus(Node.NodeStatus.ACTIVE);
+        criterionNode.setProjectId(ownerId);
+        criterionNode.setTagsFromString("Decision,Criterion,准则");
+
+        Node riskNode = new Node("Risk", "每个方案最可能失败在哪？最坏情况是什么？",
+                baseX + 260f, baseY + 320f, Node.NodeType.RISK);
+        riskNode.setShape(Node.NodeShape.DIAMOND);
+        riskNode.setStatus(Node.NodeStatus.ACTIVE);
+        riskNode.setProjectId(ownerId);
+        riskNode.setTagsFromString("Decision,Risk,风险");
+
+        Node evidenceNode = new Node("Evidence", "有哪些事实、数据、经验在支持或反驳当前判断？",
+                baseX - 260f, baseY + 540f, Node.NodeType.EVIDENCE);
+        evidenceNode.setShape(Node.NodeShape.RECT);
+        evidenceNode.setStatus(Node.NodeStatus.ACTIVE);
+        evidenceNode.setProjectId(ownerId);
+        evidenceNode.setEvidenceStrength(0.5f);
+        evidenceNode.setTagsFromString("Decision,Evidence,证据");
+
+        Node nextActionNode = new Node("Next Action", "下一步是直接选，还是先做一个小验证？",
+                baseX + 260f, baseY + 540f, Node.NodeType.ACTION);
+        nextActionNode.setShape(Node.NodeShape.RECT);
+        nextActionNode.setStatus(Node.NodeStatus.PLANNED);
+        nextActionNode.setProjectId(ownerId);
+        nextActionNode.setTriggerCondition("如果完成方案比较，那么先执行这个最小验证动作");
+        nextActionNode.setTagsFromString("Decision,NextAction,执行");
+
+        view.addNode(optionA);
+        view.addNode(optionB);
+        view.addNode(optionC);
+        view.addNode(criterionNode);
+        view.addNode(riskNode);
+        view.addNode(evidenceNode);
+        view.addNode(nextActionNode);
+
+        view.addConnection(new Connection(decisionNode.getId(), optionA.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        view.addConnection(new Connection(decisionNode.getId(), optionB.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        view.addConnection(new Connection(decisionNode.getId(), optionC.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+
+        view.addConnection(new Connection(criterionNode.getId(), optionA.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+        view.addConnection(new Connection(criterionNode.getId(), optionB.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+        view.addConnection(new Connection(criterionNode.getId(), optionC.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+
+        view.addConnection(new Connection(riskNode.getId(), optionA.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+        view.addConnection(new Connection(riskNode.getId(), optionB.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+        view.addConnection(new Connection(riskNode.getId(), optionC.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+
+        view.addConnection(new Connection(evidenceNode.getId(), decisionNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "证据"));
+        view.addConnection(new Connection(optionA.getId(), nextActionNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        view.addConnection(new Connection(optionB.getId(), nextActionNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        view.addConnection(new Connection(optionC.getId(), nextActionNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+
+        activity.onGraphMutatedByAi();
+    }
+
+    private void askGenerateProjectStarter(final Node projectNode, final MainActivity activity) {
+        if (projectNode == null || activity == null) return;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("项目创建向导")
+                .setMessage("已转成 PROJECT。要不要顺手生成 Goal、KR、First Action、Weekly Review？")
+                .setNegativeButton("先不用", null)
+                .setPositiveButton("立即生成", (d, w) -> generateProjectStarterNodes(projectNode, activity))
+                .show();
+    }
+
+    private void askGenerateDecisionStarter(final Node decisionNode, final MainActivity activity) {
+        if (decisionNode == null || activity == null) return;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("决策创建向导")
+                .setMessage("要不要立刻生成 Option A/B/C、Criterion、Risk、Evidence、Next Action？")
+                .setNegativeButton("先不用", null)
+                .setPositiveButton("立即生成", (d, w) -> generateDecisionStarterNodes(decisionNode, activity))
+                .show();
+    }
+
+    private void convertInboxNode(Node node, Node.NodeType targetType, MainActivity activity) {
+        if (node == null || activity == null) return;
+
+        node.setType(targetType);
+
+        switch (targetType) {
+            case TASK:
+            case ACTION:
+                node.setStatus(Node.NodeStatus.PLANNED);
+                if (safe(node.getTriggerCondition(), "").isEmpty()) {
+                    node.setTriggerCondition("如果开始处理这个事项，那么先做一个最小动作");
+                }
+                break;
+
+            case GOAL:
+                node.setStatus(Node.NodeStatus.ACTIVE);
+                break;
+
+            case PROJECT:
+                node.setStatus(Node.NodeStatus.ACTIVE);
+                node.setProjectId(node.getId());
+                break;
+
+            case NOTE:
+                node.setStatus(Node.NodeStatus.ACTIVE);
+                break;
+
+            case DECISION:
+                node.setStatus(Node.NodeStatus.ACTIVE);
+                break;
+
+            default:
+                break;
+        }
+
+        activity.onNodeUpdated(node);
+
+        if (targetType == Node.NodeType.PROJECT) {
+            askGenerateProjectStarter(node, activity);
+        } else if (targetType == Node.NodeType.DECISION) {
+            askGenerateDecisionStarter(node, activity);
+        }
+    }
+
+    private void showInboxClarifyDialog(final Node node, final MainActivity activity) {
+        if (node == null || activity == null) return;
+
+        String[] items = {
+                "转成 TASK（下一步任务）",
+                "转成 GOAL（目标）",
+                "转成 NOTE（笔记）",
+                "转成 PROJECT（项目）",
+                "转成 DECISION（决策）"
+        };
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Inbox 快速澄清")
+                .setItems(items, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            convertInboxNode(node, Node.NodeType.TASK, activity);
+                            break;
+                        case 1:
+                            convertInboxNode(node, Node.NodeType.GOAL, activity);
+                            break;
+                        case 2:
+                            convertInboxNode(node, Node.NodeType.NOTE, activity);
+                            break;
+                        case 3:
+                            convertInboxNode(node, Node.NodeType.PROJECT, activity);
+                            break;
+                        case 4:
+                            convertInboxNode(node, Node.NodeType.DECISION, activity);
+                            break;
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
     private TextView buildNodeRow(final Node node, String extra, final MainActivity activity) {
         TextView tv = new TextView(requireContext());
         String title = safe(node.getTitle(), "未命名节点");
@@ -232,6 +504,16 @@ public class ScientificDashboardDialog extends DialogFragment {
 
         tv.setOnLongClickListener(v -> {
             if (activity == null) return true;
+
+            if (isInboxNode(node)) {
+                showInboxClarifyDialog(node, activity);
+                return true;
+            }
+
+            if (isDecisionNode(node)) {
+                askGenerateDecisionStarter(node, activity);
+                return true;
+            }
 
             if (isKrNode(node)) {
                 new AlertDialog.Builder(requireContext())
@@ -401,7 +683,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("单击聚焦节点；长按可快速完成或推进 KR", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("单击聚焦；长按可 Inbox 澄清、建项目/决策骨架、快速完成或推进 KR", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
