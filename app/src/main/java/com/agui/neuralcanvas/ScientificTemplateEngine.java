@@ -585,6 +585,206 @@ public class ScientificTemplateEngine {
         return result;
     }
 
+    public static TemplateResult generateRetrievalPractice(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node questionNode = new Node(
+                "检索问题",
+                "不用看原文，试着回答：这是什么？核心机制/定义是什么？",
+                cx, cy - 260f,
+                Node.NodeType.QUESTION
+        );
+        questionNode.setShape(Node.NodeShape.OVAL);
+        questionNode.setStatus(Node.NodeStatus.ACTIVE);
+        questionNode.setProjectId(ownerId);
+        questionNode.setTagsFromString("检索练习,问题,Retrieval");
+        questionNode.setReviewAt("尽快第一次回忆");
+
+        Node keyPointNode = new Node(
+                "关键点回忆",
+                "写出 3~5 个关键点，不允许只写模糊感受。",
+                cx - 300f, cy + 20f,
+                Node.NodeType.NOTE
+        );
+        keyPointNode.setShape(Node.NodeShape.RECT);
+        keyPointNode.setStatus(Node.NodeStatus.ACTIVE);
+        keyPointNode.setProjectId(ownerId);
+        keyPointNode.setTagsFromString("检索练习,关键点,Recall");
+
+        Node blindSpotNode = new Node(
+                "不会的地方",
+                "刚才哪部分想不起来？是定义、步骤、因果还是例子？",
+                cx + 300f, cy + 20f,
+                Node.NodeType.OBSTACLE
+        );
+        blindSpotNode.setShape(Node.NodeShape.DIAMOND);
+        blindSpotNode.setStatus(Node.NodeStatus.ACTIVE);
+        blindSpotNode.setProjectId(ownerId);
+        blindSpotNode.setTagsFromString("检索练习,盲点,Obstacle");
+
+        Node nextReviewNode = new Node(
+                "下次复习点",
+                "下次优先复习哪里？用什么方式验证自己真的会了？",
+                cx, cy + 300f,
+                Node.NodeType.REVIEW
+        );
+        nextReviewNode.setShape(Node.NodeShape.HEXAGON);
+        nextReviewNode.setStatus(Node.NodeStatus.PLANNED);
+        nextReviewNode.setProjectId(ownerId);
+        nextReviewNode.setTagsFromString("检索练习,复习,Review");
+
+        result.createdNodes.add(questionNode);
+        result.createdNodes.add(keyPointNode);
+        result.createdNodes.add(blindSpotNode);
+        result.createdNodes.add(nextReviewNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), questionNode.getId(), Connection.ConnectionType.LEADS_TO, "提问"));
+        result.createdConnections.add(new Connection(questionNode.getId(), keyPointNode.getId(), Connection.ConnectionType.TRIGGERS, "主动回忆"));
+        result.createdConnections.add(new Connection(questionNode.getId(), blindSpotNode.getId(), Connection.ConnectionType.TRIGGERS, "暴露盲点"));
+        result.createdConnections.add(new Connection(blindSpotNode.getId(), nextReviewNode.getId(), Connection.ConnectionType.TRIGGERS, "安排复习"));
+        result.createdConnections.add(new Connection(nextReviewNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "强化掌握"));
+
+        return result;
+    }
+
+    public static TemplateResult generateConceptDeepening(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node definitionNode = new Node(
+                "定义重述",
+                "请用你自己的话重新定义它，不要照抄原文。",
+                cx, cy - 260f,
+                Node.NodeType.CONCEPT
+        );
+        definitionNode.setShape(Node.NodeShape.OVAL);
+        definitionNode.setStatus(Node.NodeStatus.ACTIVE);
+        definitionNode.setProjectId(ownerId);
+        definitionNode.setTagsFromString("概念深化,定义,Concept");
+
+        Node exampleNode = new Node(
+                "例子",
+                "举一个典型例子，说明它在真实场景中如何出现。",
+                cx - 320f, cy + 20f,
+                Node.NodeType.RESOURCE
+        );
+        exampleNode.setShape(Node.NodeShape.RECT);
+        exampleNode.setStatus(Node.NodeStatus.ACTIVE);
+        exampleNode.setProjectId(ownerId);
+        exampleNode.setTagsFromString("概念深化,例子,Example");
+
+        Node counterExampleNode = new Node(
+                "反例",
+                "什么东西看起来像它，但其实不是它？",
+                cx + 320f, cy + 20f,
+                Node.NodeType.QUESTION
+        );
+        counterExampleNode.setShape(Node.NodeShape.DIAMOND);
+        counterExampleNode.setStatus(Node.NodeStatus.ACTIVE);
+        counterExampleNode.setProjectId(ownerId);
+        counterExampleNode.setTagsFromString("概念深化,反例,Counterexample");
+
+        Node misconceptionNode = new Node(
+                "易错点",
+                "别人或我自己最容易误解它的地方是什么？",
+                cx, cy + 300f,
+                Node.NodeType.OBSTACLE
+        );
+        misconceptionNode.setShape(Node.NodeShape.HEXAGON);
+        misconceptionNode.setStatus(Node.NodeStatus.ACTIVE);
+        misconceptionNode.setProjectId(ownerId);
+        misconceptionNode.setTagsFromString("概念深化,易错点,Misconception");
+
+        result.createdNodes.add(definitionNode);
+        result.createdNodes.add(exampleNode);
+        result.createdNodes.add(counterExampleNode);
+        result.createdNodes.add(misconceptionNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), definitionNode.getId(), Connection.ConnectionType.LEADS_TO, "重述定义"));
+        result.createdConnections.add(new Connection(definitionNode.getId(), exampleNode.getId(), Connection.ConnectionType.LEADS_TO, "举例"));
+        result.createdConnections.add(new Connection(definitionNode.getId(), counterExampleNode.getId(), Connection.ConnectionType.OPPOSES, "反例对照"));
+        result.createdConnections.add(new Connection(counterExampleNode.getId(), misconceptionNode.getId(), Connection.ConnectionType.TRIGGERS, "暴露误区"));
+        result.createdConnections.add(new Connection(exampleNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "用例子巩固"));
+
+        return result;
+    }
+
+    public static TemplateResult generateTransferPractice(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node scenarioNode = new Node(
+                "迁移场景",
+                "这个知识/方法还能用在哪个新场景里？",
+                cx, cy - 260f,
+                Node.NodeType.QUESTION
+        );
+        scenarioNode.setShape(Node.NodeShape.OVAL);
+        scenarioNode.setStatus(Node.NodeStatus.ACTIVE);
+        scenarioNode.setProjectId(ownerId);
+        scenarioNode.setTagsFromString("迁移练习,场景,Transfer");
+
+        Node applyNode = new Node(
+                "应用方式",
+                "如果放到那个场景中，我具体怎么用它？",
+                cx - 320f, cy + 20f,
+                Node.NodeType.ACTION
+        );
+        applyNode.setShape(Node.NodeShape.RECT);
+        applyNode.setStatus(Node.NodeStatus.PLANNED);
+        applyNode.setProjectId(ownerId);
+        applyNode.setTagsFromString("迁移练习,应用,Action");
+
+        Node limitNode = new Node(
+                "适用边界",
+                "在什么条件下它不适用？它的边界在哪里？",
+                cx + 320f, cy + 20f,
+                Node.NodeType.RISK
+        );
+        limitNode.setShape(Node.NodeShape.DIAMOND);
+        limitNode.setStatus(Node.NodeStatus.ACTIVE);
+        limitNode.setProjectId(ownerId);
+        limitNode.setTagsFromString("迁移练习,边界,Risk");
+
+        Node testNode = new Node(
+                "验证任务",
+                "我能做一个什么小任务，来验证自己真的会迁移使用它？",
+                cx, cy + 300f,
+                Node.NodeType.EXPERIMENT
+        );
+        testNode.setShape(Node.NodeShape.HEXAGON);
+        testNode.setStatus(Node.NodeStatus.PLANNED);
+        testNode.setProjectId(ownerId);
+        testNode.setTagsFromString("迁移练习,验证,Experiment");
+        testNode.setTriggerCondition("如果我要检验自己会不会迁移，那么先做这个验证任务");
+
+        result.createdNodes.add(scenarioNode);
+        result.createdNodes.add(applyNode);
+        result.createdNodes.add(limitNode);
+        result.createdNodes.add(testNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), scenarioNode.getId(), Connection.ConnectionType.LEADS_TO, "寻找迁移"));
+        result.createdConnections.add(new Connection(scenarioNode.getId(), applyNode.getId(), Connection.ConnectionType.TRIGGERS, "设计应用"));
+        result.createdConnections.add(new Connection(scenarioNode.getId(), limitNode.getId(), Connection.ConnectionType.LEADS_TO, "分析边界"));
+        result.createdConnections.add(new Connection(applyNode.getId(), testNode.getId(), Connection.ConnectionType.TRIGGERS, "设计验证"));
+        result.createdConnections.add(new Connection(testNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "强化迁移能力"));
+
+        return result;
+    }
+
     private static String resolveOwnerId(Node baseNode) {
         if (baseNode == null) return "";
         if (baseNode.getProjectId() != null && !baseNode.getProjectId().trim().isEmpty()) {
