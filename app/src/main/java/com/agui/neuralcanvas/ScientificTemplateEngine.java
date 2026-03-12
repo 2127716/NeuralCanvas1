@@ -18,45 +18,25 @@ public class ScientificTemplateEngine {
         float cx = baseNode.getX();
         float cy = baseNode.getY();
 
-        Node wishNode = new Node(
-                "Wish｜愿望",
-                safeTitle(baseNode) + "：我真正想实现什么？",
-                cx - 260f, cy - 220f,
-                Node.NodeType.GOAL
-        );
+        Node wishNode = new Node("Wish｜愿望", safeTitle(baseNode) + "：我真正想实现什么？", cx - 260f, cy - 220f, Node.NodeType.GOAL);
         wishNode.setShape(Node.NodeShape.OVAL);
         wishNode.setStatus(Node.NodeStatus.ACTIVE);
         wishNode.setProjectId(baseNode.getId());
         wishNode.setTagsFromString("WOOP,Wish,目标");
 
-        Node outcomeNode = new Node(
-                "Outcome｜结果",
-                "如果成功，最理想、最具体的结果是什么？",
-                cx + 220f, cy - 220f,
-                Node.NodeType.KEY_RESULT
-        );
+        Node outcomeNode = new Node("Outcome｜结果", "如果成功，最理想、最具体的结果是什么？", cx + 220f, cy - 220f, Node.NodeType.KEY_RESULT);
         outcomeNode.setShape(Node.NodeShape.OVAL);
         outcomeNode.setStatus(Node.NodeStatus.PLANNED);
         outcomeNode.setProjectId(baseNode.getId());
         outcomeNode.setTagsFromString("WOOP,Outcome,结果");
 
-        Node obstacleNode = new Node(
-                "Obstacle｜障碍",
-                "我内部或外部最大的障碍是什么？最容易卡住我的点是什么？",
-                cx - 260f, cy + 200f,
-                Node.NodeType.OBSTACLE
-        );
+        Node obstacleNode = new Node("Obstacle｜障碍", "我内部或外部最大的障碍是什么？最容易卡住我的点是什么？", cx - 260f, cy + 200f, Node.NodeType.OBSTACLE);
         obstacleNode.setShape(Node.NodeShape.DIAMOND);
         obstacleNode.setStatus(Node.NodeStatus.ACTIVE);
         obstacleNode.setProjectId(baseNode.getId());
         obstacleNode.setTagsFromString("WOOP,Obstacle,障碍");
 
-        Node planNode = new Node(
-                "Plan｜计划",
-                "如果遇到障碍，我的具体行动是什么？",
-                cx + 220f, cy + 200f,
-                Node.NodeType.ACTION
-        );
+        Node planNode = new Node("Plan｜计划", "如果遇到障碍，我的具体行动是什么？", cx + 220f, cy + 200f, Node.NodeType.ACTION);
         planNode.setShape(Node.NodeShape.RECT);
         planNode.setStatus(Node.NodeStatus.PLANNED);
         planNode.setProjectId(baseNode.getId());
@@ -85,23 +65,13 @@ public class ScientificTemplateEngine {
         float cx = baseNode.getX();
         float cy = baseNode.getY();
 
-        Node triggerNode = new Node(
-                "If｜触发条件",
-                "如果【时间/地点/情境/情绪/前置条件】出现……",
-                cx - 240f, cy + 200f,
-                Node.NodeType.TRIGGER
-        );
+        Node triggerNode = new Node("If｜触发条件", "如果【时间/地点/情境/情绪/前置条件】出现……", cx - 240f, cy + 200f, Node.NodeType.TRIGGER);
         triggerNode.setShape(Node.NodeShape.HEXAGON);
         triggerNode.setStatus(Node.NodeStatus.PLANNED);
         triggerNode.setProjectId(resolveOwnerId(baseNode));
         triggerNode.setTagsFromString("If-Then,Trigger,执行");
 
-        Node actionNode = new Node(
-                "Then｜执行动作",
-                "那么我立刻执行【一个非常小、非常具体的动作】",
-                cx + 220f, cy + 200f,
-                Node.NodeType.ACTION
-        );
+        Node actionNode = new Node("Then｜执行动作", "那么我立刻执行【一个非常小、非常具体的动作】", cx + 220f, cy + 200f, Node.NodeType.ACTION);
         actionNode.setShape(Node.NodeShape.RECT);
         actionNode.setStatus(Node.NodeStatus.PLANNED);
         actionNode.setProjectId(resolveOwnerId(baseNode));
@@ -112,12 +82,7 @@ public class ScientificTemplateEngine {
             actionNode.setContent("那么我立刻执行：" + safeTitle(baseNode));
         }
 
-        Node obstacleNode = new Node(
-                "常见阻碍",
-                "最可能让我不执行的干扰是什么？我如何提前削弱它？",
-                cx, cy + 360f,
-                Node.NodeType.OBSTACLE
-        );
+        Node obstacleNode = new Node("常见阻碍", "最可能让我不执行的干扰是什么？我如何提前削弱它？", cx, cy + 360f, Node.NodeType.OBSTACLE);
         obstacleNode.setShape(Node.NodeShape.DIAMOND);
         obstacleNode.setStatus(Node.NodeStatus.PLANNED);
         obstacleNode.setProjectId(resolveOwnerId(baseNode));
@@ -143,45 +108,25 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node summaryNode = new Node(
-                "今日推进",
-                "今天我实际推进了什么？有没有哪一步真正前进？",
-                cx - 280f, cy - 180f,
-                Node.NodeType.REVIEW
-        );
+        Node summaryNode = new Node("今日推进", "今天我实际推进了什么？有没有哪一步真正前进？", cx - 280f, cy - 180f, Node.NodeType.REVIEW);
         summaryNode.setShape(Node.NodeShape.OVAL);
         summaryNode.setStatus(Node.NodeStatus.REVIEW);
         summaryNode.setProjectId(ownerId);
         summaryNode.setTagsFromString("每日复盘,推进,Review");
 
-        Node blockerNode = new Node(
-                "今日卡点",
-                "我卡在哪？是注意力、时间、信息不足、情绪波动，还是任务过大？",
-                cx + 220f, cy - 180f,
-                Node.NodeType.OBSTACLE
-        );
+        Node blockerNode = new Node("今日卡点", "我卡在哪？是注意力、时间、信息不足、情绪波动，还是任务过大？", cx + 220f, cy - 180f, Node.NodeType.OBSTACLE);
         blockerNode.setShape(Node.NodeShape.DIAMOND);
         blockerNode.setStatus(Node.NodeStatus.REVIEW);
         blockerNode.setProjectId(ownerId);
         blockerNode.setTagsFromString("每日复盘,卡点,Obstacle");
 
-        Node lessonNode = new Node(
-                "今日经验",
-                "今天最值得保留或修正的一条经验是什么？",
-                cx - 280f, cy + 180f,
-                Node.NodeType.INSIGHT
-        );
+        Node lessonNode = new Node("今日经验", "今天最值得保留或修正的一条经验是什么？", cx - 280f, cy + 180f, Node.NodeType.INSIGHT);
         lessonNode.setShape(Node.NodeShape.HEXAGON);
         lessonNode.setStatus(Node.NodeStatus.REVIEW);
         lessonNode.setProjectId(ownerId);
         lessonNode.setTagsFromString("每日复盘,经验,Insight");
 
-        Node nextNode = new Node(
-                "明日最小下一步",
-                "明天最关键、最小、最明确的一步是什么？",
-                cx + 220f, cy + 180f,
-                Node.NodeType.ACTION
-        );
+        Node nextNode = new Node("明日最小下一步", "明天最关键、最小、最明确的一步是什么？", cx + 220f, cy + 180f, Node.NodeType.ACTION);
         nextNode.setShape(Node.NodeShape.RECT);
         nextNode.setStatus(Node.NodeStatus.PLANNED);
         nextNode.setProjectId(ownerId);
@@ -210,45 +155,25 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node progressNode = new Node(
-                "本周进展",
-                "本周有哪些真正的推进？哪些目标/KR有量化变化？",
-                cx - 320f, cy - 220f,
-                Node.NodeType.REVIEW
-        );
+        Node progressNode = new Node("本周进展", "本周有哪些真正的推进？哪些目标/KR有量化变化？", cx - 320f, cy - 220f, Node.NodeType.REVIEW);
         progressNode.setShape(Node.NodeShape.OVAL);
         progressNode.setStatus(Node.NodeStatus.REVIEW);
         progressNode.setProjectId(ownerId);
         progressNode.setTagsFromString("每周复盘,进展,Review");
 
-        Node patternNode = new Node(
-                "重复模式",
-                "这周反复出现的好模式/坏模式是什么？",
-                cx + 260f, cy - 220f,
-                Node.NodeType.INSIGHT
-        );
+        Node patternNode = new Node("重复模式", "这周反复出现的好模式/坏模式是什么？", cx + 260f, cy - 220f, Node.NodeType.INSIGHT);
         patternNode.setShape(Node.NodeShape.HEXAGON);
         patternNode.setStatus(Node.NodeStatus.REVIEW);
         patternNode.setProjectId(ownerId);
         patternNode.setTagsFromString("每周复盘,模式,Insight");
 
-        Node blockerNode = new Node(
-                "系统性阻碍",
-                "真正拖慢我的系统性因素是什么？例如计划过大、环境分心、估时错误。",
-                cx - 320f, cy + 200f,
-                Node.NodeType.OBSTACLE
-        );
+        Node blockerNode = new Node("系统性阻碍", "真正拖慢我的系统性因素是什么？例如计划过大、环境分心、估时错误。", cx - 320f, cy + 200f, Node.NodeType.OBSTACLE);
         blockerNode.setShape(Node.NodeShape.DIAMOND);
         blockerNode.setStatus(Node.NodeStatus.REVIEW);
         blockerNode.setProjectId(ownerId);
         blockerNode.setTagsFromString("每周复盘,阻碍,Obstacle");
 
-        Node adjustNode = new Node(
-                "下周调整",
-                "下周要删掉什么、保留什么、强化什么？",
-                cx + 260f, cy + 200f,
-                Node.NodeType.ACTION
-        );
+        Node adjustNode = new Node("下周调整", "下周要删掉什么、保留什么、强化什么？", cx + 260f, cy + 200f, Node.NodeType.ACTION);
         adjustNode.setShape(Node.NodeShape.RECT);
         adjustNode.setStatus(Node.NodeStatus.PLANNED);
         adjustNode.setProjectId(ownerId);
@@ -278,45 +203,25 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node expectedNode = new Node(
-                "AAR｜预期",
-                "原本预期会发生什么？目标、时间、质量标准是什么？",
-                cx - 320f, cy - 220f,
-                Node.NodeType.REVIEW
-        );
+        Node expectedNode = new Node("AAR｜预期", "原本预期会发生什么？目标、时间、质量标准是什么？", cx - 320f, cy - 220f, Node.NodeType.REVIEW);
         expectedNode.setShape(Node.NodeShape.OVAL);
         expectedNode.setStatus(Node.NodeStatus.REVIEW);
         expectedNode.setProjectId(ownerId);
         expectedNode.setTagsFromString("AAR,预期,Review");
 
-        Node actualNode = new Node(
-                "AAR｜实际",
-                "实际发生了什么？结果如何？和预期差在哪里？",
-                cx + 260f, cy - 220f,
-                Node.NodeType.REVIEW
-        );
+        Node actualNode = new Node("AAR｜实际", "实际发生了什么？结果如何？和预期差在哪里？", cx + 260f, cy - 220f, Node.NodeType.REVIEW);
         actualNode.setShape(Node.NodeShape.OVAL);
         actualNode.setStatus(Node.NodeStatus.REVIEW);
         actualNode.setProjectId(ownerId);
         actualNode.setTagsFromString("AAR,实际,Review");
 
-        Node reasonNode = new Node(
-                "AAR｜原因",
-                "为什么会有差异？是计划、执行、环境、资源、判断还是沟通问题？",
-                cx - 320f, cy + 200f,
-                Node.NodeType.OBSTACLE
-        );
+        Node reasonNode = new Node("AAR｜原因", "为什么会有差异？是计划、执行、环境、资源、判断还是沟通问题？", cx - 320f, cy + 200f, Node.NodeType.OBSTACLE);
         reasonNode.setShape(Node.NodeShape.DIAMOND);
         reasonNode.setStatus(Node.NodeStatus.REVIEW);
         reasonNode.setProjectId(ownerId);
         reasonNode.setTagsFromString("AAR,原因,Obstacle");
 
-        Node improveNode = new Node(
-                "AAR｜改进",
-                "下次我具体要怎么做得更好？哪些动作应该标准化？",
-                cx + 260f, cy + 200f,
-                Node.NodeType.ACTION
-        );
+        Node improveNode = new Node("AAR｜改进", "下次我具体要怎么做得更好？哪些动作应该标准化？", cx + 260f, cy + 200f, Node.NodeType.ACTION);
         improveNode.setShape(Node.NodeShape.RECT);
         improveNode.setStatus(Node.NodeStatus.PLANNED);
         improveNode.setProjectId(ownerId);
@@ -346,78 +251,43 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node decisionNode = new Node(
-                "决策问题",
-                "我要解决的核心选择是什么？边界条件是什么？",
-                cx, cy - 260f,
-                Node.NodeType.DECISION
-        );
+        Node decisionNode = new Node("决策问题", "我要解决的核心选择是什么？边界条件是什么？", cx, cy - 260f, Node.NodeType.DECISION);
         decisionNode.setShape(Node.NodeShape.OVAL);
         decisionNode.setStatus(Node.NodeStatus.ACTIVE);
         decisionNode.setProjectId(ownerId);
         decisionNode.setTagsFromString("决策,Decision,核心");
 
-        Node optionA = new Node(
-                "方案A",
-                "方案A的核心做法、成本、收益、适用条件是什么？",
-                cx - 360f, cy,
-                Node.NodeType.OPTION
-        );
+        Node optionA = new Node("方案A", "方案A的核心做法、成本、收益、适用条件是什么？", cx - 360f, cy, Node.NodeType.OPTION);
         optionA.setShape(Node.NodeShape.RECT);
         optionA.setStatus(Node.NodeStatus.PLANNED);
         optionA.setProjectId(ownerId);
         optionA.setTagsFromString("决策,Option,方案");
 
-        Node optionB = new Node(
-                "方案B",
-                "方案B的核心做法、成本、收益、适用条件是什么？",
-                cx, cy,
-                Node.NodeType.OPTION
-        );
+        Node optionB = new Node("方案B", "方案B的核心做法、成本、收益、适用条件是什么？", cx, cy, Node.NodeType.OPTION);
         optionB.setShape(Node.NodeShape.RECT);
         optionB.setStatus(Node.NodeStatus.PLANNED);
         optionB.setProjectId(ownerId);
         optionB.setTagsFromString("决策,Option,方案");
 
-        Node optionC = new Node(
-                "方案C",
-                "方案C的核心做法、成本、收益、适用条件是什么？",
-                cx + 360f, cy,
-                Node.NodeType.OPTION
-        );
+        Node optionC = new Node("方案C", "方案C的核心做法、成本、收益、适用条件是什么？", cx + 360f, cy, Node.NodeType.OPTION);
         optionC.setShape(Node.NodeShape.RECT);
         optionC.setStatus(Node.NodeStatus.PLANNED);
         optionC.setProjectId(ownerId);
         optionC.setTagsFromString("决策,Option,方案");
 
-        Node criteriaNode = new Node(
-                "决策准则",
-                "至少写出 3~6 个准则：时间、成本、长期收益、风险、可逆性、匹配度等。",
-                cx - 300f, cy + 260f,
-                Node.NodeType.CRITERION
-        );
+        Node criteriaNode = new Node("决策准则", "至少写出 3~6 个准则：时间、成本、长期收益、风险、可逆性、匹配度等。", cx - 300f, cy + 260f, Node.NodeType.CRITERION);
         criteriaNode.setShape(Node.NodeShape.HEXAGON);
         criteriaNode.setStatus(Node.NodeStatus.ACTIVE);
         criteriaNode.setProjectId(ownerId);
         criteriaNode.setTagsFromString("决策,Criteria,准则");
 
-        Node riskNode = new Node(
-                "主要风险",
-                "每个方案最可能失败在哪？最坏情况是什么？",
-                cx + 300f, cy + 260f,
-                Node.NodeType.RISK
-        );
+        Node riskNode = new Node("主要风险", "每个方案最可能失败在哪？最坏情况是什么？", cx + 300f, cy + 260f, Node.NodeType.RISK);
         riskNode.setShape(Node.NodeShape.DIAMOND);
         riskNode.setStatus(Node.NodeStatus.ACTIVE);
         riskNode.setProjectId(ownerId);
         riskNode.setTagsFromString("决策,Risk,风险");
 
-        Node recommendationNode = new Node(
-                "推荐下一步",
-                "先做低成本验证，还是直接执行？我现在最合理的一步是什么？",
-                cx, cy + 500f,
-                Node.NodeType.ACTION
-        );
+        Node recommendationNode = new Node("推荐下一步", "先做低成本验证，还是直接执行？我现在最合理的一步是什么？", cx, cy + 500f, Node.NodeType.ACTION);
         recommendationNode.setShape(Node.NodeShape.RECT);
         recommendationNode.setStatus(Node.NodeStatus.PLANNED);
         recommendationNode.setProjectId(ownerId);
@@ -457,46 +327,26 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node failedNode = new Node(
-                "Premortem｜假设失败",
-                "假设 3 个月后这个项目/决策彻底失败了。",
-                cx, cy - 240f,
-                Node.NodeType.RISK
-        );
+        Node failedNode = new Node("Premortem｜假设失败", "假设 3 个月后这个项目/决策彻底失败了。", cx, cy - 240f, Node.NodeType.RISK);
         failedNode.setShape(Node.NodeShape.DIAMOND);
         failedNode.setStatus(Node.NodeStatus.ACTIVE);
         failedNode.setProjectId(ownerId);
         failedNode.setTagsFromString("Premortem,失败假设,Risk");
 
-        Node reasonNode = new Node(
-                "失败原因",
-                "最可能导致失败的 3~5 个原因是什么？时间失控、资源不足、执行断裂、判断错误？",
-                cx - 320f, cy + 40f,
-                Node.NodeType.OBSTACLE
-        );
+        Node reasonNode = new Node("失败原因", "最可能导致失败的 3~5 个原因是什么？时间失控、资源不足、执行断裂、判断错误？", cx - 320f, cy + 40f, Node.NodeType.OBSTACLE);
         reasonNode.setShape(Node.NodeShape.DIAMOND);
         reasonNode.setStatus(Node.NodeStatus.ACTIVE);
         reasonNode.setProjectId(ownerId);
         reasonNode.setTagsFromString("Premortem,失败原因,Obstacle");
 
-        Node preventionNode = new Node(
-                "预防动作",
-                "我现在能做哪些预防动作，把失败概率提前压低？",
-                cx + 320f, cy + 40f,
-                Node.NodeType.ACTION
-        );
+        Node preventionNode = new Node("预防动作", "我现在能做哪些预防动作，把失败概率提前压低？", cx + 320f, cy + 40f, Node.NodeType.ACTION);
         preventionNode.setShape(Node.NodeShape.RECT);
         preventionNode.setStatus(Node.NodeStatus.PLANNED);
         preventionNode.setProjectId(ownerId);
         preventionNode.setTagsFromString("Premortem,预防,Action");
         preventionNode.setTriggerCondition("如果发现失败征兆，那么我先执行这里的预防动作");
 
-        Node signalNode = new Node(
-                "预警信号",
-                "哪些早期信号一出现，就说明事情已经开始偏离？",
-                cx, cy + 320f,
-                Node.NodeType.TRIGGER
-        );
+        Node signalNode = new Node("预警信号", "哪些早期信号一出现，就说明事情已经开始偏离？", cx, cy + 320f, Node.NodeType.TRIGGER);
         signalNode.setShape(Node.NodeShape.HEXAGON);
         signalNode.setStatus(Node.NodeStatus.PLANNED);
         signalNode.setProjectId(ownerId);
@@ -524,47 +374,27 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node supportEvidence = new Node(
-                "支持证据",
-                "有哪些事实、数据、观察在支持这个结论/方案？",
-                cx - 320f, cy - 60f,
-                Node.NodeType.EVIDENCE
-        );
+        Node supportEvidence = new Node("支持证据", "有哪些事实、数据、观察在支持这个结论/方案？", cx - 320f, cy - 60f, Node.NodeType.EVIDENCE);
         supportEvidence.setShape(Node.NodeShape.RECT);
         supportEvidence.setStatus(Node.NodeStatus.ACTIVE);
         supportEvidence.setProjectId(ownerId);
         supportEvidence.setTagsFromString("Evidence,支持,证据");
         supportEvidence.setEvidenceStrength(0.7f);
 
-        Node opposeEvidence = new Node(
-                "反对证据",
-                "有哪些事实、数据、观察在反驳这个结论/方案？",
-                cx + 320f, cy - 60f,
-                Node.NodeType.EVIDENCE
-        );
+        Node opposeEvidence = new Node("反对证据", "有哪些事实、数据、观察在反驳这个结论/方案？", cx + 320f, cy - 60f, Node.NodeType.EVIDENCE);
         opposeEvidence.setShape(Node.NodeShape.RECT);
         opposeEvidence.setStatus(Node.NodeStatus.ACTIVE);
         opposeEvidence.setProjectId(ownerId);
         opposeEvidence.setTagsFromString("Evidence,反对,证据");
         opposeEvidence.setEvidenceStrength(0.7f);
 
-        Node assumptionNode = new Node(
-                "待验证假设",
-                "我现在默认成立、但还没有被真正验证的假设是什么？",
-                cx - 320f, cy + 260f,
-                Node.NodeType.ASSUMPTION
-        );
+        Node assumptionNode = new Node("待验证假设", "我现在默认成立、但还没有被真正验证的假设是什么？", cx - 320f, cy + 260f, Node.NodeType.ASSUMPTION);
         assumptionNode.setShape(Node.NodeShape.HEXAGON);
         assumptionNode.setStatus(Node.NodeStatus.ACTIVE);
         assumptionNode.setProjectId(ownerId);
         assumptionNode.setTagsFromString("Evidence,假设,Assumption");
 
-        Node experimentNode = new Node(
-                "下一步实验",
-                "怎样用一个低成本小实验，尽快验证关键假设？",
-                cx + 320f, cy + 260f,
-                Node.NodeType.EXPERIMENT
-        );
+        Node experimentNode = new Node("下一步实验", "怎样用一个低成本小实验，尽快验证关键假设？", cx + 320f, cy + 260f, Node.NodeType.EXPERIMENT);
         experimentNode.setShape(Node.NodeShape.RECT);
         experimentNode.setStatus(Node.NodeStatus.PLANNED);
         experimentNode.setProjectId(ownerId);
@@ -593,46 +423,26 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node questionNode = new Node(
-                "检索问题",
-                "不用看原文，试着回答：这是什么？核心机制/定义是什么？",
-                cx, cy - 260f,
-                Node.NodeType.QUESTION
-        );
+        Node questionNode = new Node("检索问题", "不用看原文，试着回答：这是什么？核心机制/定义是什么？", cx, cy - 260f, Node.NodeType.QUESTION);
         questionNode.setShape(Node.NodeShape.OVAL);
         questionNode.setStatus(Node.NodeStatus.ACTIVE);
         questionNode.setProjectId(ownerId);
         questionNode.setTagsFromString("检索练习,问题,Retrieval");
         questionNode.setReviewAt("尽快第一次回忆");
 
-        Node keyPointNode = new Node(
-                "关键点回忆",
-                "写出 3~5 个关键点，不允许只写模糊感受。",
-                cx - 300f, cy + 20f,
-                Node.NodeType.NOTE
-        );
+        Node keyPointNode = new Node("关键点回忆", "写出 3~5 个关键点，不允许只写模糊感受。", cx - 300f, cy + 20f, Node.NodeType.NOTE);
         keyPointNode.setShape(Node.NodeShape.RECT);
         keyPointNode.setStatus(Node.NodeStatus.ACTIVE);
         keyPointNode.setProjectId(ownerId);
         keyPointNode.setTagsFromString("检索练习,关键点,Recall");
 
-        Node blindSpotNode = new Node(
-                "不会的地方",
-                "刚才哪部分想不起来？是定义、步骤、因果还是例子？",
-                cx + 300f, cy + 20f,
-                Node.NodeType.OBSTACLE
-        );
+        Node blindSpotNode = new Node("不会的地方", "刚才哪部分想不起来？是定义、步骤、因果还是例子？", cx + 300f, cy + 20f, Node.NodeType.OBSTACLE);
         blindSpotNode.setShape(Node.NodeShape.DIAMOND);
         blindSpotNode.setStatus(Node.NodeStatus.ACTIVE);
         blindSpotNode.setProjectId(ownerId);
         blindSpotNode.setTagsFromString("检索练习,盲点,Obstacle");
 
-        Node nextReviewNode = new Node(
-                "下次复习点",
-                "下次优先复习哪里？用什么方式验证自己真的会了？",
-                cx, cy + 300f,
-                Node.NodeType.REVIEW
-        );
+        Node nextReviewNode = new Node("下次复习点", "下次优先复习哪里？用什么方式验证自己真的会了？", cx, cy + 300f, Node.NodeType.REVIEW);
         nextReviewNode.setShape(Node.NodeShape.HEXAGON);
         nextReviewNode.setStatus(Node.NodeStatus.PLANNED);
         nextReviewNode.setProjectId(ownerId);
@@ -660,45 +470,25 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node definitionNode = new Node(
-                "定义重述",
-                "请用你自己的话重新定义它，不要照抄原文。",
-                cx, cy - 260f,
-                Node.NodeType.CONCEPT
-        );
+        Node definitionNode = new Node("定义重述", "请用你自己的话重新定义它，不要照抄原文。", cx, cy - 260f, Node.NodeType.CONCEPT);
         definitionNode.setShape(Node.NodeShape.OVAL);
         definitionNode.setStatus(Node.NodeStatus.ACTIVE);
         definitionNode.setProjectId(ownerId);
         definitionNode.setTagsFromString("概念深化,定义,Concept");
 
-        Node exampleNode = new Node(
-                "例子",
-                "举一个典型例子，说明它在真实场景中如何出现。",
-                cx - 320f, cy + 20f,
-                Node.NodeType.RESOURCE
-        );
+        Node exampleNode = new Node("例子", "举一个典型例子，说明它在真实场景中如何出现。", cx - 320f, cy + 20f, Node.NodeType.RESOURCE);
         exampleNode.setShape(Node.NodeShape.RECT);
         exampleNode.setStatus(Node.NodeStatus.ACTIVE);
         exampleNode.setProjectId(ownerId);
         exampleNode.setTagsFromString("概念深化,例子,Example");
 
-        Node counterExampleNode = new Node(
-                "反例",
-                "什么东西看起来像它，但其实不是它？",
-                cx + 320f, cy + 20f,
-                Node.NodeType.QUESTION
-        );
+        Node counterExampleNode = new Node("反例", "什么东西看起来像它，但其实不是它？", cx + 320f, cy + 20f, Node.NodeType.QUESTION);
         counterExampleNode.setShape(Node.NodeShape.DIAMOND);
         counterExampleNode.setStatus(Node.NodeStatus.ACTIVE);
         counterExampleNode.setProjectId(ownerId);
         counterExampleNode.setTagsFromString("概念深化,反例,Counterexample");
 
-        Node misconceptionNode = new Node(
-                "易错点",
-                "别人或我自己最容易误解它的地方是什么？",
-                cx, cy + 300f,
-                Node.NodeType.OBSTACLE
-        );
+        Node misconceptionNode = new Node("易错点", "别人或我自己最容易误解它的地方是什么？", cx, cy + 300f, Node.NodeType.OBSTACLE);
         misconceptionNode.setShape(Node.NodeShape.HEXAGON);
         misconceptionNode.setStatus(Node.NodeStatus.ACTIVE);
         misconceptionNode.setProjectId(ownerId);
@@ -726,45 +516,25 @@ public class ScientificTemplateEngine {
         float cy = baseNode.getY();
         String ownerId = resolveOwnerId(baseNode);
 
-        Node scenarioNode = new Node(
-                "迁移场景",
-                "这个知识/方法还能用在哪个新场景里？",
-                cx, cy - 260f,
-                Node.NodeType.QUESTION
-        );
+        Node scenarioNode = new Node("迁移场景", "这个知识/方法还能用在哪个新场景里？", cx, cy - 260f, Node.NodeType.QUESTION);
         scenarioNode.setShape(Node.NodeShape.OVAL);
         scenarioNode.setStatus(Node.NodeStatus.ACTIVE);
         scenarioNode.setProjectId(ownerId);
         scenarioNode.setTagsFromString("迁移练习,场景,Transfer");
 
-        Node applyNode = new Node(
-                "应用方式",
-                "如果放到那个场景中，我具体怎么用它？",
-                cx - 320f, cy + 20f,
-                Node.NodeType.ACTION
-        );
+        Node applyNode = new Node("应用方式", "如果放到那个场景中，我具体怎么用它？", cx - 320f, cy + 20f, Node.NodeType.ACTION);
         applyNode.setShape(Node.NodeShape.RECT);
         applyNode.setStatus(Node.NodeStatus.PLANNED);
         applyNode.setProjectId(ownerId);
         applyNode.setTagsFromString("迁移练习,应用,Action");
 
-        Node limitNode = new Node(
-                "适用边界",
-                "在什么条件下它不适用？它的边界在哪里？",
-                cx + 320f, cy + 20f,
-                Node.NodeType.RISK
-        );
+        Node limitNode = new Node("适用边界", "在什么条件下它不适用？它的边界在哪里？", cx + 320f, cy + 20f, Node.NodeType.RISK);
         limitNode.setShape(Node.NodeShape.DIAMOND);
         limitNode.setStatus(Node.NodeStatus.ACTIVE);
         limitNode.setProjectId(ownerId);
         limitNode.setTagsFromString("迁移练习,边界,Risk");
 
-        Node testNode = new Node(
-                "验证任务",
-                "我能做一个什么小任务，来验证自己真的会迁移使用它？",
-                cx, cy + 300f,
-                Node.NodeType.EXPERIMENT
-        );
+        Node testNode = new Node("验证任务", "我能做一个什么小任务，来验证自己真的会迁移使用它？", cx, cy + 300f, Node.NodeType.EXPERIMENT);
         testNode.setShape(Node.NodeShape.HEXAGON);
         testNode.setStatus(Node.NodeStatus.PLANNED);
         testNode.setProjectId(ownerId);
@@ -783,6 +553,246 @@ public class ScientificTemplateEngine {
         result.createdConnections.add(new Connection(testNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "强化迁移能力"));
 
         return result;
+    }
+
+    // ===== 第七批：AI/规则补全层 =====
+
+    public static TemplateResult generateAiGapCheck(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null || existingNodes == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        boolean hasObstacle = hasNearbyType(baseNode, existingNodes, Node.NodeType.OBSTACLE);
+        boolean hasAction = hasNearbyType(baseNode, existingNodes, Node.NodeType.ACTION) || hasNearbyType(baseNode, existingNodes, Node.NodeType.TASK);
+        boolean hasRisk = hasNearbyType(baseNode, existingNodes, Node.NodeType.RISK);
+        boolean hasSupportEvidence = hasNearbyType(baseNode, existingNodes, Node.NodeType.EVIDENCE);
+        boolean hasReview = hasNearbyType(baseNode, existingNodes, Node.NodeType.REVIEW);
+        boolean hasExample = hasNearbyType(baseNode, existingNodes, Node.NodeType.RESOURCE);
+        boolean hasCounterExample = hasNearbyType(baseNode, existingNodes, Node.NodeType.QUESTION);
+        boolean hasTransfer = hasNearbyType(baseNode, existingNodes, Node.NodeType.EXPERIMENT);
+
+        Node summaryNode = new Node(
+                "AI缺口检查",
+                buildGapSummary(hasObstacle, hasAction, hasRisk, hasSupportEvidence, hasReview, hasExample, hasCounterExample, hasTransfer),
+                cx, cy - 280f,
+                Node.NodeType.INSIGHT
+        );
+        summaryNode.setShape(Node.NodeShape.OVAL);
+        summaryNode.setStatus(Node.NodeStatus.ACTIVE);
+        summaryNode.setProjectId(ownerId);
+        summaryNode.setTagsFromString("AI,缺口检查,GapCheck");
+
+        result.createdNodes.add(summaryNode);
+        result.createdConnections.add(new Connection(baseNode.getId(), summaryNode.getId(), Connection.ConnectionType.LEADS_TO, "结构检查"));
+
+        int createdIndex = 0;
+
+        if (!hasObstacle) {
+            Node n = createGapNode("缺少障碍分析", "当前结构里缺少明确障碍。最可能卡住你的是什么？", cx - 360f, cy, ownerId, Node.NodeType.OBSTACLE, "AI,Gap,Obstacle");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.BLOCKS, "待补充"));
+            createdIndex++;
+        }
+        if (!hasAction) {
+            Node n = createGapNode("缺少下一步", "当前结构里缺少明确的下一步行动。现在最小的一步是什么？", cx, cy, ownerId, Node.NodeType.ACTION, "AI,Gap,NextAction");
+            n.setTriggerCondition("如果我要推进这个节点，那么先执行这里的一步");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
+            createdIndex++;
+        }
+        if (!hasRisk) {
+            Node n = createGapNode("缺少风险审查", "当前结构里缺少风险节点。最坏会出什么问题？", cx + 360f, cy, ownerId, Node.NodeType.RISK, "AI,Gap,Risk");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.BLOCKS, "待补充"));
+            createdIndex++;
+        }
+        if (!hasSupportEvidence) {
+            Node n = createGapNode("缺少证据", "当前结构里缺少支撑/反驳证据。你是凭什么判断的？", cx - 240f, cy + 280f, ownerId, Node.NodeType.EVIDENCE, "AI,Gap,Evidence");
+            n.setEvidenceStrength(0.5f);
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "待补充"));
+            createdIndex++;
+        }
+        if (!hasReview) {
+            Node n = createGapNode("缺少复盘", "当前结构里缺少复盘节点。如何知道自己做得对不对？", cx + 240f, cy + 280f, ownerId, Node.NodeType.REVIEW, "AI,Gap,Review");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
+            createdIndex++;
+        }
+        if (!hasExample) {
+            Node n = createGapNode("缺少例子", "当前知识结构里缺少具体例子。能举一个真实例子吗？", cx - 480f, cy + 520f, ownerId, Node.NodeType.RESOURCE, "AI,Gap,Example");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
+            createdIndex++;
+        }
+        if (!hasCounterExample) {
+            Node n = createGapNode("缺少反例", "当前知识结构里缺少反例。什么看起来像它但其实不是？", cx, cy + 520f, ownerId, Node.NodeType.QUESTION, "AI,Gap,Counterexample");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.OPPOSES, "待补充"));
+            createdIndex++;
+        }
+        if (!hasTransfer) {
+            Node n = createGapNode("缺少迁移验证", "当前知识结构里缺少迁移验证。换个场景你还会用吗？", cx + 480f, cy + 520f, ownerId, Node.NodeType.EXPERIMENT, "AI,Gap,Transfer");
+            n.setTriggerCondition("如果我要检验是否真正会了，那么先做这个迁移验证");
+            result.createdNodes.add(n);
+            result.createdConnections.add(new Connection(n.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "待补充"));
+        }
+
+        return result;
+    }
+
+    public static TemplateResult generateAiExecutionPatch(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node obstacleNode = new Node("AI补全｜障碍", "按当前结构推测，你最可能卡在：任务过大、启动困难、分心、信息不足。具体是哪一个？", cx - 320f, cy + 20f, Node.NodeType.OBSTACLE);
+        obstacleNode.setShape(Node.NodeShape.DIAMOND);
+        obstacleNode.setStatus(Node.NodeStatus.ACTIVE);
+        obstacleNode.setProjectId(ownerId);
+        obstacleNode.setTagsFromString("AI,执行补全,Obstacle");
+
+        Node triggerNode = new Node("AI补全｜触发", "给这个节点加一个明确触发：什么时候、在哪、什么情况下开始？", cx + 320f, cy + 20f, Node.NodeType.TRIGGER);
+        triggerNode.setShape(Node.NodeShape.HEXAGON);
+        triggerNode.setStatus(Node.NodeStatus.PLANNED);
+        triggerNode.setProjectId(ownerId);
+        triggerNode.setTagsFromString("AI,执行补全,Trigger");
+
+        Node nextStepNode = new Node("AI补全｜最小下一步", "把动作缩到 2~10 分钟内能开始的一步。", cx - 320f, cy + 300f, Node.NodeType.ACTION);
+        nextStepNode.setShape(Node.NodeShape.RECT);
+        nextStepNode.setStatus(Node.NodeStatus.PLANNED);
+        nextStepNode.setProjectId(ownerId);
+        nextStepNode.setTagsFromString("AI,执行补全,NextStep");
+        nextStepNode.setTriggerCondition("如果我要推进当前节点，那么先做这一个最小动作");
+
+        Node reviewNode = new Node("AI补全｜完成判据", "做完之后如何判断这一步真的完成了？", cx + 320f, cy + 300f, Node.NodeType.REVIEW);
+        reviewNode.setShape(Node.NodeShape.OVAL);
+        reviewNode.setStatus(Node.NodeStatus.PLANNED);
+        reviewNode.setProjectId(ownerId);
+        reviewNode.setTagsFromString("AI,执行补全,Review");
+
+        result.createdNodes.add(obstacleNode);
+        result.createdNodes.add(triggerNode);
+        result.createdNodes.add(nextStepNode);
+        result.createdNodes.add(reviewNode);
+
+        result.createdConnections.add(new Connection(obstacleNode.getId(), baseNode.getId(), Connection.ConnectionType.BLOCKS, "潜在卡点"));
+        result.createdConnections.add(new Connection(triggerNode.getId(), nextStepNode.getId(), Connection.ConnectionType.TRIGGERS, "触发行动"));
+        result.createdConnections.add(new Connection(nextStepNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "推进当前节点"));
+        result.createdConnections.add(new Connection(reviewNode.getId(), nextStepNode.getId(), Connection.ConnectionType.LEADS_TO, "验收"));
+        result.createdConnections.add(new Connection(triggerNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "服务当前节点"));
+
+        return result;
+    }
+
+    public static TemplateResult generateAiLearningPatch(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node retrievalNode = new Node("AI补全｜检索问题", "不用看原文，你现在能回答它的定义、机制、步骤吗？", cx, cy - 260f, Node.NodeType.QUESTION);
+        retrievalNode.setShape(Node.NodeShape.OVAL);
+        retrievalNode.setStatus(Node.NodeStatus.ACTIVE);
+        retrievalNode.setProjectId(ownerId);
+        retrievalNode.setTagsFromString("AI,学习补全,Retrieval");
+
+        Node exampleNode = new Node("AI补全｜例子", "给这个知识补一个真实例子。", cx - 320f, cy + 20f, Node.NodeType.RESOURCE);
+        exampleNode.setShape(Node.NodeShape.RECT);
+        exampleNode.setStatus(Node.NodeStatus.ACTIVE);
+        exampleNode.setProjectId(ownerId);
+        exampleNode.setTagsFromString("AI,学习补全,Example");
+
+        Node counterExampleNode = new Node("AI补全｜反例", "找一个看起来像它、但实际上不是它的东西。", cx + 320f, cy + 20f, Node.NodeType.QUESTION);
+        counterExampleNode.setShape(Node.NodeShape.DIAMOND);
+        counterExampleNode.setStatus(Node.NodeStatus.ACTIVE);
+        counterExampleNode.setProjectId(ownerId);
+        counterExampleNode.setTagsFromString("AI,学习补全,Counterexample");
+
+        Node transferNode = new Node("AI补全｜迁移任务", "换一个场景应用它，检验你是不是真的掌握了。", cx, cy + 300f, Node.NodeType.EXPERIMENT);
+        transferNode.setShape(Node.NodeShape.HEXAGON);
+        transferNode.setStatus(Node.NodeStatus.PLANNED);
+        transferNode.setProjectId(ownerId);
+        transferNode.setTagsFromString("AI,学习补全,Transfer");
+        transferNode.setTriggerCondition("如果我要确认自己真的会了，那么先完成这个迁移任务");
+
+        result.createdNodes.add(retrievalNode);
+        result.createdNodes.add(exampleNode);
+        result.createdNodes.add(counterExampleNode);
+        result.createdNodes.add(transferNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), retrievalNode.getId(), Connection.ConnectionType.LEADS_TO, "主动回忆"));
+        result.createdConnections.add(new Connection(retrievalNode.getId(), exampleNode.getId(), Connection.ConnectionType.TRIGGERS, "用例子验证"));
+        result.createdConnections.add(new Connection(retrievalNode.getId(), counterExampleNode.getId(), Connection.ConnectionType.OPPOSES, "反例校准"));
+        result.createdConnections.add(new Connection(exampleNode.getId(), transferNode.getId(), Connection.ConnectionType.TRIGGERS, "迁移验证"));
+        result.createdConnections.add(new Connection(transferNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "强化掌握"));
+
+        return result;
+    }
+
+    private static Node createGapNode(String title, String content, float x, float y, String ownerId, Node.NodeType type, String tags) {
+        Node n = new Node(title, content, x, y, type);
+        if (type == Node.NodeType.OBSTACLE || type == Node.NodeType.RISK) {
+            n.setShape(Node.NodeShape.DIAMOND);
+        } else if (type == Node.NodeType.REVIEW || type == Node.NodeType.INSIGHT) {
+            n.setShape(Node.NodeShape.OVAL);
+        } else if (type == Node.NodeType.EXPERIMENT || type == Node.NodeType.TRIGGER) {
+            n.setShape(Node.NodeShape.HEXAGON);
+        } else {
+            n.setShape(Node.NodeShape.RECT);
+        }
+        n.setStatus(Node.NodeStatus.PLANNED);
+        n.setProjectId(ownerId);
+        n.setTagsFromString(tags);
+        return n;
+    }
+
+    private static String buildGapSummary(boolean hasObstacle, boolean hasAction, boolean hasRisk,
+                                          boolean hasEvidence, boolean hasReview, boolean hasExample,
+                                          boolean hasCounterExample, boolean hasTransfer) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("结构检查结果：");
+        if (!hasObstacle) sb.append("\n- 缺少障碍分析");
+        if (!hasAction) sb.append("\n- 缺少明确下一步");
+        if (!hasRisk) sb.append("\n- 缺少风险审查");
+        if (!hasEvidence) sb.append("\n- 缺少证据支撑/反驳");
+        if (!hasReview) sb.append("\n- 缺少复盘与反馈");
+        if (!hasExample) sb.append("\n- 缺少例子");
+        if (!hasCounterExample) sb.append("\n- 缺少反例");
+        if (!hasTransfer) sb.append("\n- 缺少迁移验证");
+        if (hasObstacle && hasAction && hasRisk && hasEvidence && hasReview && hasExample && hasCounterExample && hasTransfer) {
+            sb.append("\n- 当前结构相对完整，可继续细化质量。");
+        }
+        return sb.toString();
+    }
+
+    private static boolean hasNearbyType(Node baseNode, Map<String, Node> existingNodes, Node.NodeType targetType) {
+        if (baseNode == null || existingNodes == null || targetType == null) return false;
+
+        float bx = baseNode.getX();
+        float by = baseNode.getY();
+
+        for (Node node : existingNodes.values()) {
+            if (node == null || node.getId().equals(baseNode.getId())) continue;
+            if (node.getType() != targetType) continue;
+
+            float dx = node.getX() - bx;
+            float dy = node.getY() - by;
+            double distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 900f) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String resolveOwnerId(Node baseNode) {
