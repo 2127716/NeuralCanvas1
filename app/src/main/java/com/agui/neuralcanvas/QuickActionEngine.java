@@ -18,35 +18,22 @@ public class QuickActionEngine {
         if (node == null || activity == null) return;
 
         node.setType(targetType);
+        WorkflowEngine.normalizeNodeForWorkflow(node);
 
-        switch (targetType) {
-            case TASK:
-            case ACTION:
-                node.setStatus(Node.NodeStatus.PLANNED);
-                if (DashboardSectionBuilder.safe(node.getTriggerCondition()).isEmpty()) {
-                    node.setTriggerCondition("如果开始处理这个事项，那么先做一个最小动作");
-                }
-                break;
-
-            case GOAL:
-                node.setStatus(Node.NodeStatus.ACTIVE);
-                break;
-
-            case PROJECT:
-                node.setStatus(Node.NodeStatus.ACTIVE);
-                node.setProjectId(node.getId());
-                break;
-
-            case NOTE:
-                node.setStatus(Node.NodeStatus.ACTIVE);
-                break;
-
-            case DECISION:
-                node.setStatus(Node.NodeStatus.ACTIVE);
-                break;
-
-            default:
-                break;
+        if (targetType == Node.NodeType.PROJECT) {
+            node.setProjectId(node.getId());
+            node.addTags("Project", "InboxConverted");
+        } else if (targetType == Node.NodeType.TASK || targetType == Node.NodeType.ACTION) {
+            node.addTags("Actionable", "InboxConverted");
+        } else if (targetType == Node.NodeType.DECISION) {
+            node.addTags("Decision", "InboxConverted");
+        } else if (targetType == Node.NodeType.NOTE
+                || targetType == Node.NodeType.CONCEPT
+                || targetType == Node.NodeType.QUESTION
+                || targetType == Node.NodeType.RESOURCE) {
+            node.addTags("Learning", "InboxConverted");
+        } else {
+            node.addTag("InboxConverted");
         }
 
         activity.onNodeUpdated(node);
