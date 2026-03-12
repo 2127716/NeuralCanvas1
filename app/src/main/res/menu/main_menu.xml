@@ -27,6 +27,15 @@
                 android:id="@+id/action_generate_if_then"
                 android:title="生成If-Then" />
             <item
+                android:id="@+id/action_generate_daily_review"
+                android:title="生成每日复盘" />
+            <item
+                android:id="@+id/action_generate_weekly_review"
+                android:title="生成每周复盘" />
+            <item
+                android:id="@+id/action_generate_aar"
+                android:title="生成AAR复盘" />
+            <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
             <item
