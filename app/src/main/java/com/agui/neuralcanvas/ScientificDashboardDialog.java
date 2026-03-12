@@ -19,6 +19,8 @@ import androidx.fragment.app.DialogFragment;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -91,39 +93,6 @@ public class ScientificDashboardDialog extends DialogFragment {
         return gd;
     }
 
-    private TextView buildNodeRow(Node node, String extra, MainActivity activity) {
-        TextView tv = new TextView(requireContext());
-        String title = safe(node.getTitle(), "未命名节点");
-        String type = node.getType() == null ? "" : node.getType().label;
-        String line = "• " + title + "  [" + type + "]";
-        if (!TextUtils.isEmpty(extra)) {
-            line += "\n  " + extra;
-        }
-
-        tv.setText(line);
-        tv.setTextColor(Color.parseColor("#E2E8F0"));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
-        tv.setBackground(createRoundedDrawable("#111827"));
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        lp.topMargin = dp(8);
-        tv.setLayoutParams(lp);
-
-        tv.setOnClickListener(v -> {
-            if (activity != null && activity.getMindMapView() != null) {
-                activity.getMindMapView().focusNodeById(node.getId());
-                activity.getMindMapView().selectNodeById(node.getId());
-                dismiss();
-            }
-        });
-
-        return tv;
-    }
-
     private String safe(String value, String fallback) {
         if (value == null || value.trim().isEmpty()) return fallback;
         return value.trim();
@@ -161,6 +130,27 @@ public class ScientificDashboardDialog extends DialogFragment {
         return node != null && node.getType() == Node.NodeType.KEY_RESULT;
     }
 
+    private int statusRank(Node.NodeStatus status) {
+        if (status == null) return 99;
+        switch (status) {
+            case ACTIVE: return 0;
+            case PLANNED: return 1;
+            case WAITING: return 2;
+            case BLOCKED: return 3;
+            case REVIEW: return 4;
+            case SOMEDAY: return 5;
+            case DONE: return 6;
+            default: return 99;
+        }
+    }
+
+    private String formatPercent(float current, float target) {
+        if (target <= 0f) return "";
+        float percent = (current / target) * 100f;
+        if (percent < 0f) percent = 0f;
+        return String.format(Locale.getDefault(), "%.0f%%", percent);
+    }
+
     private String buildNodeExtra(Node node) {
         List<String> parts = new ArrayList<>();
 
@@ -180,7 +170,8 @@ public class ScientificDashboardDialog extends DialogFragment {
             parts.add("预计耗时: " + node.getEffortEstimate() + "h");
         }
         if (node.getKrTarget() > 0f) {
-            parts.add("KR: " + node.getKrCurrent() + " / " + node.getKrTarget());
+            parts.add("KR: " + node.getKrCurrent() + " / " + node.getKrTarget() + " (" +
+                    formatPercent(node.getKrCurrent(), node.getKrTarget()) + ")");
         }
         if (node.getType() == Node.NodeType.EVIDENCE) {
             parts.add("证据强度: " + node.getEvidenceStrength());
@@ -195,6 +186,39 @@ public class ScientificDashboardDialog extends DialogFragment {
         }
 
         return TextUtils.join(" ｜ ", parts);
+    }
+
+    private TextView buildNodeRow(Node node, String extra, MainActivity activity) {
+        TextView tv = new TextView(requireContext());
+        String title = safe(node.getTitle(), "未命名节点");
+        String type = node.getType() == null ? "" : node.getType().label;
+        String line = "• " + title + "  [" + type + "]";
+        if (!TextUtils.isEmpty(extra)) {
+            line += "\n  " + extra;
+        }
+
+        tv.setText(line);
+        tv.setTextColor(Color.parseColor("#E2E8F0"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
+        tv.setBackground(createRoundedDrawable("#111827"));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = dp(8);
+        tv.setLayoutParams(lp);
+
+        tv.setOnClickListener(v -> {
+            if (activity != null && activity.getMindMapView() != null) {
+                activity.getMindMapView().focusNodeById(node.getId());
+                activity.getMindMapView().selectNodeById(node.getId());
+                dismiss();
+            }
+        });
+
+        return tv;
     }
 
     private void addSection(LinearLayout root, String title, List<Node> nodes, MainActivity activity) {
@@ -221,7 +245,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         }
 
         if (nodes.size() > limit) {
-            TextView more = buildTitle("还有 " + (nodes.size() - limit) + " 个，后面你可以再做“查看更多”", 12, false, "#94A3B8");
+            TextView more = buildTitle("还有 " + (nodes.size() - limit) + " 个", 12, false, "#94A3B8");
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -232,6 +256,45 @@ public class ScientificDashboardDialog extends DialogFragment {
         }
 
         root.addView(buildSpacer(18));
+    }
+
+    private void sortTodayNodes(List<Node> list, final String today) {
+        Collections.sort(list, new Comparator<Node>() {
+            @Override
+            public int compare(Node a, Node b) {
+                boolean aDueToday = containsDateHint(a.getDueAt(), today);
+                boolean bDueToday = containsDateHint(b.getDueAt(), today);
+                if (aDueToday != bDueToday) return aDueToday ? -1 : 1;
+
+                int p = Integer.compare(b.getPriority(), a.getPriority());
+                if (p != 0) return p;
+
+                int sr = Integer.compare(statusRank(a.getStatus()), statusRank(b.getStatus()));
+                if (sr != 0) return sr;
+
+                boolean aHasTrigger = !safe(a.getTriggerCondition(), "").isEmpty();
+                boolean bHasTrigger = !safe(b.getTriggerCondition(), "").isEmpty();
+                if (aHasTrigger != bHasTrigger) return aHasTrigger ? -1 : 1;
+
+                float ae = a.getEffortEstimate() <= 0f ? 9999f : a.getEffortEstimate();
+                float be = b.getEffortEstimate() <= 0f ? 9999f : b.getEffortEstimate();
+                int effortCompare = Float.compare(ae, be);
+                if (effortCompare != 0) return effortCompare;
+
+                return safe(a.getTitle(), "").compareToIgnoreCase(safe(b.getTitle(), ""));
+            }
+        });
+    }
+
+    private void sortKrNodes(List<Node> list) {
+        Collections.sort(list, new Comparator<Node>() {
+            @Override
+            public int compare(Node a, Node b) {
+                float ap = a.getKrTarget() > 0f ? a.getKrCurrent() / a.getKrTarget() : -1f;
+                float bp = b.getKrTarget() > 0f ? b.getKrCurrent() / b.getKrTarget() : -1f;
+                return Float.compare(bp, ap);
+            }
+        });
     }
 
     @NonNull
@@ -265,16 +328,17 @@ public class ScientificDashboardDialog extends DialogFragment {
                                 || !safe(node.getTriggerCondition(), "").isEmpty()
                                 || node.getStatus() == Node.NodeStatus.ACTIVE
                                 || node.getStatus() == Node.NodeStatus.PLANNED;
-                if (important) {
+                if (important && node.getStatus() != Node.NodeStatus.DONE) {
                     todayNodes.add(node);
                 }
             }
 
-            if (isReviewNode(node) || containsDateHint(node.getReviewAt(), today)) {
+            if ((isReviewNode(node) || containsDateHint(node.getReviewAt(), today))
+                    && node.getStatus() != Node.NodeStatus.DONE) {
                 reviewNodes.add(node);
             }
 
-            if (isRiskOrBlocked(node)) {
+            if (isRiskOrBlocked(node) && node.getStatus() != Node.NodeStatus.DONE) {
                 riskNodes.add(node);
             }
 
@@ -282,6 +346,9 @@ public class ScientificDashboardDialog extends DialogFragment {
                 krNodes.add(node);
             }
         }
+
+        sortTodayNodes(todayNodes, today);
+        sortKrNodes(krNodes);
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
@@ -295,7 +362,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("把已有节点字段真正变成日常执行入口", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("自动按紧急度、优先级、状态、启动难度排序", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -323,7 +390,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         root.addView(buildSpacer(18));
 
         addSection(root, "Inbox 待澄清", inboxNodes, activity);
-        addSection(root, "今日最值得推进", todayNodes, activity);
+        addSection(root, "今日最值得推进（已排序）", todayNodes, activity);
         addSection(root, "待复盘 / 待复习", reviewNodes, activity);
         addSection(root, "高风险 / 受阻节点", riskNodes, activity);
         addSection(root, "关键结果（KR）", krNodes, activity);
