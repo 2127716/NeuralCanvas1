@@ -1,6 +1,7 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
@@ -11,6 +12,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -40,6 +42,53 @@ public class NodeEditDialog extends DialogFragment {
         );
     }
 
+    private TextView buildSectionTitle(String text) {
+        TextView tv = new TextView(requireContext());
+        tv.setText(text);
+        tv.setTextColor(Color.parseColor("#0F172A"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+        return tv;
+    }
+
+    private EditText buildEditText(String hint, String value, int inputType) {
+        EditText et = new EditText(requireContext());
+        et.setHint(hint);
+        et.setText(value == null ? "" : value);
+        et.setInputType(inputType);
+        et.setTextColor(Color.parseColor("#0F172A"));
+        et.setHintTextColor(Color.parseColor("#94A3B8"));
+        et.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
+        return et;
+    }
+
+    private void addWithTopMargin(LinearLayout root, android.view.View view, int topDp) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = dp(topDp);
+        root.addView(view, lp);
+    }
+
+    private float parseFloatSafe(String text, float defaultValue) {
+        try {
+            if (text == null || text.trim().isEmpty()) return defaultValue;
+            return Float.parseFloat(text.trim());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
+    private int parseIntSafe(String text, int defaultValue) {
+        try {
+            if (text == null || text.trim().isEmpty()) return defaultValue;
+            return Integer.parseInt(text.trim());
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
+
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -56,28 +105,23 @@ public class NodeEditDialog extends DialogFragment {
         root.setPadding(p, p, p, p);
         scrollView.addView(root);
 
-        EditText titleInput = new EditText(requireContext());
-        titleInput.setHint("标题");
-        titleInput.setText(currentNode.getTitle());
-        titleInput.setTextColor(Color.parseColor("#0F172A"));
-        titleInput.setHintTextColor(Color.parseColor("#94A3B8"));
-        titleInput.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#60A5FA")));
-        root.addView(titleInput, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView basicTitle = buildSectionTitle("基础信息");
+        root.addView(basicTitle);
 
-        EditText contentInput = new EditText(requireContext());
-        contentInput.setHint("内容");
-        contentInput.setText(currentNode.getContent());
+        EditText titleInput = buildEditText(
+                "标题",
+                currentNode.getTitle(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, titleInput, 10);
+
+        EditText contentInput = buildEditText(
+                "内容",
+                currentNode.getContent(),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        );
         contentInput.setMinLines(5);
-        contentInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        contentInput.setTextColor(Color.parseColor("#0F172A"));
-        contentInput.setHintTextColor(Color.parseColor("#94A3B8"));
-        contentInput.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#60A5FA")));
-
-        LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        contentLp.topMargin = dp(14);
-        root.addView(contentInput, contentLp);
+        addWithTopMargin(root, contentInput, 14);
 
         Spinner typeSpinner = new Spinner(requireContext());
         String[] typeLabels = new String[Node.NodeType.values().length];
@@ -92,11 +136,7 @@ public class NodeEditDialog extends DialogFragment {
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         typeSpinner.setAdapter(typeAdapter);
         typeSpinner.setSelection(currentNode.getType().ordinal());
-
-        LinearLayout.LayoutParams typeLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        typeLp.topMargin = dp(14);
-        root.addView(typeSpinner, typeLp);
+        addWithTopMargin(root, typeSpinner, 14);
 
         Spinner shapeSpinner = new Spinner(requireContext());
         String[] shapeLabels = new String[Node.NodeShape.values().length];
@@ -111,11 +151,137 @@ public class NodeEditDialog extends DialogFragment {
         shapeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         shapeSpinner.setAdapter(shapeAdapter);
         shapeSpinner.setSelection(currentNode.getShape().ordinal());
+        addWithTopMargin(root, shapeSpinner, 14);
 
-        LinearLayout.LayoutParams shapeLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        shapeLp.topMargin = dp(14);
-        root.addView(shapeSpinner, shapeLp);
+        Spinner statusSpinner = new Spinner(requireContext());
+        String[] statusLabels = new String[Node.NodeStatus.values().length];
+        for (int i = 0; i < Node.NodeStatus.values().length; i++) {
+            statusLabels[i] = Node.NodeStatus.values()[i].label;
+        }
+        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                statusLabels
+        );
+        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        statusSpinner.setAdapter(statusAdapter);
+        statusSpinner.setSelection(currentNode.getStatus().ordinal());
+        addWithTopMargin(root, statusSpinner, 14);
+
+        TextView workflowTitle = buildSectionTitle("工作流字段");
+        addWithTopMargin(root, workflowTitle, 22);
+
+        EditText tagsInput = buildEditText(
+                "标签，多个用逗号分隔",
+                currentNode.getTagsAsString(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, tagsInput, 10);
+
+        EditText priorityInput = buildEditText(
+                "优先级（1-5）",
+                String.valueOf(currentNode.getPriority()),
+                InputType.TYPE_CLASS_NUMBER
+        );
+        addWithTopMargin(root, priorityInput, 14);
+
+        EditText dueAtInput = buildEditText(
+                "截止时间，如：2026-03-20 20:00",
+                currentNode.getDueAt(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, dueAtInput, 14);
+
+        EditText reviewAtInput = buildEditText(
+                "复习/回顾时间，如：2026-03-18",
+                currentNode.getReviewAt(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, reviewAtInput, 14);
+
+        EditText effortEstimateInput = buildEditText(
+                "预计耗时（小时）",
+                String.valueOf(currentNode.getEffortEstimate()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, effortEstimateInput, 14);
+
+        EditText actualEffortInput = buildEditText(
+                "实际耗时（小时）",
+                String.valueOf(currentNode.getActualEffort()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, actualEffortInput, 14);
+
+        EditText confidenceInput = buildEditText(
+                "置信度（0~1）",
+                String.valueOf(currentNode.getConfidence()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, confidenceInput, 14);
+
+        EditText triggerInput = buildEditText(
+                "触发条件 If，例如：如果晚上7点坐到书桌前",
+                currentNode.getTriggerCondition(),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        );
+        addWithTopMargin(root, triggerInput, 14);
+
+        TextView relationTitle = buildSectionTitle("归属与追踪");
+        addWithTopMargin(root, relationTitle, 22);
+
+        EditText projectIdInput = buildEditText(
+                "所属项目ID（先手填，后面我再帮你做选择器）",
+                currentNode.getProjectId(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, projectIdInput, 10);
+
+        EditText areaIdInput = buildEditText(
+                "所属领域ID",
+                currentNode.getAreaId(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, areaIdInput, 14);
+
+        EditText krTargetInput = buildEditText(
+                "KR目标值",
+                String.valueOf(currentNode.getKrTarget()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, krTargetInput, 14);
+
+        EditText krCurrentInput = buildEditText(
+                "KR当前值",
+                String.valueOf(currentNode.getKrCurrent()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, krCurrentInput, 14);
+
+        TextView advancedTitle = buildSectionTitle("证据 / 来源 / 扩展");
+        addWithTopMargin(root, advancedTitle, 22);
+
+        EditText evidenceStrengthInput = buildEditText(
+                "证据强度（0~1）",
+                String.valueOf(currentNode.getEvidenceStrength()),
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+        addWithTopMargin(root, evidenceStrengthInput, 10);
+
+        EditText noteSourceInput = buildEditText(
+                "来源/出处",
+                currentNode.getNoteSource(),
+                InputType.TYPE_CLASS_TEXT
+        );
+        addWithTopMargin(root, noteSourceInput, 14);
+
+        EditText metaJsonInput = buildEditText(
+                "扩展元数据（先留作以后 AI/模板用）",
+                currentNode.getMetaJson(),
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        );
+        metaJsonInput.setMinLines(3);
+        addWithTopMargin(root, metaJsonInput, 14);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("编辑节点")
@@ -132,6 +298,23 @@ public class NodeEditDialog extends DialogFragment {
                     currentNode.setContent(contentInput.getText().toString().trim());
                     currentNode.setType(Node.NodeType.values()[typeSpinner.getSelectedItemPosition()]);
                     currentNode.setShape(Node.NodeShape.values()[shapeSpinner.getSelectedItemPosition()]);
+                    currentNode.setStatus(Node.NodeStatus.values()[statusSpinner.getSelectedItemPosition()]);
+
+                    currentNode.setTagsFromString(tagsInput.getText().toString().trim());
+                    currentNode.setPriority(parseIntSafe(priorityInput.getText().toString(), 3));
+                    currentNode.setDueAt(dueAtInput.getText().toString().trim());
+                    currentNode.setReviewAt(reviewAtInput.getText().toString().trim());
+                    currentNode.setEffortEstimate(parseFloatSafe(effortEstimateInput.getText().toString(), 0f));
+                    currentNode.setActualEffort(parseFloatSafe(actualEffortInput.getText().toString(), 0f));
+                    currentNode.setConfidence(parseFloatSafe(confidenceInput.getText().toString(), 0.5f));
+                    currentNode.setTriggerCondition(triggerInput.getText().toString().trim());
+                    currentNode.setProjectId(projectIdInput.getText().toString().trim());
+                    currentNode.setAreaId(areaIdInput.getText().toString().trim());
+                    currentNode.setKrTarget(parseFloatSafe(krTargetInput.getText().toString(), 0f));
+                    currentNode.setKrCurrent(parseFloatSafe(krCurrentInput.getText().toString(), 0f));
+                    currentNode.setEvidenceStrength(parseFloatSafe(evidenceStrengthInput.getText().toString(), 0.5f));
+                    currentNode.setNoteSource(noteSourceInput.getText().toString().trim());
+                    currentNode.setMetaJson(metaJsonInput.getText().toString().trim());
 
                     if (getActivity() instanceof NodeEditListener) {
                         ((NodeEditListener) getActivity()).onNodeUpdated(currentNode);
