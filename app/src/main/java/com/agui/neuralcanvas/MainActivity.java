@@ -138,6 +138,15 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_generate_transfer_practice) {
             generateTransferPracticeFromSelectedNode();
             return true;
+        } else if (id == R.id.action_ai_gap_check) {
+            generateAiGapCheckFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_ai_execution_patch) {
+            generateAiExecutionPatchFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_ai_learning_patch) {
+            generateAiLearningPatchFromSelectedNode();
+            return true;
         } else if (id == R.id.action_ai_assistant) {
             AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
             return true;
@@ -274,6 +283,39 @@ public class MainActivity extends AppCompatActivity
         applyTemplateResult(ScientificTemplateEngine.generateTransferPractice(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成应用迁移子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateAiGapCheckFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateAiGapCheck(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 AI缺口检查 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateAiExecutionPatchFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个执行相关节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateAiExecutionPatch(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 AI执行补全 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateAiLearningPatchFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个学习相关节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateAiLearningPatch(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 AI学习补全 子图", Toast.LENGTH_SHORT).show();
     }
 
     private Node getSingleSelectedNode() {
