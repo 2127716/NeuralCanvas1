@@ -19,6 +19,7 @@
         android:title="工作台"
         android:icon="@android:drawable/ic_menu_agenda"
         app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/action_projects_hub"
         android:title="项目中心"
@@ -31,60 +32,87 @@
         android:icon="@android:drawable/ic_menu_more"
         app:showAsAction="always">
         <menu>
+
+            <item
+                android:id="@+id/action_inbox_clarify"
+                android:title="Inbox 澄清" />
+
+            <item
+                android:id="@+id/action_weekly_review"
+                android:title="Weekly Review" />
+
             <item
                 android:id="@+id/action_generate_woop"
                 android:title="生成WOOP" />
+
             <item
                 android:id="@+id/action_generate_if_then"
                 android:title="生成If-Then" />
+
             <item
                 android:id="@+id/action_generate_daily_review"
                 android:title="生成每日复盘" />
+
             <item
                 android:id="@+id/action_generate_weekly_review"
                 android:title="生成每周复盘" />
+
             <item
                 android:id="@+id/action_generate_aar"
                 android:title="生成AAR复盘" />
+
             <item
                 android:id="@+id/action_generate_decision_tree"
                 android:title="生成科学决策" />
+
             <item
                 android:id="@+id/action_generate_premortem"
                 android:title="生成Premortem" />
+
             <item
                 android:id="@+id/action_generate_evidence_review"
                 android:title="生成证据评估" />
+
             <item
                 android:id="@+id/action_generate_retrieval_practice"
                 android:title="生成检索练习" />
+
             <item
                 android:id="@+id/action_generate_concept_deepening"
                 android:title="生成概念深化" />
+
             <item
                 android:id="@+id/action_generate_transfer_practice"
                 android:title="生成应用迁移" />
+
             <item
                 android:id="@+id/action_ai_gap_check"
                 android:title="AI检查缺口" />
+
             <item
                 android:id="@+id/action_ai_execution_patch"
                 android:title="AI补全执行链" />
+
             <item
                 android:id="@+id/action_ai_learning_patch"
                 android:title="AI补全学习链" />
+
             <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
+
             <item
                 android:id="@+id/action_import_knowledge"
                 android:title="知识导入" />
+
             <item
                 android:id="@+id/action_clear_all"
                 android:title="清除全部" />
+
             <item
                 android:id="@+id/action_help"
                 android:title="帮助" />
         </menu>
     </item>
+
 </menu>
