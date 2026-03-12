@@ -488,6 +488,38 @@ public class Node {
         this.tags = result;
     }
 
+    public boolean hasTag(String tag) {
+        if (tag == null || tag.trim().isEmpty()) return false;
+        String target = tag.trim();
+        for (String t : getTags()) {
+            if (target.equalsIgnoreCase(t == null ? "" : t.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void addTag(String tag) {
+        if (tag == null) return;
+        String value = tag.trim();
+        if (value.isEmpty()) return;
+        if (!hasTag(value)) {
+            getTags().add(value);
+        }
+    }
+
+    public void addTags(String... values) {
+        if (values == null) return;
+        for (String v : values) {
+            addTag(v);
+        }
+    }
+
+    public boolean belongsToProject(String targetProjectId) {
+        if (targetProjectId == null || targetProjectId.trim().isEmpty()) return false;
+        return targetProjectId.equals(getProjectId());
+    }
+
     public boolean isLearningNode() {
         return type == NodeType.CONCEPT
                 || type == NodeType.NOTE
