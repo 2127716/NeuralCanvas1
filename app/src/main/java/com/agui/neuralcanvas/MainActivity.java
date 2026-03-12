@@ -204,6 +204,33 @@ public class MainActivity extends AppCompatActivity
     }
 
     // =========================
+    // 新增的 Inbox Clarify 和 Weekly Review 方法
+    // =========================
+
+    private void openInboxClarifier() {
+        InboxClarifierDialog.show(this, mindMapView.getNodesInternal(), new InboxClarifierDialog.Callback() {
+            @Override
+            public void onNodeConverted(Node node) {
+                onNodeUpdated(node);
+            }
+
+            @Override
+            public void onBatchFinished() {
+                mindMapView.invalidate();
+                scheduleAutoSave();
+            }
+        });
+    }
+
+    private void openWeeklyReview() {
+        WeeklyReviewDialog.show(
+                this,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal()
+        );
+    }
+
+    // =========================
     // 原有模板生成逻辑
     // =========================
 
@@ -368,9 +395,6 @@ public class MainActivity extends AppCompatActivity
         return mindMapView.getNodesInternal().get(firstId);
     }
 
-    // =========================
-    // 替换后的 applyTemplateResult 方法
-    // =========================
     private void applyTemplateResult(ScientificTemplateEngine.TemplateResult result) {
         if (result == null) return;
 
