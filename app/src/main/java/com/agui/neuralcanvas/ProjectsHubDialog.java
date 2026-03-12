@@ -3,7 +3,6 @@ package com.agui.neuralcanvas;
 import android.app.Dialog;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,12 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 public class ProjectsHubDialog extends DialogFragment {
 
@@ -64,73 +58,13 @@ public class ProjectsHubDialog extends DialogFragment {
         return gd;
     }
 
-    private String safe(String s, String fallback) {
-        if (s == null || s.trim().isEmpty()) return fallback;
-        return s.trim();
-    }
-
-    private boolean belongsToProject(Node node, String projectId) {
-        if (node == null || projectId == null || projectId.trim().isEmpty()) return false;
-        return projectId.equals(node.getProjectId());
-    }
-
-    private boolean isProject(Node node) {
-        return node != null && node.getType() == Node.NodeType.PROJECT;
-    }
-
-    private boolean isGoal(Node node) {
-        return node != null && node.getType() == Node.NodeType.GOAL;
-    }
-
-    private boolean isActionLike(Node node) {
-        return node != null &&
-                (node.getType() == Node.NodeType.ACTION
-                        || node.getType() == Node.NodeType.TASK
-                        || node.getType() == Node.NodeType.ROUTINE
-                        || node.getType() == Node.NodeType.TRIGGER);
-    }
-
-    private boolean isKr(Node node) {
-        return node != null && node.getType() == Node.NodeType.KEY_RESULT;
-    }
-
-    private boolean isRisk(Node node) {
-        return node != null &&
-                (node.getType() == Node.NodeType.RISK
-                        || node.getType() == Node.NodeType.OBSTACLE);
-    }
-
-    private boolean isReview(Node node) {
-        return node != null &&
-                (node.getType() == Node.NodeType.REVIEW
-                        || node.getStatus() == Node.NodeStatus.REVIEW);
-    }
-
-    private String formatPercent(float current, float target) {
-        if (target <= 0f) return "";
-        float percent = (current / target) * 100f;
-        if (percent < 0f) percent = 0f;
-        return String.format(Locale.getDefault(), "%.0f%%", percent);
-    }
-
     private TextView buildNodeChip(Node node, MainActivity activity) {
-        String title = safe(node.getTitle(), "未命名节点");
-        String line = "• " + title + " [" + node.getType().label + "]";
-
-        List<String> extras = new ArrayList<>();
-        if (!safe(node.getDueAt(), "").isEmpty()) extras.add("截止:" + node.getDueAt());
-        if (!safe(node.getReviewAt(), "").isEmpty()) extras.add("复盘:" + node.getReviewAt());
-        if (node.getPriority() > 0) extras.add("P" + node.getPriority());
-        if (node.getKrTarget() > 0f) {
-            extras.add("KR " + node.getKrCurrent() + "/" + node.getKrTarget()
-                    + " (" + formatPercent(node.getKrCurrent(), node.getKrTarget()) + ")");
-        }
-
-        if (!extras.isEmpty()) {
-            line += "\n  " + TextUtils.join(" ｜ ", extras);
-        }
-
-        TextView tv = makeText(line, 13, false, "#E2E8F0");
+        TextView tv = makeText(
+                ProjectsHubBuilder.buildNodeChipText(node),
+                13,
+                false,
+                "#E2E8F0"
+        );
         tv.setPadding(dp(12), dp(10), dp(12), dp(10));
         tv.setBackground(bg("#111827"));
 
@@ -150,111 +84,6 @@ public class ProjectsHubDialog extends DialogFragment {
         });
 
         return tv;
-    }
-
-    private void sortKrList(List<Node> list) {
-        Collections.sort(list, new Comparator<Node>() {
-            @Override
-            public int compare(Node a, Node b) {
-                float ap = a.getKrTarget() > 0f ? a.getKrCurrent() / a.getKrTarget() : -1f;
-                float bp = b.getKrTarget() > 0f ? b.getKrCurrent() / b.getKrTarget() : -1f;
-                return Float.compare(bp, ap);
-            }
-        });
-    }
-
-    private void sortActionList(List<Node> list) {
-        Collections.sort(list, new Comparator<Node>() {
-            @Override
-            public int compare(Node a, Node b) {
-                int p = Integer.compare(b.getPriority(), a.getPriority());
-                if (p != 0) return p;
-                return safe(a.getTitle(), "").compareToIgnoreCase(safe(b.getTitle(), ""));
-            }
-        });
-    }
-
-    private LinearLayout buildProjectCard(Node projectNode, List<Node> allNodes, MainActivity activity) {
-        LinearLayout card = new LinearLayout(requireContext());
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
-        card.setBackground(bg("#0F172A"));
-
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        cardLp.topMargin = dp(12);
-        card.setLayoutParams(cardLp);
-
-        String projectId = projectNode.getId();
-
-        List<Node> goals = new ArrayList<>();
-        List<Node> actions = new ArrayList<>();
-        List<Node> krs = new ArrayList<>();
-        List<Node> risks = new ArrayList<>();
-        List<Node> reviews = new ArrayList<>();
-
-        for (Node node : allNodes) {
-            if (node == null) continue;
-            if (node.getId().equals(projectId)) continue;
-            if (!belongsToProject(node, projectId)) continue;
-
-            if (isGoal(node)) goals.add(node);
-            else if (isKr(node)) krs.add(node);
-            else if (isRisk(node)) risks.add(node);
-            else if (isReview(node)) reviews.add(node);
-            else if (isActionLike(node)) actions.add(node);
-        }
-
-        sortKrList(krs);
-        sortActionList(actions);
-
-        TextView title = makeText("项目｜" + safe(projectNode.getTitle(), "未命名项目"), 16, true, "#F8FAFC");
-        title.setOnClickListener(v -> {
-            if (activity != null && activity.getMindMapView() != null) {
-                activity.getMindMapView().focusNodeById(projectNode.getId());
-                activity.getMindMapView().selectNodeById(projectNode.getId());
-                dismiss();
-            }
-        });
-        card.addView(title);
-
-        String summary = "目标 " + goals.size()
-                + " ｜ 动作 " + actions.size()
-                + " ｜ KR " + krs.size()
-                + " ｜ 风险 " + risks.size()
-                + " ｜ 复盘 " + reviews.size();
-
-        TextView sub = makeText(summary, 12, false, "#93C5FD");
-        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        subLp.topMargin = dp(6);
-        sub.setLayoutParams(subLp);
-        card.addView(sub);
-
-        if (!safe(projectNode.getContent(), "").isEmpty()) {
-            TextView content = makeText(projectNode.getContent(), 13, false, "#CBD5E1");
-            LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            contentLp.topMargin = dp(8);
-            content.setLayoutParams(contentLp);
-            card.addView(content);
-        }
-
-        card.addView(spacer(10));
-
-        addSection(card, "目标", goals, activity);
-        addSection(card, "关键结果 KR", krs, activity);
-        addSection(card, "执行动作", actions, activity);
-        addSection(card, "风险 / 障碍", risks, activity);
-        addSection(card, "复盘", reviews, activity);
-
-        return card;
     }
 
     private void addSection(LinearLayout root, String title, List<Node> nodes, MainActivity activity) {
@@ -293,57 +122,51 @@ public class ProjectsHubDialog extends DialogFragment {
         root.addView(spacer(12));
     }
 
-    @NonNull
-    @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MainActivity activity = (MainActivity) getActivity();
-        if (activity == null || activity.getMindMapView() == null) {
-            return super.onCreateDialog(savedInstanceState);
-        }
+    private LinearLayout buildProjectCard(ProjectsHubBuilder.ProjectGroup group, MainActivity activity) {
+        Node projectNode = group.projectNode;
 
-        Map<String, Node> allMap = activity.getMindMapView().getNodesInternal();
-        List<Node> allNodes = new ArrayList<>(allMap.values());
-        List<Node> projects = new ArrayList<>();
+        LinearLayout card = new LinearLayout(requireContext());
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(14), dp(14), dp(14), dp(14));
+        card.setBackground(bg("#0F172A"));
 
-        for (Node node : allNodes) {
-            if (isProject(node)) {
-                projects.add(node);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        cardLp.topMargin = dp(12);
+        card.setLayoutParams(cardLp);
+
+        String projectTitle = ProjectsHubBuilder.safe(projectNode.getTitle());
+        if (projectTitle.isEmpty()) projectTitle = "未命名项目";
+
+        TextView title = makeText("项目｜" + projectTitle, 16, true, "#F8FAFC");
+        title.setOnClickListener(v -> {
+            if (activity != null && activity.getMindMapView() != null) {
+                activity.getMindMapView().focusNodeById(projectNode.getId());
+                activity.getMindMapView().selectNodeById(projectNode.getId());
+                dismiss();
             }
-        }
+        });
+        card.addView(title);
 
-        ScrollView scrollView = new ScrollView(requireContext());
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(18));
-        root.setBackgroundColor(Color.parseColor("#0B1020"));
-        scrollView.addView(root);
+        String summary = "目标 " + group.goals.size()
+                + " ｜ 动作 " + group.actions.size()
+                + " ｜ KR " + group.krs.size()
+                + " ｜ 风险 " + group.risks.size()
+                + " ｜ 复盘 " + group.reviews.size();
 
-        TextView title = makeText("项目中心", 20, true, "#F8FAFC");
-        root.addView(title);
-
-        TextView sub = makeText("Project / Goal / KR / Action / Review 已串起来", 13, false, "#94A3B8");
+        TextView sub = makeText(summary, 12, false, "#93C5FD");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         subLp.topMargin = dp(6);
         sub.setLayoutParams(subLp);
-        root.addView(sub);
+        card.addView(sub);
 
-        root.addView(spacer(14));
-
-        if (projects.isEmpty()) {
-            TextView empty = makeText("当前没有 PROJECT 类型节点。先建项目节点，再把相关节点挂到这个项目下。", 14, false, "#CBD5E1");
-            root.addView(empty);
-        } else {
-            for (Node project : projects) {
-                root.addView(buildProjectCard(project, allNodes, activity));
-            }
-        }
-
-        return new AlertDialog.Builder(requireContext())
-                .setView(scrollView)
-                .setPositiveButton("关闭", null)
-                .create();
-    }
-}
+        String content = ProjectsHubBuilder.safe(projectNode.getContent());
+        if (!content.isEmpty()) {
+            TextView contentView = makeText(content, 13, false, "#CBD5E1");
+            LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams
