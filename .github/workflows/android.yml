@@ -10,15 +10,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 可选：防止仓库里还有 upload-artifact@v3
       - name: Check deprecated artifact action usage
         run: |
-          echo "== Search for upload-artifact@v3 in repo =="
+          echo "== Search for deprecated action pins in repo =="
           if grep -RIn "actions/upload-artifact@v3" .github/workflows .github/actions 2>/dev/null; then
             echo "::error::Found deprecated actions/upload-artifact@v3. Please replace with @v4."
             exit 1
