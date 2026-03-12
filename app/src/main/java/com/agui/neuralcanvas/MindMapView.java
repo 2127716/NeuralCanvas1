@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -50,9 +51,12 @@ public class MindMapView extends View {
     private boolean highlightSearchResults = false;
     private final List<String> searchResultNodeIds = new ArrayList<>();
 
+    // 几乎不限制缩放，但保留极端保护，避免浮点/绘制异常
     private float scale = 1.0f;
     private float offsetX = 0f;
     private float offsetY = 0f;
+    private static final float MIN_SCALE = 0.02f;
+    private static final float MAX_SCALE = 120f;
 
     private float downX = 0f;
     private float downY = 0f;
@@ -63,9 +67,8 @@ public class MindMapView extends View {
     private boolean isDraggingNode = false;
     private boolean isScaling = false;
     private boolean movedEnough = false;
+    private boolean suppressLongPressUntilUp = false;
 
-    private final float minScale = 0.08f;
-    private final float maxScale = 24f;
     private final int touchSlop;
 
     private Node draggingNode = null;
@@ -85,6 +88,13 @@ public class MindMapView extends View {
     private Paint tempLinePaint;
     private Paint gridPaint;
     private Paint searchHighlightPaint;
+
+    // 防误触：缩放结束后的短时间内不响应长按
+    private long lastScaleEndTime = 0L;
+    private static final long LONG_PRESS_BLOCK_AFTER_SCALE_MS = 260L;
+
+    // 防误触：节点显示太小时，不允许长按弹编辑
+    private float minLongPressNodeScreenSizePx;
 
     private enum PendingAction {
         NONE,
@@ -119,6 +129,8 @@ public class MindMapView extends View {
 
         gestureDetector = new GestureDetector(getContext(), new GestureListener());
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
+
+        minLongPressNodeScreenSizePx = dp(56f);
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewCardPaint.setColor(Color.parseColor("#F8FAFC"));
@@ -391,10 +403,13 @@ public class MindMapView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        getParent().requestDisallowInterceptTouchEvent(true);
+
         scaleGestureDetector.onTouchEvent(event);
 
         if (event.getPointerCount() > 1) {
             isScaling = true;
+            suppressLongPressUntilUp = true;
             draggingNode = null;
             isDraggingCanvas = false;
             isDraggingNode = false;
@@ -415,10 +430,12 @@ public class MindMapView extends View {
                 downY = y;
                 lastTouchX = x;
                 lastTouchY = y;
+
                 movedEnough = false;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
                 isScaling = false;
+                suppressLongPressUntilUp = false;
 
                 if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
                     return true;
@@ -456,6 +473,7 @@ public class MindMapView extends View {
 
                 if (!movedEnough && Math.hypot(totalDx, totalDy) > touchSlop) {
                     movedEnough = true;
+                    suppressLongPressUntilUp = true;
                 }
 
                 if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
@@ -493,10 +511,13 @@ public class MindMapView extends View {
                     draggingNode.setDragging(false);
                     notifyDataChanged();
                 }
+
                 draggingNode = null;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
                 isScaling = false;
+                movedEnough = false;
+                suppressLongPressUntilUp = false;
                 break;
             }
         }
@@ -515,11 +536,20 @@ public class MindMapView extends View {
         selectedConnection = null;
     }
 
+    private RectF getNodeScreenRect(Node node) {
+        float left = (node.getX() + offsetX) * scale;
+        float top = (node.getY() + offsetY) * scale;
+        float right = left + node.getWidth() * scale;
+        float bottom = top + node.getHeight() * scale;
+        return new RectF(left, top, right, bottom);
+    }
+
     private Node findNodeAt(float touchX, float touchY) {
         List<Node> nodeList = new ArrayList<>(nodes.values());
         for (int i = nodeList.size() - 1; i >= 0; i--) {
             Node node = nodeList.get(i);
-            if (node.contains(touchX, touchY, scale, offsetX, offsetY)) {
+            RectF rect = getNodeScreenRect(node);
+            if (rect.contains(touchX, touchY)) {
                 return node;
             }
         }
@@ -530,11 +560,30 @@ public class MindMapView extends View {
         for (Connection connection : connections.values()) {
             Node from = nodes.get(connection.getFromNodeId());
             Node to = nodes.get(connection.getToNodeId());
+            if (from == null || to == null) continue;
             if (connection.isNear(x, y, from, to, scale, offsetX, offsetY, dp(10f))) {
                 return connection;
             }
         }
         return null;
+    }
+
+    private boolean shouldBlockNodeLongPress(Node node) {
+        if (node == null) return true;
+        if (isScaling) return true;
+        if (suppressLongPressUntilUp) return true;
+
+        long now = SystemClock.uptimeMillis();
+        if (now - lastScaleEndTime < LONG_PRESS_BLOCK_AFTER_SCALE_MS) {
+            return true;
+        }
+
+        RectF rect = getNodeScreenRect(node);
+        float width = rect.width();
+        float height = rect.height();
+
+        // 缩得特别小时，不再允许长按弹编辑，避免误触
+        return width < minLongPressNodeScreenSizePx || height < minLongPressNodeScreenSizePx;
     }
 
     public void addNode(Node node) {
@@ -702,6 +751,7 @@ public class MindMapView extends View {
         offsetY = (getHeight() / (2f * scale)) - nodeCenterY;
 
         previewNode = node;
+        previewRect = null;
         invalidate();
     }
 
@@ -1031,6 +1081,8 @@ public class MindMapView extends View {
 
         @Override
         public boolean onDoubleTap(MotionEvent e) {
+            if (isScaling) return true;
+
             Node node = findNodeAt(e.getX(), e.getY());
             if (node == null) {
                 float worldX = e.getX() / scale - offsetX;
@@ -1049,6 +1101,10 @@ public class MindMapView extends View {
 
         @Override
         public void onLongPress(MotionEvent e) {
+            if (isScaling || suppressLongPressUntilUp) {
+                return;
+            }
+
             Node touchedNode = findNodeAt(e.getX(), e.getY());
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
@@ -1058,13 +1114,23 @@ public class MindMapView extends View {
                 }
             }
 
-            if (touchedNode != null && getContext() instanceof MainActivity) {
-                ((MainActivity) getContext()).showNodeEditDialog(touchedNode);
+            if (touchedNode != null) {
+                if (shouldBlockNodeLongPress(touchedNode)) {
+                    return;
+                }
+                if (getContext() instanceof MainActivity) {
+                    ((MainActivity) getContext()).showNodeEditDialog(touchedNode);
+                }
                 return;
             }
 
             Connection touchedConnection = findConnectionAt(e.getX(), e.getY());
             if (touchedConnection != null) {
+                // 连线也加一道保护：缩放刚结束不要弹
+                long now = SystemClock.uptimeMillis();
+                if (now - lastScaleEndTime < LONG_PRESS_BLOCK_AFTER_SCALE_MS) {
+                    return;
+                }
                 showEditExistingConnectionDialog(touchedConnection);
             }
         }
@@ -1074,7 +1140,9 @@ public class MindMapView extends View {
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             isScaling = true;
+            suppressLongPressUntilUp = true;
             draggingNode = null;
+            previewRect = null;
             return true;
         }
 
@@ -1082,7 +1150,7 @@ public class MindMapView extends View {
         public boolean onScale(ScaleGestureDetector detector) {
             float oldScale = scale;
             float newScale = oldScale * detector.getScaleFactor();
-            newScale = Math.max(minScale, Math.min(newScale, maxScale));
+            newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
 
             float focusX = detector.getFocusX();
             float focusY = detector.getFocusY();
@@ -1102,6 +1170,7 @@ public class MindMapView extends View {
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
             isScaling = false;
+            lastScaleEndTime = SystemClock.uptimeMillis();
         }
     }
 }
