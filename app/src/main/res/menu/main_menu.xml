@@ -36,6 +36,15 @@
                 android:id="@+id/action_generate_aar"
                 android:title="生成AAR复盘" />
             <item
+                android:id="@+id/action_generate_decision_tree"
+                android:title="生成科学决策" />
+            <item
+                android:id="@+id/action_generate_premortem"
+                android:title="生成Premortem" />
+            <item
+                android:id="@+id/action_generate_evidence_review"
+                android:title="生成证据评估" />
+            <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
             <item
