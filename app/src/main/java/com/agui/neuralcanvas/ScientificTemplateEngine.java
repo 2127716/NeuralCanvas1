@@ -68,19 +68,12 @@ public class ScientificTemplateEngine {
         result.createdNodes.add(obstacleNode);
         result.createdNodes.add(planNode);
 
-        Connection c1 = new Connection(baseNode.getId(), wishNode.getId(), Connection.ConnectionType.LEADS_TO, "目标澄清");
-        Connection c2 = new Connection(wishNode.getId(), outcomeNode.getId(), Connection.ConnectionType.LEADS_TO, "期望结果");
-        Connection c3 = new Connection(baseNode.getId(), obstacleNode.getId(), Connection.ConnectionType.BLOCKS, "关键障碍");
-        Connection c4 = new Connection(obstacleNode.getId(), planNode.getId(), Connection.ConnectionType.TRIGGERS, "遇阻触发");
-        Connection c5 = new Connection(planNode.getId(), outcomeNode.getId(), Connection.ConnectionType.SUPPORTS, "执行支持结果");
-        Connection c6 = new Connection(planNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "属于该目标");
-
-        result.createdConnections.add(c1);
-        result.createdConnections.add(c2);
-        result.createdConnections.add(c3);
-        result.createdConnections.add(c4);
-        result.createdConnections.add(c5);
-        result.createdConnections.add(c6);
+        result.createdConnections.add(new Connection(baseNode.getId(), wishNode.getId(), Connection.ConnectionType.LEADS_TO, "目标澄清"));
+        result.createdConnections.add(new Connection(wishNode.getId(), outcomeNode.getId(), Connection.ConnectionType.LEADS_TO, "期望结果"));
+        result.createdConnections.add(new Connection(baseNode.getId(), obstacleNode.getId(), Connection.ConnectionType.BLOCKS, "关键障碍"));
+        result.createdConnections.add(new Connection(obstacleNode.getId(), planNode.getId(), Connection.ConnectionType.TRIGGERS, "遇阻触发"));
+        result.createdConnections.add(new Connection(planNode.getId(), outcomeNode.getId(), Connection.ConnectionType.SUPPORTS, "执行支持结果"));
+        result.createdConnections.add(new Connection(planNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "属于该目标"));
 
         return result;
     }
@@ -100,7 +93,7 @@ public class ScientificTemplateEngine {
         );
         triggerNode.setShape(Node.NodeShape.HEXAGON);
         triggerNode.setStatus(Node.NodeStatus.PLANNED);
-        triggerNode.setProjectId(baseNode.getProjectId().isEmpty() ? baseNode.getId() : baseNode.getProjectId());
+        triggerNode.setProjectId(resolveOwnerId(baseNode));
         triggerNode.setTagsFromString("If-Then,Trigger,执行");
 
         Node actionNode = new Node(
@@ -111,7 +104,7 @@ public class ScientificTemplateEngine {
         );
         actionNode.setShape(Node.NodeShape.RECT);
         actionNode.setStatus(Node.NodeStatus.PLANNED);
-        actionNode.setProjectId(baseNode.getProjectId().isEmpty() ? baseNode.getId() : baseNode.getProjectId());
+        actionNode.setProjectId(resolveOwnerId(baseNode));
         actionNode.setTagsFromString("If-Then,Action,执行");
         actionNode.setTriggerCondition("如果【触发条件】发生，那么我立刻【执行动作】");
 
@@ -127,22 +120,17 @@ public class ScientificTemplateEngine {
         );
         obstacleNode.setShape(Node.NodeShape.DIAMOND);
         obstacleNode.setStatus(Node.NodeStatus.PLANNED);
-        obstacleNode.setProjectId(baseNode.getProjectId().isEmpty() ? baseNode.getId() : baseNode.getProjectId());
+        obstacleNode.setProjectId(resolveOwnerId(baseNode));
         obstacleNode.setTagsFromString("If-Then,Obstacle,执行");
 
         result.createdNodes.add(triggerNode);
         result.createdNodes.add(actionNode);
         result.createdNodes.add(obstacleNode);
 
-        Connection c1 = new Connection(triggerNode.getId(), actionNode.getId(), Connection.ConnectionType.TRIGGERS, "如果…那么…");
-        Connection c2 = new Connection(obstacleNode.getId(), actionNode.getId(), Connection.ConnectionType.BLOCKS, "可能阻碍");
-        Connection c3 = new Connection(actionNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "推进原节点");
-        Connection c4 = new Connection(triggerNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "服务于原节点");
-
-        result.createdConnections.add(c1);
-        result.createdConnections.add(c2);
-        result.createdConnections.add(c3);
-        result.createdConnections.add(c4);
+        result.createdConnections.add(new Connection(triggerNode.getId(), actionNode.getId(), Connection.ConnectionType.TRIGGERS, "如果…那么…"));
+        result.createdConnections.add(new Connection(obstacleNode.getId(), actionNode.getId(), Connection.ConnectionType.BLOCKS, "可能阻碍"));
+        result.createdConnections.add(new Connection(actionNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "推进原节点"));
+        result.createdConnections.add(new Connection(triggerNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "服务于原节点"));
 
         return result;
     }
@@ -346,6 +334,253 @@ public class ScientificTemplateEngine {
         result.createdConnections.add(new Connection(actualNode.getId(), reasonNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "实际证据"));
         result.createdConnections.add(new Connection(reasonNode.getId(), improveNode.getId(), Connection.ConnectionType.TRIGGERS, "原因导出改进"));
         result.createdConnections.add(new Connection(improveNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "提升下一轮"));
+
+        return result;
+    }
+
+    public static TemplateResult generateDecisionTree(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node decisionNode = new Node(
+                "决策问题",
+                "我要解决的核心选择是什么？边界条件是什么？",
+                cx, cy - 260f,
+                Node.NodeType.DECISION
+        );
+        decisionNode.setShape(Node.NodeShape.OVAL);
+        decisionNode.setStatus(Node.NodeStatus.ACTIVE);
+        decisionNode.setProjectId(ownerId);
+        decisionNode.setTagsFromString("决策,Decision,核心");
+
+        Node optionA = new Node(
+                "方案A",
+                "方案A的核心做法、成本、收益、适用条件是什么？",
+                cx - 360f, cy,
+                Node.NodeType.OPTION
+        );
+        optionA.setShape(Node.NodeShape.RECT);
+        optionA.setStatus(Node.NodeStatus.PLANNED);
+        optionA.setProjectId(ownerId);
+        optionA.setTagsFromString("决策,Option,方案");
+
+        Node optionB = new Node(
+                "方案B",
+                "方案B的核心做法、成本、收益、适用条件是什么？",
+                cx, cy,
+                Node.NodeType.OPTION
+        );
+        optionB.setShape(Node.NodeShape.RECT);
+        optionB.setStatus(Node.NodeStatus.PLANNED);
+        optionB.setProjectId(ownerId);
+        optionB.setTagsFromString("决策,Option,方案");
+
+        Node optionC = new Node(
+                "方案C",
+                "方案C的核心做法、成本、收益、适用条件是什么？",
+                cx + 360f, cy,
+                Node.NodeType.OPTION
+        );
+        optionC.setShape(Node.NodeShape.RECT);
+        optionC.setStatus(Node.NodeStatus.PLANNED);
+        optionC.setProjectId(ownerId);
+        optionC.setTagsFromString("决策,Option,方案");
+
+        Node criteriaNode = new Node(
+                "决策准则",
+                "至少写出 3~6 个准则：时间、成本、长期收益、风险、可逆性、匹配度等。",
+                cx - 300f, cy + 260f,
+                Node.NodeType.CRITERION
+        );
+        criteriaNode.setShape(Node.NodeShape.HEXAGON);
+        criteriaNode.setStatus(Node.NodeStatus.ACTIVE);
+        criteriaNode.setProjectId(ownerId);
+        criteriaNode.setTagsFromString("决策,Criteria,准则");
+
+        Node riskNode = new Node(
+                "主要风险",
+                "每个方案最可能失败在哪？最坏情况是什么？",
+                cx + 300f, cy + 260f,
+                Node.NodeType.RISK
+        );
+        riskNode.setShape(Node.NodeShape.DIAMOND);
+        riskNode.setStatus(Node.NodeStatus.ACTIVE);
+        riskNode.setProjectId(ownerId);
+        riskNode.setTagsFromString("决策,Risk,风险");
+
+        Node recommendationNode = new Node(
+                "推荐下一步",
+                "先做低成本验证，还是直接执行？我现在最合理的一步是什么？",
+                cx, cy + 500f,
+                Node.NodeType.ACTION
+        );
+        recommendationNode.setShape(Node.NodeShape.RECT);
+        recommendationNode.setStatus(Node.NodeStatus.PLANNED);
+        recommendationNode.setProjectId(ownerId);
+        recommendationNode.setTagsFromString("决策,NextStep,行动");
+        recommendationNode.setTriggerCondition("如果完成方案比较，那么我先执行这个最小验证动作");
+
+        result.createdNodes.add(decisionNode);
+        result.createdNodes.add(optionA);
+        result.createdNodes.add(optionB);
+        result.createdNodes.add(optionC);
+        result.createdNodes.add(criteriaNode);
+        result.createdNodes.add(riskNode);
+        result.createdNodes.add(recommendationNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), decisionNode.getId(), Connection.ConnectionType.LEADS_TO, "引出决策"));
+        result.createdConnections.add(new Connection(decisionNode.getId(), optionA.getId(), Connection.ConnectionType.LEADS_TO, "候选方案"));
+        result.createdConnections.add(new Connection(decisionNode.getId(), optionB.getId(), Connection.ConnectionType.LEADS_TO, "候选方案"));
+        result.createdConnections.add(new Connection(decisionNode.getId(), optionC.getId(), Connection.ConnectionType.LEADS_TO, "候选方案"));
+        result.createdConnections.add(new Connection(criteriaNode.getId(), optionA.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+        result.createdConnections.add(new Connection(criteriaNode.getId(), optionB.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+        result.createdConnections.add(new Connection(criteriaNode.getId(), optionC.getId(), Connection.ConnectionType.SUPPORTS, "按准则评估"));
+        result.createdConnections.add(new Connection(riskNode.getId(), optionA.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+        result.createdConnections.add(new Connection(riskNode.getId(), optionB.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+        result.createdConnections.add(new Connection(riskNode.getId(), optionC.getId(), Connection.ConnectionType.BLOCKS, "风险审查"));
+        result.createdConnections.add(new Connection(optionA.getId(), recommendationNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        result.createdConnections.add(new Connection(optionB.getId(), recommendationNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+        result.createdConnections.add(new Connection(optionC.getId(), recommendationNode.getId(), Connection.ConnectionType.LEADS_TO, "候选"));
+
+        return result;
+    }
+
+    public static TemplateResult generatePremortem(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node failedNode = new Node(
+                "Premortem｜假设失败",
+                "假设 3 个月后这个项目/决策彻底失败了。",
+                cx, cy - 240f,
+                Node.NodeType.RISK
+        );
+        failedNode.setShape(Node.NodeShape.DIAMOND);
+        failedNode.setStatus(Node.NodeStatus.ACTIVE);
+        failedNode.setProjectId(ownerId);
+        failedNode.setTagsFromString("Premortem,失败假设,Risk");
+
+        Node reasonNode = new Node(
+                "失败原因",
+                "最可能导致失败的 3~5 个原因是什么？时间失控、资源不足、执行断裂、判断错误？",
+                cx - 320f, cy + 40f,
+                Node.NodeType.OBSTACLE
+        );
+        reasonNode.setShape(Node.NodeShape.DIAMOND);
+        reasonNode.setStatus(Node.NodeStatus.ACTIVE);
+        reasonNode.setProjectId(ownerId);
+        reasonNode.setTagsFromString("Premortem,失败原因,Obstacle");
+
+        Node preventionNode = new Node(
+                "预防动作",
+                "我现在能做哪些预防动作，把失败概率提前压低？",
+                cx + 320f, cy + 40f,
+                Node.NodeType.ACTION
+        );
+        preventionNode.setShape(Node.NodeShape.RECT);
+        preventionNode.setStatus(Node.NodeStatus.PLANNED);
+        preventionNode.setProjectId(ownerId);
+        preventionNode.setTagsFromString("Premortem,预防,Action");
+        preventionNode.setTriggerCondition("如果发现失败征兆，那么我先执行这里的预防动作");
+
+        Node signalNode = new Node(
+                "预警信号",
+                "哪些早期信号一出现，就说明事情已经开始偏离？",
+                cx, cy + 320f,
+                Node.NodeType.TRIGGER
+        );
+        signalNode.setShape(Node.NodeShape.HEXAGON);
+        signalNode.setStatus(Node.NodeStatus.PLANNED);
+        signalNode.setProjectId(ownerId);
+        signalNode.setTagsFromString("Premortem,Signal,Trigger");
+
+        result.createdNodes.add(failedNode);
+        result.createdNodes.add(reasonNode);
+        result.createdNodes.add(preventionNode);
+        result.createdNodes.add(signalNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), failedNode.getId(), Connection.ConnectionType.LEADS_TO, "失败预演"));
+        result.createdConnections.add(new Connection(failedNode.getId(), reasonNode.getId(), Connection.ConnectionType.LEADS_TO, "倒推原因"));
+        result.createdConnections.add(new Connection(reasonNode.getId(), preventionNode.getId(), Connection.ConnectionType.TRIGGERS, "原因导出预防"));
+        result.createdConnections.add(new Connection(signalNode.getId(), preventionNode.getId(), Connection.ConnectionType.TRIGGERS, "预警触发动作"));
+        result.createdConnections.add(new Connection(preventionNode.getId(), baseNode.getId(), Connection.ConnectionType.MITIGATES, "降低失败风险"));
+
+        return result;
+    }
+
+    public static TemplateResult generateEvidenceReview(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node supportEvidence = new Node(
+                "支持证据",
+                "有哪些事实、数据、观察在支持这个结论/方案？",
+                cx - 320f, cy - 60f,
+                Node.NodeType.EVIDENCE
+        );
+        supportEvidence.setShape(Node.NodeShape.RECT);
+        supportEvidence.setStatus(Node.NodeStatus.ACTIVE);
+        supportEvidence.setProjectId(ownerId);
+        supportEvidence.setTagsFromString("Evidence,支持,证据");
+        supportEvidence.setEvidenceStrength(0.7f);
+
+        Node opposeEvidence = new Node(
+                "反对证据",
+                "有哪些事实、数据、观察在反驳这个结论/方案？",
+                cx + 320f, cy - 60f,
+                Node.NodeType.EVIDENCE
+        );
+        opposeEvidence.setShape(Node.NodeShape.RECT);
+        opposeEvidence.setStatus(Node.NodeStatus.ACTIVE);
+        opposeEvidence.setProjectId(ownerId);
+        opposeEvidence.setTagsFromString("Evidence,反对,证据");
+        opposeEvidence.setEvidenceStrength(0.7f);
+
+        Node assumptionNode = new Node(
+                "待验证假设",
+                "我现在默认成立、但还没有被真正验证的假设是什么？",
+                cx - 320f, cy + 260f,
+                Node.NodeType.ASSUMPTION
+        );
+        assumptionNode.setShape(Node.NodeShape.HEXAGON);
+        assumptionNode.setStatus(Node.NodeStatus.ACTIVE);
+        assumptionNode.setProjectId(ownerId);
+        assumptionNode.setTagsFromString("Evidence,假设,Assumption");
+
+        Node experimentNode = new Node(
+                "下一步实验",
+                "怎样用一个低成本小实验，尽快验证关键假设？",
+                cx + 320f, cy + 260f,
+                Node.NodeType.EXPERIMENT
+        );
+        experimentNode.setShape(Node.NodeShape.RECT);
+        experimentNode.setStatus(Node.NodeStatus.PLANNED);
+        experimentNode.setProjectId(ownerId);
+        experimentNode.setTagsFromString("Evidence,实验,Experiment");
+        experimentNode.setTriggerCondition("如果关键证据不足，那么先做这个小实验");
+
+        result.createdNodes.add(supportEvidence);
+        result.createdNodes.add(opposeEvidence);
+        result.createdNodes.add(assumptionNode);
+        result.createdNodes.add(experimentNode);
+
+        result.createdConnections.add(new Connection(supportEvidence.getId(), baseNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "支持"));
+        result.createdConnections.add(new Connection(opposeEvidence.getId(), baseNode.getId(), Connection.ConnectionType.EVIDENCE_AGAINST, "反驳"));
+        result.createdConnections.add(new Connection(assumptionNode.getId(), experimentNode.getId(), Connection.ConnectionType.TRIGGERS, "待验证"));
+        result.createdConnections.add(new Connection(experimentNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "验证后改进"));
+        result.createdConnections.add(new Connection(assumptionNode.getId(), baseNode.getId(), Connection.ConnectionType.BELONGS_TO, "关键假设"));
 
         return result;
     }
