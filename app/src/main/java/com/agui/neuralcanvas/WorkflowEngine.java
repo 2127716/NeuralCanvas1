@@ -62,6 +62,37 @@ public final class WorkflowEngine {
         return node != null && node.getStatus() == Node.NodeStatus.BLOCKED;
     }
 
+
+
+    public static boolean hasTag(Node node, String tag) {
+        if (node == null || tag == null) return false;
+        String target = safe(tag).toLowerCase();
+        for (String item : node.getTags()) {
+            if (safe(item).toLowerCase().equals(target)) return true;
+        }
+        return false;
+    }
+
+    public static boolean isResourceNode(Node node) {
+        if (node == null) return false;
+        return node.getType() == Node.NodeType.RESOURCE
+                || node.getType() == Node.NodeType.SOURCE
+                || hasTag(node, "Resource");
+    }
+
+    public static boolean isArchived(Node node) {
+        return node != null && hasTag(node, "Archive");
+    }
+
+    public static String deriveAreaName(Node node) {
+        if (node == null) return "";
+        if (!isBlank(node.getAreaId())) return node.getAreaId();
+        String title = safe(node.getTitle());
+        if (title.isEmpty()) return "General";
+        if (title.length() > 18) return title.substring(0, 18);
+        return title;
+    }
+
     public static boolean isReviewNode(Node node) {
         return node != null && node.getType() == Node.NodeType.REVIEW;
     }
@@ -287,6 +318,45 @@ public final class WorkflowEngine {
         }
         return false;
     }
+
+
+    public static List<Node> getAreaNodes(Map<String, Node> nodes) {
+        List<Node> result = new ArrayList<>();
+        if (nodes == null) return result;
+        for (Node node : nodes.values()) {
+            if (node == null) continue;
+            if (!isBlank(node.getAreaId())) {
+                result.add(node);
+                continue;
+            }
+            if (hasTag(node, "Area")) {
+                result.add(node);
+            }
+        }
+        sortByPriorityThenTitle(result);
+        return result;
+    }
+
+    public static List<Node> getResourceNodes(Map<String, Node> nodes) {
+        List<Node> result = new ArrayList<>();
+        if (nodes == null) return result;
+        for (Node node : nodes.values()) {
+            if (isResourceNode(node) && !isArchived(node)) result.add(node);
+        }
+        sortByPriorityThenTitle(result);
+        return result;
+    }
+
+    public static List<Node> getArchivedNodes(Map<String, Node> nodes) {
+        List<Node> result = new ArrayList<>();
+        if (nodes == null) return result;
+        for (Node node : nodes.values()) {
+            if (isArchived(node)) result.add(node);
+        }
+        sortByPriorityThenTitle(result);
+        return result;
+    }
+
 
     private static void sortByPriorityThenTitle(List<Node> nodes) {
         Collections.sort(nodes, new Comparator<Node>() {

@@ -244,6 +244,9 @@ public class ScientificDashboardDialog extends DialogFragment {
         Map<String, Connection> connections = activity.getMindMapView().getConnectionsInternal();
         DashboardSectionBuilder.DashboardData data =
                 DashboardSectionBuilder.build(nodes);
+        java.util.List<Node> areaNodes = WorkflowEngine.getAreaNodes(nodes);
+        java.util.List<Node> resourceNodes = WorkflowEngine.getResourceNodes(nodes);
+        java.util.List<Node> archivedNodes = WorkflowEngine.getArchivedNodes(nodes);
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
@@ -257,7 +260,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("已拆分为 section builder / action engine / dialog helper", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("已补上 workflow / quick action / PARA 收口", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -282,6 +285,9 @@ public class ScientificDashboardDialog extends DialogFragment {
         cardRow.addView(buildCard("待复盘", String.valueOf(data.reviewNodes.size()), "#92400E"));
         cardRow.addView(buildCard("风险/受阻", String.valueOf(data.riskNodes.size()), "#7F1D1D"));
         cardRow.addView(buildCard("KR", String.valueOf(data.krNodes.size()), "#1D4ED8"));
+        cardRow.addView(buildCard("Areas", String.valueOf(areaNodes.size()), "#3730A3"));
+        cardRow.addView(buildCard("Resources", String.valueOf(resourceNodes.size()), "#14532D"));
+        cardRow.addView(buildCard("Archives", String.valueOf(archivedNodes.size()), "#334155"));
         hsv.addView(cardRow);
         root.addView(hsv);
 
@@ -292,6 +298,9 @@ public class ScientificDashboardDialog extends DialogFragment {
         addSection(root, "待复盘 / 待复习", data.reviewNodes, activity);
         addSection(root, "高风险 / 受阻节点", data.riskNodes, activity);
         addSection(root, "关键结果（KR）", data.krNodes, activity);
+        addSection(root, "Areas 领域归属", areaNodes, activity);
+        addSection(root, "Resources 资源池", resourceNodes, activity);
+        addSection(root, "Archives 已归档", archivedNodes, activity);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
