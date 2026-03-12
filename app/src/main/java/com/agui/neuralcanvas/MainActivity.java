@@ -368,8 +368,14 @@ public class MainActivity extends AppCompatActivity
         return mindMapView.getNodesInternal().get(firstId);
     }
 
+    // =========================
+    // 替换后的 applyTemplateResult 方法
+    // =========================
     private void applyTemplateResult(ScientificTemplateEngine.TemplateResult result) {
         if (result == null) return;
+
+        Node baseNode = getSingleSelectedNode();
+        TemplatePostProcessor.postProcess(baseNode, result, mindMapView.getNodesInternal());
 
         for (Node node : result.createdNodes) {
             mindMapView.addNode(node);
