@@ -120,6 +120,15 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.action_generate_aar) {
             generateAarFromSelectedNode();
             return true;
+        } else if (id == R.id.action_generate_decision_tree) {
+            generateDecisionTreeFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_premortem) {
+            generatePremortemFromSelectedNode();
+            return true;
+        } else if (id == R.id.action_generate_evidence_review) {
+            generateEvidenceReviewFromSelectedNode();
+            return true;
         } else if (id == R.id.action_ai_assistant) {
             AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant");
             return true;
@@ -143,11 +152,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先单击选中一个目标/任务/项目节点", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ScientificTemplateEngine.TemplateResult result =
-                ScientificTemplateEngine.generateWoop(baseNode, mindMapView.getNodesInternal());
-
-        applyTemplateResult(result);
+        applyTemplateResult(ScientificTemplateEngine.generateWoop(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成 WOOP 子图", Toast.LENGTH_SHORT).show();
     }
@@ -158,11 +163,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先单击选中一个任务/行动/目标节点", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ScientificTemplateEngine.TemplateResult result =
-                ScientificTemplateEngine.generateIfThen(baseNode, mindMapView.getNodesInternal());
-
-        applyTemplateResult(result);
+        applyTemplateResult(ScientificTemplateEngine.generateIfThen(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成 If-Then 子图", Toast.LENGTH_SHORT).show();
     }
@@ -173,11 +174,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先单击选中一个要复盘的节点", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ScientificTemplateEngine.TemplateResult result =
-                ScientificTemplateEngine.generateDailyReview(baseNode, mindMapView.getNodesInternal());
-
-        applyTemplateResult(result);
+        applyTemplateResult(ScientificTemplateEngine.generateDailyReview(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成每日复盘子图", Toast.LENGTH_SHORT).show();
     }
@@ -188,11 +185,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先单击选中一个要周复盘的节点", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ScientificTemplateEngine.TemplateResult result =
-                ScientificTemplateEngine.generateWeeklyReview(baseNode, mindMapView.getNodesInternal());
-
-        applyTemplateResult(result);
+        applyTemplateResult(ScientificTemplateEngine.generateWeeklyReview(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成每周复盘子图", Toast.LENGTH_SHORT).show();
     }
@@ -203,13 +196,42 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先单击选中一个要做AAR的节点", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ScientificTemplateEngine.TemplateResult result =
-                ScientificTemplateEngine.generateAarReview(baseNode, mindMapView.getNodesInternal());
-
-        applyTemplateResult(result);
+        applyTemplateResult(ScientificTemplateEngine.generateAarReview(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成AAR复盘子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateDecisionTreeFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个要分析的节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateDecisionTree(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成科学决策子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generatePremortemFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个项目/任务/决策节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generatePremortem(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 Premortem 子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateEvidenceReviewFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个要做证据审查的节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateEvidenceReview(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成证据评估子图", Toast.LENGTH_SHORT).show();
     }
 
     private Node getSingleSelectedNode() {
