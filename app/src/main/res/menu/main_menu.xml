@@ -21,6 +21,12 @@
         app:showAsAction="always">
         <menu>
             <item
+                android:id="@+id/action_generate_woop"
+                android:title="生成WOOP" />
+            <item
+                android:id="@+id/action_generate_if_then"
+                android:title="生成If-Then" />
+            <item
                 android:id="@+id/action_ai_assistant"
                 android:title="AI助手" />
             <item
