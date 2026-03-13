@@ -111,7 +111,7 @@ public class MindMapView extends View {
     private float cacheOffsetY = Float.NaN;
     private int cacheWidth = -1;
     private int cacheHeight = -1;
-    private static final int BG_COLOR = Color.parseColor("#0B1020");
+    private static final int BG_COLOR = Color.parseColor("#070B14");
     private Paint tempLinePaint;
     private Paint gridPaint;
     private Paint searchHighlightPaint;
@@ -165,37 +165,37 @@ public class MindMapView extends View {
         longPressMoveTolerancePx = dp(14f);
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewCardPaint.setColor(Color.parseColor("#F8FAFC"));
+        previewCardPaint.setColor(Color.parseColor("#0F172A"));
 
         previewBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewBorderPaint.setStyle(Paint.Style.STROKE);
         previewBorderPaint.setStrokeWidth(dp(1.2f));
-        previewBorderPaint.setColor(Color.parseColor("#D9E2F1"));
+        previewBorderPaint.setColor(Color.parseColor("#2B3854"));
 
         previewTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewTitlePaint.setColor(Color.parseColor("#0F172A"));
+        previewTitlePaint.setColor(Color.parseColor("#F8FAFC"));
         previewTitlePaint.setTextSize(dp(15f));
         previewTitlePaint.setFakeBoldText(true);
 
         previewContentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewContentPaint.setColor(Color.parseColor("#334155"));
+        previewContentPaint.setColor(Color.parseColor("#A8B3CF"));
         previewContentPaint.setTextSize(dp(13f));
 
         previewShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewShadowPaint.setColor(Color.parseColor("#55000000"));
+        previewShadowPaint.setColor(Color.parseColor("#99000000"));
 
         tempLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        tempLinePaint.setColor(Color.parseColor("#93C5FD"));
+        tempLinePaint.setColor(Color.parseColor("#8B5CF6"));
         tempLinePaint.setStyle(Paint.Style.STROKE);
         tempLinePaint.setStrokeWidth(dp(2f));
 
         gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        gridPaint.setColor(Color.parseColor("#1D2638"));
+        gridPaint.setColor(Color.parseColor("#162033"));
         gridPaint.setStrokeWidth(1f);
 
         searchHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         searchHighlightPaint.setStyle(Paint.Style.STROKE);
-        searchHighlightPaint.setColor(Color.parseColor("#F8FAFC"));
+        searchHighlightPaint.setColor(Color.parseColor("#E9D5FF"));
         searchHighlightPaint.setAlpha(185);
     }
 
@@ -557,7 +557,7 @@ public class MindMapView extends View {
                     return true;
                 }
 
-                Node touchedNode = findNodeAtExpanded(x, y, getNodeTouchExtraPx());
+                Node touchedNode = findNodeAt(x, y);
                 updateLongPressCandidate(touchedNode);
                 Connection touchedConnection = touchedNode == null ? findConnectionAt(x, y) : null;
 
@@ -566,7 +566,7 @@ public class MindMapView extends View {
                 if (touchedNode != null) {
                     touchedNode.setSelected(true);
                     selectedNode = touchedNode;
-                    draggingNode = touchedNode;
+                    draggingNode = shouldAllowDirectNodeDragAtCurrentScale() ? touchedNode : null;
                     requestRender();
                 } else if (touchedConnection != null) {
                     touchedConnection.setSelected(true);
@@ -618,8 +618,9 @@ public class MindMapView extends View {
                     if (dx != 0f || dy != 0f) {
                         if (draggingNode != null) {
                             float effectiveScale = Math.max(scale, MIN_NODE_DRAG_EFFECTIVE_SCALE);
-                            dx = screenDx / effectiveScale;
-                            dy = screenDy / effectiveScale;
+                            float damping = getNodeDragDamping();
+                            dx = (screenDx / effectiveScale) * damping;
+                            dy = (screenDy / effectiveScale) * damping;
                             isDraggingNode = true;
                             draggingNode.setDragging(true);
                             previewNode = null;
@@ -698,11 +699,10 @@ private Node findNodeAtExpanded(float touchX, float touchY, float extraPx) {
 }
 
 private float getNodeTouchExtraPx() {
-    float base = dp(14f);
-    if (scale >= 0.8f) return base;
-    if (scale >= 0.45f) return dp(18f);
-    if (scale >= 0.22f) return dp(28f);
-    return dp(40f);
+    if (scale >= 1.1f) return dp(6f);
+    if (scale >= 0.8f) return dp(4f);
+    if (scale >= 0.55f) return dp(2f);
+    return 0f;
 }
 
 private float getNodeLongPressMoveTolerancePx() {
@@ -714,11 +714,22 @@ private float getNodeLongPressMoveTolerancePx() {
 }
 
 private float getNodeDragStartThresholdPx() {
-    if (scale >= 1.0f) return Math.max(touchSlop, dp(10f));
-    if (scale >= 0.6f) return dp(14f);
-    if (scale >= 0.35f) return dp(20f);
-    if (scale >= 0.22f) return dp(28f);
-    return dp(36f);
+    if (scale >= 1.0f) return Math.max(touchSlop, dp(12f));
+    if (scale >= 0.75f) return dp(18f);
+    if (scale >= 0.55f) return dp(28f);
+    if (scale >= 0.4f) return dp(40f);
+    return dp(52f);
+}
+
+private boolean shouldAllowDirectNodeDragAtCurrentScale() {
+    return scale >= 0.55f;
+}
+
+private float getNodeDragDamping() {
+    if (scale >= 1.0f) return 1.0f;
+    if (scale >= 0.75f) return 0.8f;
+    if (scale >= 0.55f) return 0.58f;
+    return 0.45f;
 }
 
 private void performLongPressHaptic() {
@@ -1114,13 +1125,13 @@ private void performLongPressHaptic() {
         String[] colorNames = {"默认跟随类型颜色", "绿色", "红色", "橙色", "黄色", "紫色", "白色", "蓝色"};
         Integer[] colorValues = {
                 null,
-                Color.parseColor("#57D38C"),
-                Color.parseColor("#FF6B6B"),
-                Color.parseColor("#FFB84D"),
-                Color.parseColor("#FFD54F"),
-                Color.parseColor("#B084F5"),
+                Color.parseColor("#34D399"),
+                Color.parseColor("#FB7185"),
+                Color.parseColor("#F59E0B"),
+                Color.parseColor("#FBBF24"),
+                Color.parseColor("#A78BFA"),
                 Color.WHITE,
-                Color.parseColor("#67B7FF")
+                Color.parseColor("#60A5FA")
         };
 
         ArrayAdapter<String> colorAdapter = new ArrayAdapter<>(
@@ -1317,7 +1328,7 @@ private void performLongPressHaptic() {
 
             Node touchedNode = getPendingLongPressNode();
             if (touchedNode == null) {
-                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), getNodeTouchExtraPx());
+                touchedNode = findNodeAt(e.getX(), e.getY());
             }
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {

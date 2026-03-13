@@ -50,7 +50,7 @@ public class NodeEditDialog extends DialogFragment {
     private TextView buildSectionTitle(String text) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
-        tv.setTextColor(Color.parseColor("#0F172A"));
+        tv.setTextColor(Color.parseColor("#EDE9FE"));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
         return tv;
@@ -61,9 +61,15 @@ public class NodeEditDialog extends DialogFragment {
         et.setHint(hint);
         et.setText(value == null ? "" : value);
         et.setInputType(inputType);
-        et.setTextColor(Color.parseColor("#0F172A"));
-        et.setHintTextColor(Color.parseColor("#94A3B8"));
-        et.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
+        et.setTextColor(Color.parseColor("#F8FAFC"));
+        et.setHintTextColor(Color.parseColor("#7C8AA8"));
+        et.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#8B5CF6")));
+        et.setPadding(dp(14), dp(12), dp(14), dp(12));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(Color.parseColor("#111827"));
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), Color.parseColor("#24324D"));
+        et.setBackground(bg);
         return et;
     }
 
@@ -320,6 +326,13 @@ public class NodeEditDialog extends DialogFragment {
         });
         row6.addView(aiLearn);
 
+        TextView link = buildActionChip("连线");
+        link.setOnClickListener(v -> {
+            dismiss();
+            currentMindMapView.startConnectionMode(node);
+        });
+        row6.addView(link);
+
         TextView aiDecision = buildActionChip("AI决策");
         aiDecision.setOnClickListener(v -> {
             dismiss();
@@ -378,14 +391,15 @@ public class NodeEditDialog extends DialogFragment {
     private TextView buildActionChip(String text) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
-        tv.setTextColor(Color.parseColor("#F8FAFC"));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tv.setTextColor(Color.parseColor("#EDE9FE"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
         tv.setGravity(android.view.Gravity.CENTER);
-        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
+        tv.setPadding(dp(12), dp(11), dp(12), dp(11));
 
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Color.parseColor("#1D4ED8"));
-        bg.setCornerRadius(dp(12));
+        bg.setColor(Color.parseColor("#182338"));
+        bg.setStroke(dp(1), Color.parseColor("#334155"));
+        bg.setCornerRadius(dp(16));
         tv.setBackground(bg);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -410,11 +424,13 @@ public class NodeEditDialog extends DialogFragment {
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(Color.parseColor("#0F172A"));
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
         int p = dp(20);
-        root.setPadding(p, p, p, p);
+        root.setPadding(p, p, p, dp(8));
+        root.setBackgroundColor(Color.parseColor("#0F172A"));
         scrollView.addView(root);
 
         // 新增：在编辑页最顶部插入科学动作区
@@ -551,7 +567,7 @@ public class NodeEditDialog extends DialogFragment {
 
         TextView projectHint = new TextView(requireContext());
         projectHint.setText("所属项目（优先用选择器，不要再手填 UUID）");
-        projectHint.setTextColor(Color.parseColor("#475569"));
+        projectHint.setTextColor(Color.parseColor("#93A4C3"));
         projectHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         addWithTopMargin(root, projectHint, 10);
 
@@ -597,7 +613,7 @@ public class NodeEditDialog extends DialogFragment {
 
         TextView krHint = new TextView(requireContext());
         krHint.setText("KR 节点建议填写目标值和当前值；普通节点可以留空");
-        krHint.setTextColor(Color.parseColor("#64748B"));
+        krHint.setTextColor(Color.parseColor("#7C8AA8"));
         krHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         addWithTopMargin(root, krHint, 8);
 
@@ -626,11 +642,11 @@ public class NodeEditDialog extends DialogFragment {
         metaJsonInput.setMinLines(3);
         addWithTopMargin(root, metaJsonInput, 14);
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.RoundedDialogTheme)
                 .setTitle("编辑节点")
                 .setView(scrollView)
-                .setNeutralButton("创建连线", (d, which) -> currentMindMapView.startConnectionMode(currentNode))
-                .setNegativeButton("删除", (d, which) -> {
+                .setNegativeButton("取消", (d, which) -> d.dismiss())
+                .setNeutralButton("删除", (d, which) -> {
                     currentMindMapView.removeNode(currentNode.getId());
                     if (getActivity() instanceof NodeEditListener) {
                         ((NodeEditListener) getActivity()).onNodeDeleted(currentNode);
@@ -676,6 +692,12 @@ public class NodeEditDialog extends DialogFragment {
                     }
                 })
                 .create();
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#EDE9FE"));
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#94A3B8"));
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.parseColor("#FB7185"));
+        });
 
         return dialog;
     }

@@ -16,30 +16,30 @@ import java.util.UUID;
 public class Node {
 
     public enum NodeType {
-        INBOX("#90A4AE", "收集"),
-        CONCEPT("#4FC3F7", "概念"),
-        IDEA("#FF9800", "想法"),
-        QUESTION("#EF5350", "问题"),
-        RESOURCE("#66BB6A", "资源"),
-        TASK("#42A5F5", "任务"),
-        ACTION("#29B6F6", "行动"),
-        GOAL("#43A047", "目标"),
-        PROJECT("#2E7D32", "项目"),
-        KEY_RESULT("#00ACC1", "关键结果"),
-        NOTE("#AB47BC", "笔记"),
-        DECISION("#8BC34A", "决策"),
-        OPTION("#7CB342", "方案"),
-        CRITERION("#5C6BC0", "准则"),
-        EVIDENCE("#26A69A", "证据"),
-        ASSUMPTION("#8D6E63", "假设"),
-        RISK("#E53935", "风险"),
-        OBSTACLE("#F4511E", "障碍"),
-        ROUTINE("#7E57C2", "习惯"),
-        TRIGGER("#5E35B1", "触发器"),
-        REVIEW("#FFCA28", "复盘"),
-        SOURCE("#26C6DA", "来源"),
-        INSIGHT("#EC407A", "洞察"),
-        EXPERIMENT("#00897B", "实验");
+        INBOX("#64748B", "收集"),
+        CONCEPT("#38BDF8", "概念"),
+        IDEA("#FB7185", "想法"),
+        QUESTION("#F87171", "问题"),
+        RESOURCE("#34D399", "资源"),
+        TASK("#60A5FA", "任务"),
+        ACTION("#22D3EE", "行动"),
+        GOAL("#4ADE80", "目标"),
+        PROJECT("#22C55E", "项目"),
+        KEY_RESULT("#2DD4BF", "关键结果"),
+        NOTE("#C084FC", "笔记"),
+        DECISION("#A3E635", "决策"),
+        OPTION("#84CC16", "方案"),
+        CRITERION("#818CF8", "准则"),
+        EVIDENCE("#14B8A6", "证据"),
+        ASSUMPTION("#A78BFA", "假设"),
+        RISK("#F43F5E", "风险"),
+        OBSTACLE("#F97316", "障碍"),
+        ROUTINE("#8B5CF6", "习惯"),
+        TRIGGER("#7C3AED", "触发器"),
+        REVIEW("#FBBF24", "复盘"),
+        SOURCE("#06B6D4", "来源"),
+        INSIGHT("#F472B6", "洞察"),
+        EXPERIMENT("#10B981", "实验");
 
         public final String colorHex;
         public final String label;
@@ -122,6 +122,7 @@ public class Node {
     private transient Paint badgePaint;
     private transient Paint badgeTextPaint;
     private transient Paint reusableOutlinePaint;
+    private transient Paint shadowPaint;
     private transient RectF reusableDrawBounds;
     private transient RectF reusableShapeBounds;
     private transient Path reusablePath;
@@ -130,8 +131,8 @@ public class Node {
     private transient String cachedContentText;
     private transient String cachedTypeText;
 
-    private static final int COLOR_CONTENT = Color.parseColor("#EAF2FF");
-    private static final int COLOR_TYPE = Color.parseColor("#D8E6FF");
+    private static final int COLOR_CONTENT = Color.parseColor("#E6EEF8");
+    private static final int COLOR_TYPE = Color.parseColor("#C7D2FE");
     private static final int COLOR_SELECTED = Color.argb(200, 255, 255, 255);
     private static final Map<NodeType, Integer> TYPE_COLOR_CACHE = new EnumMap<>(NodeType.class);
     private static final Map<NodeStatus, Integer> STATUS_COLOR_CACHE = new EnumMap<>(NodeStatus.class);
@@ -144,13 +145,13 @@ public class Node {
                 TYPE_COLOR_CACHE.put(type, Color.parseColor("#4FC3F7"));
             }
         }
-        STATUS_COLOR_CACHE.put(NodeStatus.ACTIVE, Color.parseColor("#1E88E5"));
-        STATUS_COLOR_CACHE.put(NodeStatus.PLANNED, Color.parseColor("#5C6BC0"));
-        STATUS_COLOR_CACHE.put(NodeStatus.SOMEDAY, Color.parseColor("#8D6E63"));
-        STATUS_COLOR_CACHE.put(NodeStatus.BLOCKED, Color.parseColor("#E53935"));
-        STATUS_COLOR_CACHE.put(NodeStatus.WAITING, Color.parseColor("#FB8C00"));
-        STATUS_COLOR_CACHE.put(NodeStatus.REVIEW, Color.parseColor("#FDD835"));
-        STATUS_COLOR_CACHE.put(NodeStatus.DONE, Color.parseColor("#43A047"));
+        STATUS_COLOR_CACHE.put(NodeStatus.ACTIVE, Color.parseColor("#60A5FA"));
+        STATUS_COLOR_CACHE.put(NodeStatus.PLANNED, Color.parseColor("#818CF8"));
+        STATUS_COLOR_CACHE.put(NodeStatus.SOMEDAY, Color.parseColor("#94A3B8"));
+        STATUS_COLOR_CACHE.put(NodeStatus.BLOCKED, Color.parseColor("#FB7185"));
+        STATUS_COLOR_CACHE.put(NodeStatus.WAITING, Color.parseColor("#F59E0B"));
+        STATUS_COLOR_CACHE.put(NodeStatus.REVIEW, Color.parseColor("#FBBF24"));
+        STATUS_COLOR_CACHE.put(NodeStatus.DONE, Color.parseColor("#22C55E"));
     }
 
     public Node() {
@@ -209,7 +210,7 @@ public class Node {
 
         if (titlePaint == null) {
             titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            titlePaint.setColor(Color.WHITE);
+            titlePaint.setColor(Color.parseColor("#F8FAFC"));
             titlePaint.setTextSize(28f);
             titlePaint.setFakeBoldText(true);
         }
@@ -229,8 +230,8 @@ public class Node {
         if (selectedPaint == null) {
             selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             selectedPaint.setStyle(Paint.Style.STROKE);
-            selectedPaint.setColor(COLOR_SELECTED);
-            selectedPaint.setStrokeWidth(6f);
+            selectedPaint.setColor(Color.parseColor("#E9D5FF"));
+            selectedPaint.setStrokeWidth(5f);
         }
 
         if (badgePaint == null) {
@@ -240,7 +241,7 @@ public class Node {
 
         if (badgeTextPaint == null) {
             badgeTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            badgeTextPaint.setColor(Color.WHITE);
+            badgeTextPaint.setColor(Color.parseColor("#F8FAFC"));
             badgeTextPaint.setTextSize(16f);
             badgeTextPaint.setFakeBoldText(true);
             badgeTextPaint.setTextAlign(Paint.Align.CENTER);
@@ -249,6 +250,10 @@ public class Node {
         if (reusableOutlinePaint == null) {
             reusableOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             reusableOutlinePaint.setStyle(Paint.Style.STROKE);
+        }
+        if (shadowPaint == null) {
+            shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            shadowPaint.setStyle(Paint.Style.FILL);
         }
         if (reusableDrawBounds == null) reusableDrawBounds = new RectF();
         if (reusableShapeBounds == null) reusableShapeBounds = new RectF();
@@ -282,6 +287,9 @@ public class Node {
         RectF bounds = reusableDrawBounds;
         bounds.set(drawX, drawY, drawX + drawW, drawY + drawH);
         RectF shapeBounds = getRegularShapeBounds(bounds);
+
+        shadowPaint.setColor(dragging ? Color.argb(96, 37, 99, 235) : Color.argb(52, 15, 23, 42));
+        drawShapeShadow(canvas, shapeBounds, shadowPaint, scale, dragging || selected);
 
         if (selected) {
             drawShapeOutline(canvas, shapeBounds, selectedPaint, scale);
@@ -371,6 +379,36 @@ public class Node {
             default:
                 reusableShapeBounds.set(bounds);
                 return reusableShapeBounds;
+        }
+    }
+
+    private void drawShapeShadow(Canvas canvas, RectF rect, Paint paint, float scale, boolean emphasized) {
+        RectF shadowRect = new RectF(rect);
+        float dy = emphasized ? 10f * scale : 7f * scale;
+        shadowRect.offset(0f, dy);
+        switch (getShape()) {
+            case CIRCLE:
+                canvas.drawOval(shadowRect, paint);
+                break;
+            case OVAL:
+                canvas.drawRoundRect(shadowRect, shadowRect.height() / 2f, shadowRect.height() / 2f, paint);
+                break;
+            case DIAMOND:
+                canvas.drawPath(createDiamondPath(shadowRect), paint);
+                break;
+            case TRIANGLE:
+                canvas.drawPath(createRegularPolygonPath(shadowRect, 3, -90f), paint);
+                break;
+            case PENTAGON:
+                canvas.drawPath(createRegularPolygonPath(shadowRect, 5, -90f), paint);
+                break;
+            case HEXAGON:
+                canvas.drawPath(createRegularPolygonPath(shadowRect, 6, -90f), paint);
+                break;
+            case RECT:
+            default:
+                canvas.drawRoundRect(shadowRect, 22f * scale, 22f * scale, paint);
+                break;
         }
     }
 
