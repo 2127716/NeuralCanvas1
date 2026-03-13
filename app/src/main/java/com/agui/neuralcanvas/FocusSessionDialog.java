@@ -24,7 +24,11 @@ public class FocusSessionDialog extends DialogFragment {
     }
 
     private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics());
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                value,
+                requireContext().getResources().getDisplayMetrics()
+        );
     }
 
     @NonNull
@@ -37,7 +41,13 @@ public class FocusSessionDialog extends DialogFragment {
 
         TextView info = new TextView(requireContext());
         info.setTextColor(Color.parseColor("#0F172A"));
-        info.setText("当前节点：" + safeTitle(currentNode) + "\n\n" + FocusSessionEngine.buildNodeSessionSummary(currentNode));
+        info.setText(
+                "当前节点：" + safeTitle(currentNode)
+                        + "\n\n"
+                        + FocusSessionEngine.getNodeStats(currentNode)
+                        + "\n"
+                        + FocusSessionEngine.getTriggerStats(currentNode)
+        );
         root.addView(info);
 
         EditText minutesInput = new EditText(requireContext());
@@ -66,8 +76,15 @@ public class FocusSessionDialog extends DialogFragment {
     }
 
     private int parseInt(String text, int fallback) {
-        try { return Integer.parseInt(text == null || text.trim().isEmpty() ? String.valueOf(fallback) : text.trim()); }
-        catch (Exception e) { return fallback; }
+        try {
+            return Integer.parseInt(
+                    text == null || text.trim().isEmpty()
+                            ? String.valueOf(fallback)
+                            : text.trim()
+            );
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     private String safeTitle(Node node) {
