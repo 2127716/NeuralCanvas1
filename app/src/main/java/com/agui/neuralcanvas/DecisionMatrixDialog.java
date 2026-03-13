@@ -155,8 +155,7 @@ public class DecisionMatrixDialog extends DialogFragment {
 
     private String buildReportText(DecisionEngine.DecisionReport report) {
         StringBuilder sb = new StringBuilder();
-        sb.append("方案排名
-");
+        sb.append("方案排名\n");
         for (int i = 0; i < report.rankings.size(); i++) {
             DecisionEngine.OptionScore item = report.rankings.get(i);
             sb.append(i + 1)
@@ -167,18 +166,16 @@ public class DecisionMatrixDialog extends DialogFragment {
                     .append(" ｜支持=").append(round(item.supportEvidence))
                     .append(" ｜反对=").append(round(item.opposeEvidence))
                     .append(" ｜风险=").append(round(item.riskPenalty))
-                    .append("
-");
+                    .append("\n");
         }
-        sb.append("
-稳健性：").append(report.robustnessLabel).append("（").append(round(report.robustnessScore)).append("）
-");
+        sb.append("\n稳健性：")
+                .append(report.robustnessLabel)
+                .append("（")
+                .append(round(report.robustnessScore))
+                .append("）\n");
         if (!report.warnings.isEmpty()) {
-            sb.append("
-提醒
-");
-            for (String w : report.warnings) sb.append("- ").append(w).append("
-");
+            sb.append("\n提醒\n");
+            for (String w : report.warnings) sb.append("- ").append(w).append("\n");
         }
         return sb.toString();
     }

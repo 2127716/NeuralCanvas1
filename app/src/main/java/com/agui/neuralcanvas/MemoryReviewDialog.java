@@ -32,6 +32,7 @@ public class MemoryReviewDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         MemoryEngine.MemorySnapshot snapshot = MemoryEngine.build(currentNodes);
+
         ScrollView scroll = new ScrollView(requireContext());
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
@@ -44,8 +45,7 @@ public class MemoryReviewDialog extends DialogFragment {
         root.addView(tv);
 
         if (snapshot.dueNodes.isEmpty()) {
-            tv.setText("当前没有到期复习节点。
-未来待复习：" + snapshot.upcomingNodes.size() + " 个");
+            tv.setText("当前没有到期复习节点。\n未来待复习：" + snapshot.upcomingNodes.size() + " 个");
             return new AlertDialog.Builder(requireContext())
                     .setTitle("间隔复习队列")
                     .setView(scroll)
@@ -55,11 +55,7 @@ public class MemoryReviewDialog extends DialogFragment {
 
         final Node node = snapshot.dueNodes.get(0);
         String content = node.getContent() == null || node.getContent().trim().isEmpty() ? "(无内容)" : node.getContent();
-        tv.setText("当前复习：" + safeTitle(node) + "
-
-" + content + "
-
-" + MemoryEngine.getStatsText(node));
+        tv.setText("当前复习：" + safeTitle(node) + "\n\n" + content + "\n\n" + MemoryEngine.getStatsText(node));
 
         return new AlertDialog.Builder(requireContext())
                 .setTitle("间隔复习队列")

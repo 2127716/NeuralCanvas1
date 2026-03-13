@@ -9,9 +9,8 @@ public final class GraphMetaHelper {
     public static Map<String, String> parse(String meta) {
         Map<String, String> map = new LinkedHashMap<>();
         if (meta == null || meta.trim().isEmpty()) return map;
-        String normalized = meta.replace(';', '
-');
-        String[] lines = normalized.split("\n");
+        String normalized = meta.replace(';', '\n');
+        String[] lines = normalized.split("\\n");
         for (String line : lines) {
             if (line == null) continue;
             String item = line.trim();
@@ -30,8 +29,7 @@ public final class GraphMetaHelper {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : map.entrySet()) {
             if (entry.getKey() == null || entry.getKey().trim().isEmpty()) continue;
-            if (sb.length() > 0) sb.append('
-');
+            if (sb.length() > 0) sb.append('\n');
             sb.append(entry.getKey().trim()).append('=').append(entry.getValue() == null ? "" : entry.getValue().trim());
         }
         return sb.toString();

@@ -13,17 +13,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
-import java.util.Map;
-
 public class FocusSessionDialog extends DialogFragment {
     private static Node currentNode;
-    private static Map<String, Node> currentNodes;
-    private static Runnable onSaved;
+    private static MainActivity currentActivity;
 
-    public static FocusSessionDialog newInstance(Node node, Map<String, Node> nodes, Runnable callback) {
+    public static FocusSessionDialog newInstance(MainActivity activity, Node node) {
+        currentActivity = activity;
         currentNode = node;
-        currentNodes = nodes;
-        onSaved = callback;
         return new FocusSessionDialog();
     }
 
@@ -41,59 +37,30 @@ public class FocusSessionDialog extends DialogFragment {
 
         TextView info = new TextView(requireContext());
         info.setTextColor(Color.parseColor("#0F172A"));
+        info.setText("当前节点：" + safeTitle(currentNode) + "\n\n" + FocusSessionEngine.buildNodeSessionSummary(currentNode));
         root.addView(info);
 
         EditText minutesInput = new EditText(requireContext());
         minutesInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        minutesInput.setHint("计划分钟数，例如 25");
+        minutesInput.setHint("计划专注分钟数，例如 25");
         minutesInput.setText("25");
         root.addView(minutesInput);
 
-        if (currentNode != null) {
-            TextView stats = new TextView(requireContext());
-            stats.setTextColor(Color.parseColor("#475569"));
-            stats.setText(FocusSessionEngine.getNodeStats(currentNode) + "
-" + FocusSessionEngine.getTriggerStats(currentNode));
-            root.addView(stats);
-        }
-
-        FocusSessionEngine.SessionInfo current = FocusSessionEngine.getCurrent(requireContext());
-        if (current == null) {
-            info.setText("当前没有进行中的 Session。
-当前节点：" + safeTitle(currentNode));
-            return new AlertDialog.Builder(requireContext())
-                    .setTitle("深度工作 Session")
-                    .setView(root)
-                    .setPositiveButton("开始", (d, w) -> {
-                        FocusSessionEngine.start(requireContext(), currentNode, parseInt(minutesInput.getText().toString(), 25));
-                        FocusSessionEngine.markTrigger(currentNode, true);
-                        if (onSaved != null) onSaved.run();
-                    })
-                    .setNeutralButton("触发落空", (d, w) -> {
-                        FocusSessionEngine.markTrigger(currentNode, false);
-                        if (onSaved != null) onSaved.run();
-                    })
-                    .setNegativeButton("取消", null)
-                    .create();
-        }
-
-        long elapsed = Math.max(0L, (System.currentTimeMillis() - current.startedAt) / 60000L);
-        info.setText("进行中：" + current.nodeTitle + "
-已进行 " + elapsed + " 分钟｜计划 " + current.plannedMinutes + " 分钟｜中断 " + current.interruptions + " 次");
         return new AlertDialog.Builder(requireContext())
                 .setTitle("深度工作 Session")
                 .setView(root)
-                .setPositiveButton("完成", (d, w) -> {
-                    FocusSessionEngine.finish(requireContext(), currentNodes, true);
-                    if (onSaved != null) onSaved.run();
+                .setPositiveButton("开始", (d, w) -> {
+                    if (currentActivity == null || currentNode == null) return;
+                    int minutes = parseInt(minutesInput.getText().toString(), 25);
+                    currentActivity.startFocusSession(currentNode, minutes);
                 })
-                .setNeutralButton("中断一次", (d, w) -> {
-                    FocusSessionEngine.interrupt(requireContext());
-                    if (onSaved != null) onSaved.run();
+                .setNeutralButton("完成当前Session", (d, w) -> {
+                    if (currentActivity == null) return;
+                    currentActivity.finishRunningFocusSession(false);
                 })
-                .setNegativeButton("放弃", (d, w) -> {
-                    FocusSessionEngine.finish(requireContext(), currentNodes, false);
-                    if (onSaved != null) onSaved.run();
+                .setNegativeButton("中断当前Session", (d, w) -> {
+                    if (currentActivity == null) return;
+                    currentActivity.finishRunningFocusSession(true);
                 })
                 .create();
     }
