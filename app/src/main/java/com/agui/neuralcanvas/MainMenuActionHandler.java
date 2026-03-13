@@ -112,6 +112,11 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_scientific_enhance) {
+            activity.runScientificEnhancement();
+            return true;
+        }
+
         if (id == R.id.action_ai_gap_check) {
             activity.runAiGapCheck();
             return true;

@@ -167,6 +167,14 @@ public class NodeEditDialog extends DialogFragment {
         });
         row.addView(quick);
 
+        TextView smart = buildActionChip("智能补强");
+        smart.setOnClickListener(v -> {
+            dismiss();
+            activity.getMindMapView().selectOnlyNode(node.getId());
+            activity.runScientificEnhancement();
+        });
+        row.addView(smart);
+
         TextView woop = buildActionChip("WOOP");
         woop.setOnClickListener(v -> {
             dismiss();

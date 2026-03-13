@@ -185,6 +185,26 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
+    public void runScientificEnhancement() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ScientificEnhancementEngine.EnhancementResult result = ScientificEnhancementEngine.enhance(
+                baseNode,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal()
+        );
+        applyTemplateResult(result.templateResult);
+        if (result.touchedBaseNode) {
+            onNodeUpdated(baseNode);
+        }
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, ScientificEnhancementEngine.buildSummary(result), Toast.LENGTH_LONG).show();
+    }
+
     public void runAiGapCheck() {
         generateAiGapCheckFromSelectedNode();
     }
