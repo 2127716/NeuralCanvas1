@@ -466,7 +466,13 @@ public class NodeEditDialog extends DialogFragment {
         dialogRef[0] = dialog;
 
         dialog.setOnShowListener(d -> {
-            if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_panel_popup);
+            if (dialog.getWindow() != null) {
+                    android.graphics.drawable.GradientDrawable winBg = new android.graphics.drawable.GradientDrawable();
+                    winBg.setColor(ThemeManager.getDialogBg());
+                    winBg.setCornerRadius(56f);
+                    winBg.setStroke(2, ThemeManager.getStroke());
+                    dialog.getWindow().setBackgroundDrawable(winBg);
+                }
         });
 
         return dialog;

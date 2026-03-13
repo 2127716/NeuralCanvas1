@@ -5,7 +5,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Menu;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.util.concurrent.ExecutorService;
@@ -13,7 +14,6 @@ import java.util.concurrent.Executors;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.DialogFragment;
 import androidx.multidex.MultiDex;
 
@@ -47,20 +47,36 @@ public class MainActivity extends AppCompatActivity
         ThemeManager.init(this);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        // No ActionBar — using fully custom toolbar
+        if (getSupportActionBar() != null) getSupportActionBar().hide();
 
         mindMapView = findViewById(R.id.mindMapView);
         mindMapView.setOnDataChangeListener(this);
 
         dataManager = new SimpleDataManager(getApplication());
 
-        loadSavedData();
+        // Wire custom toolbar buttons
+        ImageButton btnAdd = findViewById(R.id.btn_add_node);
+        if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddNodeDialog());
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("NeuralCanvas");
-            getSupportActionBar().setSubtitle("思维地图");
-        }
+        ImageButton btnSearch = findViewById(R.id.btn_search);
+        if (btnSearch != null) btnSearch.setOnClickListener(v -> showSearchDialog());
+
+        ImageButton btnDashboard = findViewById(R.id.btn_dashboard);
+        if (btnDashboard != null) btnDashboard.setOnClickListener(v ->
+                ScientificDashboardDialog.newInstance().show(getSupportFragmentManager(), "scientific_dashboard"));
+
+        ImageButton btnMore = findViewById(R.id.btn_more);
+        if (btnMore != null) btnMore.setOnClickListener(v -> showMoreMenu());
+
+        // Apply theme colors to custom toolbar
+        applyToolbarTheme();
+
+        // Apply theme background to root
+        android.view.View root = findViewById(android.R.id.content);
+        if (root != null) root.setBackgroundColor(ThemeManager.getBg());
+
+        loadSavedData();
     }
 
     public MindMapView getMindMapView() {
@@ -93,18 +109,35 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
+    public void showMoreMenu() {
+        MoreMenuDialog.newInstance(id -> MainMenuActionHandler.handle(this, id))
+                .show(getSupportFragmentManager(), "more_menu");
     }
 
-    @Override
-    public boolean onOptionsItemSelected(android.view.MenuItem item) {
-        if (MainMenuActionHandler.handle(this, item.getItemId())) {
-            return true;
+    private void applyToolbarTheme() {
+        android.view.View toolbar = findViewById(R.id.custom_toolbar);
+        if (toolbar != null) {
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setColor(ThemeManager.getToolbarBg());
+            bg.setCornerRadius(dpToPx(20));
+            bg.setStroke(dpToPx(1), ThemeManager.getStroke());
+            toolbar.setBackground(bg);
         }
-        return super.onOptionsItemSelected(item);
+        android.widget.TextView title = findViewById(R.id.toolbar_title);
+        if (title != null) title.setTextColor(ThemeManager.getTextPrimary());
+        android.widget.TextView subtitle = findViewById(R.id.toolbar_subtitle);
+        if (subtitle != null) subtitle.setTextColor(ThemeManager.getTextSecondary());
+
+        int iconTint = ThemeManager.getTextPrimary();
+        int[] btnIds = {R.id.btn_add_node, R.id.btn_search, R.id.btn_dashboard, R.id.btn_more};
+        for (int id : btnIds) {
+            android.widget.ImageButton btn = findViewById(id);
+            if (btn != null) btn.setColorFilter(iconTint);
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
     }
 
     // =========================
