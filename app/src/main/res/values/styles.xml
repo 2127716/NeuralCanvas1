@@ -60,4 +60,21 @@
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">false</item>
     </style>
+
+    <!-- Fallback: kept for backward compatibility with any layout referencing it -->
+    <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.DayNight">
+        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
+        <item name="android:colorBackground">#111E30</item>
+        <item name="android:textColorPrimary">#F8FAFC</item>
+        <item name="android:textColorSecondary">#A8B3CF</item>
+    </style>
+
+    <style name="ToolbarPopupItemText" parent="@style/TextAppearance.AppCompat.Body1">
+        <item name="android:textColor">#F8FAFC</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="NcPopupMenuStyle" parent="Widget.AppCompat.PopupMenu.Overflow">
+        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
+    </style>
 </resources>
