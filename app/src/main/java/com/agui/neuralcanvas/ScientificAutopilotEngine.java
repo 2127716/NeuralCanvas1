@@ -35,6 +35,7 @@ public final class ScientificAutopilotEngine {
             merge(out, ScientificTemplateEngine.generateIfThen(baseNode, nodes));
             merge(out, ScientificTemplateEngine.generateReferenceClassForecast(baseNode, nodes));
             merge(out, ScientificTemplateEngine.generateDailyReview(baseNode, nodes));
+            ReferenceForecastEngine.applyForecastToNode(baseNode, ReferenceForecastEngine.analyze(baseNode, nodes));
         }
 
         if (baseNode.getType() == Node.NodeType.CONCEPT || baseNode.getType() == Node.NodeType.QUESTION || baseNode.getType() == Node.NodeType.INSIGHT) {

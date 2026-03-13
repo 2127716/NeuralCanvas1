@@ -372,6 +372,34 @@ public void openAiScienceCoach(String mode, Node node) {
         ).show(getSupportFragmentManager(), "memory_review_dialog");
     }
 
+    public void openExecutionLog() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先选中一个任务/行动/项目节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ExecutionLogDialog.newInstance(baseNode, mindMapView.getNodesInternal(), new Runnable() {
+            @Override public void run() {
+                mindMapView.requestRender();
+                scheduleAutoSave();
+            }
+        }).show(getSupportFragmentManager(), "execution_log_dialog");
+    }
+
+    public void openDecisionFollowThrough() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先选中一个决策/目标/项目节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DecisionFollowThroughDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal(), new Runnable() {
+            @Override public void run() {
+                mindMapView.requestRender();
+                scheduleAutoSave();
+            }
+        }).show(getSupportFragmentManager(), "decision_follow_dialog");
+    }
+
     public void openFocusSession() {
         Node baseNode = getSingleSelectedNode();
         if (baseNode == null) {

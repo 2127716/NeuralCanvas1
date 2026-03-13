@@ -117,6 +117,11 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_scientific_autopilot) {
+            activity.runScientificAutopilot();
+            return true;
+        }
+
         if (id == R.id.action_ai_gap_check) {
             activity.runAiGapCheck();
             return true;
@@ -144,6 +149,16 @@ public class MainMenuActionHandler {
 
         if (id == R.id.action_focus_session) {
             activity.openFocusSession();
+            return true;
+        }
+
+        if (id == R.id.action_execution_log) {
+            activity.openExecutionLog();
+            return true;
+        }
+
+        if (id == R.id.action_decision_follow) {
+            activity.openDecisionFollowThrough();
             return true;
         }
 

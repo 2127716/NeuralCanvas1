@@ -16,6 +16,8 @@ public final class WorkflowAnalyticsEngine {
         public float estimatedHours;
         public float actualHours;
         public float avgBiasRatio;
+        public int forecastSampleNodes;
+        public float suggestedHoursCovered;
     }
 
     private WorkflowAnalyticsEngine() {}
@@ -44,6 +46,11 @@ public final class WorkflowAnalyticsEngine {
             if (node.getEffortEstimate() > 0f && node.getActualEffort() > 0f) {
                 biasSum += node.getActualEffort() / Math.max(0.1f, node.getEffortEstimate());
             }
+            int samples = GraphMetaHelper.getInt(node, "forecast_sample_count", 0);
+            if (samples > 0) {
+                r.forecastSampleNodes++;
+                r.suggestedHoursCovered += GraphMetaHelper.getFloat(node, "forecast_recommended_hours", 0f);
+            }
         }
         if (r.estimatedCount > 0) r.avgBiasRatio = biasSum / r.estimatedCount;
         return r;
@@ -65,6 +72,12 @@ public final class WorkflowAnalyticsEngine {
             if (r.avgBiasRatio > 1.25f) sb.append("（普遍低估）");
             else if (r.avgBiasRatio < 0.85f) sb.append("（普遍高估）");
             else sb.append("（相对稳定）");
+            sb.append("
+");
+        }
+        sb.append("参考类预测覆盖：").append(r.forecastSampleNodes).append(" 个节点");
+        if (r.suggestedHoursCovered > 0f) {
+            sb.append("｜预测建议工时合计 ").append(format(r.suggestedHoursCovered)).append("h");
         }
         return sb.toString();
     }

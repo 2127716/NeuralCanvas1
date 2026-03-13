@@ -6,11 +6,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.os.Looper;
 import android.os.Build;
-import android.os.SystemClock;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -104,8 +104,11 @@ public class MindMapView extends View {
 
     // 防误触：节点显示太小时，不允许长按弹编辑
     private float minLongPressNodeScreenSizePx;
+    private float expandedTouchHitPx;
     private float longPressMoveTolerancePx;
-    private String pendingLongPressNodeId;
+    private float nodeDragStartScreenPx;
+    private float nodeDragMinScreenSizePx;
+    private String pendingLongPressNodeId = null;
     private boolean pendingLongPressEligible = false;
 
     private enum PendingAction {
@@ -142,8 +145,11 @@ public class MindMapView extends View {
         gestureDetector = new GestureDetector(getContext(), new GestureListener());
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
 
-        minLongPressNodeScreenSizePx = dp(44f);
-        longPressMoveTolerancePx = dp(14f);
+        minLongPressNodeScreenSizePx = dp(26f);
+        expandedTouchHitPx = dp(16f);
+        longPressMoveTolerancePx = dp(16f);
+        nodeDragStartScreenPx = dp(18f);
+        nodeDragMinScreenSizePx = dp(72f);
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewCardPaint.setColor(Color.parseColor("#F8FAFC"));
@@ -471,14 +477,14 @@ public class MindMapView extends View {
                 isDraggingNode = false;
                 isScaling = false;
                 suppressLongPressUntilUp = false;
-                cancelLongPressCandidate();
+                clearLongPressCandidate();
 
                 if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
                     updateLongPressCandidate(previewNode);
                     return true;
                 }
 
-                Node touchedNode = findNodeAtExpanded(x, y, dp(10f));
+                Node touchedNode = findNodeAtExpanded(x, y, expandedTouchHitPx);
                 updateLongPressCandidate(touchedNode);
                 Connection touchedConnection = touchedNode == null ? findConnectionAt(x, y) : null;
 
@@ -509,13 +515,14 @@ public class MindMapView extends View {
                 float totalDx = x - downX;
                 float totalDy = y - downY;
 
-                double moveDistance = Math.hypot(totalDx, totalDy);
-                if (pendingLongPressEligible && moveDistance > longPressMoveTolerancePx) {
-                    cancelLongPressCandidate();
+                double totalDistance = Math.hypot(totalDx, totalDy);
+                if (pendingLongPressEligible && totalDistance > longPressMoveTolerancePx) {
+                    clearLongPressCandidate();
                     suppressLongPressUntilUp = true;
                 }
 
-                if (!movedEnough && moveDistance > touchSlop) {
+                float dragThreshold = draggingNode != null && canDragNodeAtCurrentZoom(draggingNode) ? nodeDragStartScreenPx : touchSlop;
+                if (!movedEnough && totalDistance > dragThreshold) {
                     movedEnough = true;
                     suppressLongPressUntilUp = true;
                 }
@@ -531,7 +538,7 @@ public class MindMapView extends View {
                     float dy = (y - lastTouchY) / scale;
 
                     if (dx != 0f || dy != 0f) {
-                        if (draggingNode != null) {
+                        if (draggingNode != null && canDragNodeAtCurrentZoom(draggingNode)) {
                             isDraggingNode = true;
                             draggingNode.setDragging(true);
                             previewNode = null;
@@ -558,26 +565,17 @@ public class MindMapView extends View {
                     notifyDataChanged();
                 }
 
-                if (!movedEnough) {
-                    performClick();
-                }
                 draggingNode = null;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
                 isScaling = false;
                 movedEnough = false;
                 suppressLongPressUntilUp = false;
-                cancelLongPressCandidate();
+                clearLongPressCandidate();
                 break;
             }
         }
 
-        return true;
-    }
-
-    @Override
-    public boolean performClick() {
-        super.performClick();
         return true;
     }
 
@@ -587,7 +585,8 @@ private void updateLongPressCandidate(Node node) {
     pendingLongPressEligible = node != null;
 }
 
-private void cancelLongPressCandidate() {
+private void clearLongPressCandidate() {
+    pendingLongPressNodeId = null;
     pendingLongPressEligible = false;
 }
 
@@ -602,9 +601,17 @@ private Node findNodeAtExpanded(float touchX, float touchY, float extraPx) {
         Node node = nodeList.get(i);
         RectF rect = getNodeScreenRect(node);
         rect.inset(-extraPx, -extraPx);
-        if (rect.contains(touchX, touchY)) return node;
+        if (rect.contains(touchX, touchY)) {
+            return node;
+        }
     }
     return null;
+}
+
+private boolean canDragNodeAtCurrentZoom(Node node) {
+    if (node == null) return false;
+    RectF rect = getNodeScreenRect(node);
+    return Math.min(rect.width(), rect.height()) >= nodeDragMinScreenSizePx;
 }
 
 private void performLongPressHaptic() {
@@ -612,9 +619,9 @@ private void performLongPressHaptic() {
         Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
         if (vibrator == null || !vibrator.hasVibrator()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(18L, VibrationEffect.DEFAULT_AMPLITUDE));
+            vibrator.vibrate(VibrationEffect.createOneShot(14L, VibrationEffect.DEFAULT_AMPLITUDE));
         } else {
-            vibrator.vibrate(18L);
+            vibrator.vibrate(14L);
         }
     } catch (Exception ignored) {
     }
@@ -677,7 +684,7 @@ private void performLongPressHaptic() {
         float width = rect.width();
         float height = rect.height();
 
-        // 仅在极小且确实难以操作时才拦截，避免正常节点长按偶发失效
+        // 只有极端缩得很小时才拦截；普通缩小仍允许长按编辑
         return width < minLongPressNodeScreenSizePx && height < minLongPressNodeScreenSizePx;
     }
 
@@ -1151,7 +1158,7 @@ private void performLongPressHaptic() {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            Node node = findNodeAt(e.getX(), e.getY());
+            Node node = findNodeAtExpanded(e.getX(), e.getY(), expandedTouchHitPx * 0.7f);
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
                 if (node != null && !pendingSourceNode.getId().equals(node.getId())) {
@@ -1185,7 +1192,7 @@ private void performLongPressHaptic() {
         public boolean onDoubleTap(MotionEvent e) {
             if (isScaling) return true;
 
-            Node node = findNodeAt(e.getX(), e.getY());
+            Node node = findNodeAtExpanded(e.getX(), e.getY(), expandedTouchHitPx * 0.6f);
             if (node == null) {
                 float worldX = e.getX() / scale - offsetX;
                 float worldY = e.getY() / scale - offsetY;
@@ -1209,7 +1216,7 @@ private void performLongPressHaptic() {
 
             Node touchedNode = getPendingLongPressNode();
             if (touchedNode == null) {
-                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), dp(12f));
+                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), expandedTouchHitPx);
             }
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
@@ -1227,7 +1234,7 @@ private void performLongPressHaptic() {
                     performLongPressHaptic();
                     ((MainActivity) getContext()).showNodeEditDialog(touchedNode);
                 }
-                cancelLongPressCandidate();
+                clearLongPressCandidate();
                 return;
             }
 
@@ -1250,7 +1257,7 @@ private void performLongPressHaptic() {
             suppressLongPressUntilUp = true;
             draggingNode = null;
             previewRect = null;
-            cancelLongPressCandidate();
+            clearLongPressCandidate();
             return true;
         }
 

@@ -254,26 +254,43 @@ public class Node {
         drawShape(canvas, shapeBounds, fillPaint, scale);
         drawShapeOutline(canvas, shapeBounds, strokePaint, scale);
 
-        float padding = 15f * scale;
-        titlePaint.setTextSize(Math.max(20f, 24f * scale));
-        contentPaint.setTextSize(Math.max(15f, 17f * scale));
-        typePaint.setTextSize(Math.max(12f, 14f * scale));
-        badgeTextPaint.setTextSize(Math.max(11f, 12f * scale));
+        if (scale < 0.12f) {
+            return;
+        }
 
-        String safeTitle = title == null ? "" : title;
-        String safeContent = content == null ? "" : content;
+        float padding = Math.max(8f, 12f * scale);
+        titlePaint.setTextSize(Math.max(11f, Math.min(19f, 15f * scale + 5f)));
+        contentPaint.setTextSize(Math.max(10f, Math.min(15f, 12f * scale + 3f)));
+        typePaint.setTextSize(Math.max(9f, Math.min(12f, 10f * scale + 2f)));
+        badgeTextPaint.setTextSize(Math.max(9f, Math.min(12f, 10f * scale + 2f)));
+
+        String safeTitle = title == null ? "" : title.trim();
+        String safeContent = content == null ? "" : content.trim();
         String safeType = type == null ? "" : type.label;
 
         float textLeft = bounds.left + padding;
-        float textTop = bounds.top + 34f * scale;
+        float textRight = bounds.right - padding;
+        float textTop = bounds.top + padding + titlePaint.getTextSize();
+        float maxTextWidth = Math.max(20f, textRight - textLeft);
 
-        canvas.drawText(truncateText(safeTitle, 10), textLeft, textTop, titlePaint);
-
-        if (scale >= 0.55f) {
-            canvas.drawText(truncateText(safeContent, 8), textLeft, bounds.top + 58f * scale, contentPaint);
+        java.util.List<String> titleLines = wrapTextForNode(titlePaint, safeTitle, maxTextWidth, scale >= 0.60f ? 2 : 1);
+        float currentY = textTop;
+        for (String line : titleLines) {
+            canvas.drawText(line, textLeft, currentY, titlePaint);
+            currentY += titlePaint.getTextSize() + Math.max(2f, 3f * scale);
         }
 
-        canvas.drawText(safeType, textLeft, bounds.bottom - 14f * scale, typePaint);
+        if (scale >= 0.72f && !safeContent.isEmpty()) {
+            java.util.List<String> contentLines = wrapTextForNode(contentPaint, safeContent, maxTextWidth, scale >= 1.1f ? 2 : 1);
+            for (String line : contentLines) {
+                canvas.drawText(line, textLeft, currentY, contentPaint);
+                currentY += contentPaint.getTextSize() + Math.max(2f, 2.5f * scale);
+            }
+        }
+
+        if (scale >= 0.26f) {
+            canvas.drawText(safeType, textLeft, bounds.bottom - Math.max(8f, 10f * scale), typePaint);
+        }
 
         drawStatusBadge(canvas, bounds, scale);
     }
