@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#1E1E1E</color>
-    <color name="colorPrimaryDark">#121212</color>
-    <color name="colorAccent">#FF9800</color>
+    <color name="colorPrimary">#7C3AED</color>
+    <color name="colorPrimaryDark">#0A0F1E</color>
+    <color name="colorAccent">#8B5CF6</color>
+
+    <color name="nc_bg">#070B14</color>
+    <color name="nc_surface">#0F172A</color>
+    <color name="nc_surface_2">#111827</color>
+    <color name="nc_surface_3">#162033</color>
+    <color name="nc_stroke">#23314D</color>
+    <color name="nc_text_primary">#F8FAFC</color>
+    <color name="nc_text_secondary">#A8B3CF</color>
+    <color name="nc_text_muted">#7C8AA8</color>
+    <color name="nc_accent">#8B5CF6</color>
+    <color name="nc_accent_2">#38BDF8</color>
+    <color name="nc_danger">#F43F5E</color>
+    <color name="nc_success">#22C55E</color>
 </resources>

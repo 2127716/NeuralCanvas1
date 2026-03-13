@@ -1,60 +1,75 @@
 <resources>
 
-    <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.Light">
-        <item name="android:popupBackground">#F8FAFC</item>
-        <item name="android:textColorPrimary">#000000</item>
-        <item name="android:textColorSecondary">#111111</item>
-        <item name="colorOnSurface">#000000</item>
+    <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
+        <item name="android:textColorPrimary">@color/nc_text_primary</item>
+        <item name="android:textColorSecondary">@color/nc_text_secondary</item>
+        <item name="colorOnSurface">@color/nc_text_primary</item>
         <item name="android:itemTextAppearance">@style/ToolbarPopupItemText</item>
     </style>
 
     <style name="ToolbarPopupItemText" parent="@style/TextAppearance.AppCompat.Body1">
-        <item name="android:textColor">#000000</item>
+        <item name="android:textColor">@color/nc_text_primary</item>
         <item name="android:textSize">16sp</item>
     </style>
 
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#7C3AED</item>
+        <item name="colorPrimary">@color/nc_accent</item>
         <item name="colorPrimaryVariant">#6D28D9</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-
-        <item name="colorSecondary">#60A5FA</item>
-        <item name="colorSecondaryVariant">#3B82F6</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-
-        <item name="android:statusBarColor">#0B1020</item>
-        <item name="android:navigationBarColor">#0B1020</item>
+        <item name="colorSecondary">@color/nc_accent_2</item>
+        <item name="colorSecondaryVariant">#0EA5E9</item>
+        <item name="colorOnSecondary">#07111E</item>
+        <item name="android:windowBackground">@color/nc_bg</item>
+        <item name="android:statusBarColor">@color/nc_bg</item>
+        <item name="android:navigationBarColor">@color/nc_bg</item>
         <item name="materialAlertDialogTheme">@style/RoundedDialogTheme</item>
     </style>
 
     <style name="RoundedDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="shapeAppearanceMediumComponent">@style/RoundedShapeAppearance</item>
-        <item name="backgroundTint">#F8FAFC</item>
-        <item name="colorSurface">#F8FAFC</item>
+        <item name="backgroundTint">@color/nc_surface</item>
+        <item name="android:windowMinWidthMajor">94%</item>
+        <item name="android:windowMinWidthMinor">94%</item>
+        <item name="colorSurface">@color/nc_surface</item>
         <item name="materialAlertDialogTitleTextStyle">@style/DialogTitleText</item>
         <item name="materialAlertDialogBodyTextStyle">@style/DialogBodyText</item>
-        <item name="buttonBarPositiveButtonStyle">@style/DialogButtonText</item>
-        <item name="buttonBarNegativeButtonStyle">@style/DialogButtonText</item>
-        <item name="buttonBarNeutralButtonStyle">@style/DialogButtonText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/DialogButtonTextPrimary</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DialogButtonTextSecondary</item>
+        <item name="buttonBarNeutralButtonStyle">@style/DialogButtonTextDanger</item>
+        <item name="android:backgroundDimAmount">0.62</item>
     </style>
 
     <style name="RoundedShapeAppearance" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">24dp</item>
+        <item name="cornerSize">28dp</item>
     </style>
 
     <style name="DialogTitleText" parent="TextAppearance.MaterialComponents.Headline6">
-        <item name="android:textColor">#0F172A</item>
+        <item name="android:textColor">@color/nc_text_primary</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20sp</item>
     </style>
 
     <style name="DialogBodyText" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="android:textColor">#334155</item>
+        <item name="android:textColor">@color/nc_text_secondary</item>
         <item name="android:textSize">15sp</item>
     </style>
 
-    <style name="DialogButtonText" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">#2563EB</item>
+    <style name="DialogButtonTextPrimary" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/nc_text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="DialogButtonTextSecondary" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/nc_text_secondary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="DialogButtonTextDanger" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/nc_danger</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">false</item>
     </style>
