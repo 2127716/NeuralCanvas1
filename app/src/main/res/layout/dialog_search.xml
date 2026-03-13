@@ -2,13 +2,15 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@color/nc_surface">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp">
+        android:padding="8dp"
+        android:background="@color/nc_surface">
 
         <!-- 关键词输入 -->
         <TextView
@@ -16,6 +18,7 @@
             android:layout_height="wrap_content"
             android:text="关键词："
             android:textSize="16sp"
+            android:textColor="@color/nc_text_primary"
             android:layout_marginBottom="8dp" />
 
         <EditText
@@ -24,7 +27,9 @@
             android:layout_height="wrap_content"
             android:hint="输入搜索关键词"
             android:padding="12dp"
-            android:background="@android:drawable/editbox_background"
+            android:background="@drawable/bg_panel_popup"
+            android:textColor="@color/nc_text_primary"
+            android:textColorHint="@color/nc_text_muted"
             android:layout_marginBottom="16dp" />
 
         <!-- 节点类型筛选 -->
@@ -33,6 +38,7 @@
             android:layout_height="wrap_content"
             android:text="节点类型："
             android:textSize="16sp"
+            android:textColor="@color/nc_text_primary"
             android:layout_marginBottom="8dp" />
 
         <LinearLayout
@@ -45,61 +51,71 @@
                 android:id="@+id/checkbox_goal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="目标" />
+                android:text="目标"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_task"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="任务" />
+                android:text="任务"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_idea"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="想法" />
+                android:text="想法"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_note"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="笔记" />
+                android:text="笔记"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_problem"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="问题" />
+                android:text="问题"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_resource"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="资源" />
+                android:text="资源"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_person"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="人物" />
+                android:text="人物"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_event"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="事件" />
+                android:text="事件"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_decision"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="决策" />
+                android:text="决策"
+                android:textColor="@color/nc_text_primary" />
 
             <CheckBox
                 android:id="@+id/checkbox_risk"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="风险" />
+                android:text="风险"
+                android:textColor="@color/nc_text_primary" />
 
         </LinearLayout>
 
