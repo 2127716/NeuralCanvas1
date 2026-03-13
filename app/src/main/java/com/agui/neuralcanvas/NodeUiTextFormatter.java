@@ -62,9 +62,10 @@ public class NodeUiTextFormatter {
         if (parts.isEmpty()) {
             String content = safe(node.getContent());
             if (!content.isEmpty()) {
-                content = content.replace("
-", " ").trim();
-                if (content.length() > 32) content = content.substring(0, 32) + "…";
+                content = content.replace("\n", " ").replace("\r", " ").trim();
+                if (content.length() > 32) {
+                    content = content.substring(0, 32) + "…";
+                }
                 parts.add(content);
             }
         }
