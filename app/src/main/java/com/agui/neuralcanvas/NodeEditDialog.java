@@ -149,7 +149,7 @@ public class NodeEditDialog extends DialogFragment {
         return 0;
     }
 
-    // 构建科学动作区（整合所有功能）
+    // 新增：构建科学动作区（快捷动作、WOOP、If-Then、周复盘、检索练习、Premortem）
     private View buildActionBar(MainActivity activity, Node node) {
         LinearLayout wrap = new LinearLayout(requireContext());
         wrap.setOrientation(LinearLayout.VERTICAL);
@@ -157,7 +157,6 @@ public class NodeEditDialog extends DialogFragment {
         TextView title = buildSectionTitle("科学动作");
         wrap.addView(title);
 
-        // 第一行：快捷动作、智能补强、WOOP、If-Then
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -192,7 +191,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row);
 
-        // 第二行：周复盘、检索练习、Premortem
         LinearLayout row2 = new LinearLayout(requireContext());
         row2.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -219,7 +217,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row2);
 
-        // 第三行：决策实验室、记忆复习、Focus
         LinearLayout row3 = new LinearLayout(requireContext());
         row3.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -246,7 +243,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row3);
 
-        // 第四行：WRAP、Bayes、DSRP
         LinearLayout row4 = new LinearLayout(requireContext());
         row4.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -273,7 +269,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row4);
 
-        // 第五行：参考类预测、全量推进、AI缺口
         LinearLayout row5 = new LinearLayout(requireContext());
         row5.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -301,7 +296,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row5);
 
-        // 第六行：AI红队、AI执行、AI学习、AI决策
         LinearLayout row6 = new LinearLayout(requireContext());
         row6.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -335,7 +329,6 @@ public class NodeEditDialog extends DialogFragment {
 
         wrap.addView(row6);
 
-        // 第七行：执行回填、决策落地、AI自动流
         LinearLayout row7 = new LinearLayout(requireContext());
         row7.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -355,6 +348,13 @@ public class NodeEditDialog extends DialogFragment {
         });
         row7.addView(decisionFollow);
 
+        TextView aiSuggest = buildActionChip("AI建议");
+        aiSuggest.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("recommend", node);
+        });
+        row7.addView(aiSuggest);
+
         TextView aiAuto = buildActionChip("AI自动流");
         aiAuto.setOnClickListener(v -> {
             dismiss();
@@ -363,11 +363,10 @@ public class NodeEditDialog extends DialogFragment {
         row7.addView(aiAuto);
 
         wrap.addView(row7);
-
         return wrap;
     }
 
-    // 构建动作区的单个 Chip 按钮
+    // 新增：构建动作区的单个 Chip 按钮
     private TextView buildActionChip(String text) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
@@ -410,7 +409,7 @@ public class NodeEditDialog extends DialogFragment {
         root.setPadding(p, p, p, p);
         scrollView.addView(root);
 
-        // 在编辑页最顶部插入科学动作区
+        // 新增：在编辑页最顶部插入科学动作区
         MainActivity activity = (MainActivity) getActivity();
         if (activity != null) {
             root.addView(buildActionBar(activity, currentNode));
@@ -661,7 +660,7 @@ public class NodeEditDialog extends DialogFragment {
                     currentNode.setNoteSource(noteSourceInput.getText().toString().trim());
                     currentNode.setMetaJson(metaJsonInput.getText().toString().trim());
 
-                    // 保存时执行工作流归一化
+                    // 新增：保存时执行工作流归一化
                     WorkflowEngine.normalizeNodeForWorkflow(currentNode);
 
                     if (getActivity() instanceof NodeEditListener) {

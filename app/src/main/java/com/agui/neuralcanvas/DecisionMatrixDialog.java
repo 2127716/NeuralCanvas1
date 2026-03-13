@@ -114,15 +114,19 @@ public class DecisionMatrixDialog extends DialogFragment {
         return new AlertDialog.Builder(requireContext())
                 .setTitle("MCDA 决策评分")
                 .setView(scroll)
+                .setNeutralButton("写回决策节点", (dialog, which) -> {
+                    persistInputs(criteria, weightInputs, options, scoreInputs);
+                    DecisionEngine.DecisionReport refreshed = DecisionEngine.analyze(currentNode, currentNodes, currentConnections);
+                    DecisionEngine.persistReportToDecisionNode(currentNode, refreshed);
+                    if (onSaved != null) onSaved.run();
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("已写回当前决策")
+                            .setMessage(DecisionEngine.buildSummaryText(refreshed))
+                            .setPositiveButton("确定", null)
+                            .show();
+                })
                 .setPositiveButton("保存并分析", (dialog, which) -> {
-                    for (int i = 0; i < criteria.size(); i++) {
-                        DecisionEngine.saveWeight(criteria.get(i), parseFloat(weightInputs.get(i).getText().toString(), Math.max(1f, criteria.get(i).getPriority())));
-                    }
-                    for (int i = 0; i < options.size(); i++) {
-                        for (int j = 0; j < criteria.size(); j++) {
-                            DecisionEngine.saveScore(options.get(i), criteria.get(j), parseFloat(scoreInputs.get(i).get(j).getText().toString(), 5f));
-                        }
-                    }
+                    persistInputs(criteria, weightInputs, options, scoreInputs);
                     if (onSaved != null) onSaved.run();
                     DecisionEngine.DecisionReport refreshed = DecisionEngine.analyze(currentNode, currentNodes, currentConnections);
                     new AlertDialog.Builder(requireContext())
@@ -153,6 +157,17 @@ public class DecisionMatrixDialog extends DialogFragment {
         return String.format(Locale.US, "%.2f", value);
     }
 
+    private void persistInputs(List<Node> criteria, List<EditText> weightInputs, List<Node> options, List<List<EditText>> scoreInputs) {
+        for (int i = 0; i < criteria.size(); i++) {
+            DecisionEngine.saveWeight(criteria.get(i), parseFloat(weightInputs.get(i).getText().toString(), Math.max(1f, criteria.get(i).getPriority())));
+        }
+        for (int i = 0; i < options.size(); i++) {
+            for (int j = 0; j < criteria.size(); j++) {
+                DecisionEngine.saveScore(options.get(i), criteria.get(j), parseFloat(scoreInputs.get(i).get(j).getText().toString(), 5f));
+            }
+        }
+    }
+
     private String buildReportText(DecisionEngine.DecisionReport report) {
         StringBuilder sb = new StringBuilder();
         sb.append("方案排名\n");
@@ -172,7 +187,13 @@ public class DecisionMatrixDialog extends DialogFragment {
                 .append(report.robustnessLabel)
                 .append("（")
                 .append(round(report.robustnessScore))
-                .append("）\n");
+                .append("）")
+                .append("｜建议信心=")
+                .append(Math.round(report.confidenceSuggestion * 100f))
+                .append("%")
+                .append("｜领先差距=")
+                .append(round(report.topGap))
+                .append("\n");
         if (!report.warnings.isEmpty()) {
             sb.append("\n提醒\n");
             for (String w : report.warnings) sb.append("- ").append(w).append("\n");

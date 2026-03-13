@@ -31,6 +31,10 @@ public final class DecisionEngine {
         public float robustnessScore;
         public String robustnessLabel;
         public boolean rankingFlipsUnderSensitivity;
+        public float confidenceSuggestion;
+        public float topGap;
+        public String recommendedOptionId;
+        public String summaryText;
     }
 
     public static DecisionReport analyze(Node anchor, Map<String, Node> nodes, Map<String, Connection> connections) {
@@ -84,7 +88,9 @@ public final class DecisionEngine {
         });
 
         evaluateSensitivity(report, weights);
+        enrichConfidence(report);
         buildWarnings(report);
+        report.summaryText = buildSummaryText(report);
         return report;
     }
 
@@ -146,6 +152,70 @@ public final class DecisionEngine {
             if (score > best) { best = score; bestId = option.optionNode.getId(); }
         }
         return bestId;
+    }
+
+
+    private static void enrichConfidence(DecisionReport report) {
+        if (report.rankings.isEmpty()) {
+            report.confidenceSuggestion = 0.35f;
+            report.topGap = 0f;
+            return;
+        }
+        report.recommendedOptionId = report.rankings.get(0).optionNode == null ? "" : report.rankings.get(0).optionNode.getId();
+        float top = report.rankings.get(0).finalScore;
+        float second = report.rankings.size() > 1 ? report.rankings.get(1).finalScore : top - 1.2f;
+        report.topGap = top - second;
+        float confidence = 0.45f + clamp(report.robustnessScore * 0.25f, 0f, 0.25f) + clamp(report.topGap / 6f, 0f, 0.22f);
+        if (report.rankingFlipsUnderSensitivity) confidence -= 0.08f;
+        report.confidenceSuggestion = clamp(confidence, 0.2f, 0.92f);
+    }
+
+    public static void persistReportToDecisionNode(Node anchor, DecisionReport report) {
+        if (anchor == null || report == null) return;
+        GraphMetaHelper.putFloat(anchor, "decision_robustness_score", report.robustnessScore);
+        GraphMetaHelper.putFloat(anchor, "decision_confidence_suggestion", report.confidenceSuggestion);
+        GraphMetaHelper.putFloat(anchor, "decision_top_gap", report.topGap);
+        GraphMetaHelper.putString(anchor, "decision_robustness_label", report.robustnessLabel == null ? "" : report.robustnessLabel);
+        GraphMetaHelper.putString(anchor, "decision_recommended_option_id", report.recommendedOptionId == null ? "" : report.recommendedOptionId);
+        GraphMetaHelper.putString(anchor, "decision_summary", buildSummaryText(report));
+        if (anchor.getConfidence() <= 0f || anchor.getConfidence() == 0.5f) {
+            anchor.setConfidence(report.confidenceSuggestion);
+        }
+        String summary = buildSummaryText(report);
+        String content = anchor.getContent() == null ? "" : anchor.getContent().trim();
+        String marker = "【MCDA分析】";
+        int idx = content.indexOf(marker);
+        if (idx >= 0) content = content.substring(0, idx).trim();
+        anchor.setContent((content.isEmpty() ? "" : content + "\n\n") + marker + "\n" + summary);
+    }
+
+    public static String buildSummaryText(DecisionReport report) {
+        if (report == null) return "暂无分析结果";
+        StringBuilder sb = new StringBuilder();
+        if (!report.rankings.isEmpty()) {
+            OptionScore top = report.rankings.get(0);
+            sb.append("推荐方案：").append(safeTitle(top.optionNode))
+                    .append("｜总分=").append(round(top.finalScore))
+                    .append("｜稳健性=").append(report.robustnessLabel)
+                    .append("（").append(round(report.robustnessScore)).append("）");
+            sb.append("｜建议信心=").append(Math.round(report.confidenceSuggestion * 100f)).append("%");
+            sb.append("｜领先差距=").append(round(report.topGap));
+        } else {
+            sb.append("当前没有足够的方案数据");
+        }
+        if (!report.warnings.isEmpty()) {
+            sb.append("\n提醒：");
+            int limit = Math.min(3, report.warnings.size());
+            for (int i = 0; i < limit; i++) {
+                if (i > 0) sb.append("；");
+                sb.append(report.warnings.get(i));
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String round(float value) {
+        return String.format(java.util.Locale.US, "%.2f", value);
     }
 
     private static void buildWarnings(DecisionReport report) {

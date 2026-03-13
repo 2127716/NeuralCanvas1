@@ -262,6 +262,8 @@ public void openAiScienceCoach(String mode, Node node) {
         prompt = AiScientificPrompts.decisionCoach(node);
     } else if ("redteam".equalsIgnoreCase(normalized)) {
         prompt = AiScientificPrompts.redTeam(node);
+    } else if ("recommend".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.workflowRecommendation(node);
     } else if ("autopilot".equalsIgnoreCase(normalized)) {
         prompt = AiScientificPrompts.autopilot(node);
     } else {

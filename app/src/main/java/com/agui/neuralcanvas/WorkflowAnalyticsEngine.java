@@ -16,6 +16,8 @@ public final class WorkflowAnalyticsEngine {
         public float estimatedHours;
         public float actualHours;
         public float avgBiasRatio;
+        public int totalNodes;
+        public int forecastedNodes;
         public int forecastSampleNodes;
         public float suggestedHoursCovered;
     }
@@ -30,12 +32,14 @@ public final class WorkflowAnalyticsEngine {
         r.memoryUpcoming = memory.upcomingNodes.size();
         float biasSum = 0f;
 
+        r.totalNodes = nodes.size();
         for (Node node : nodes.values()) {
             if (node == null) continue;
             if (node.getStatus() == Node.NodeStatus.DONE) r.completedNodes++;
             r.focusSessions += GraphMetaHelper.getInt(node, "focus_sessions", 0);
             r.triggeredWins += GraphMetaHelper.getInt(node, "trigger_success", 0);
             r.triggeredMisses += GraphMetaHelper.getInt(node, "trigger_fail", 0);
+            if (GraphMetaHelper.getFloat(node, "forecast_recommended_hours", 0f) > 0f) r.forecastedNodes++;
             if (node.getEffortEstimate() > 0f) {
                 r.estimatedCount++;
                 r.estimatedHours += node.getEffortEstimate();
@@ -59,11 +63,12 @@ public final class WorkflowAnalyticsEngine {
     public static String buildReadableSummary(AnalyticsReport r) {
         if (r == null) return "暂无科学分析数据";
         StringBuilder sb = new StringBuilder();
+        sb.append("节点总数：").append(r.totalNodes).append("\n");
         sb.append("完成节点：").append(r.completedNodes).append("\n");
         sb.append("深度工作 Session：").append(r.focusSessions).append("\n");
         sb.append("If-Then 命中/失手：").append(r.triggeredWins).append(" / ").append(r.triggeredMisses).append("\n");
         sb.append("记忆队列：到期 ").append(r.memoryDue).append("｜即将到期 ").append(r.memoryUpcoming).append("\n");
-        sb.append("估时样本：").append(r.estimatedCount).append("\n");
+        sb.append("估时样本：").append(r.estimatedCount).append("｜已预测节点：").append(r.forecastedNodes).append("\n");
         sb.append("预计/实际工时：")
                 .append(format(r.estimatedHours)).append("h / ")
                 .append(format(r.actualHours)).append("h\n");
@@ -72,8 +77,7 @@ public final class WorkflowAnalyticsEngine {
             if (r.avgBiasRatio > 1.25f) sb.append("（普遍低估）");
             else if (r.avgBiasRatio < 0.85f) sb.append("（普遍高估）");
             else sb.append("（相对稳定）");
-            sb.append("
-");
+            sb.append("\n");
         }
         sb.append("参考类预测覆盖：").append(r.forecastSampleNodes).append(" 个节点");
         if (r.suggestedHoursCovered > 0f) {

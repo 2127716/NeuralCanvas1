@@ -29,6 +29,11 @@ public final class AiScientificPrompts {
         return "请切换到红队视角，攻击当前节点及其相邻结构。找出最可能的盲点、反例、脆弱假设、被忽略的替代方案和失败路径。优先输出 commands，新增少量高价值反证/风险/替代方案节点，并用明确关系连接。当前焦点节点：" + title;
     }
 
+    public static String workflowRecommendation(Node node) {
+        String title = safeTitle(node);
+        return "请基于当前节点类型和相邻结构，给出最有杠杆的下一步工作流建议。不要泛泛而谈，优先指出：现在最该补什么、最该删什么、最该先执行什么。若适合，直接输出少量 commands。当前焦点节点：" + title;
+    }
+
     public static String autopilot(Node node) {
         String title = safeTitle(node);
         return "请按科学方法自动补强当前节点，但必须克制。先检查结构缺口，再只补最必要的 3 到 8 个节点和对应连线。优先顺序：执行闭环、证据闭环、学习闭环、复盘闭环。不要做大规模排版，不要无意义重复。当前焦点节点：" + title;

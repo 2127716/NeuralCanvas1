@@ -229,11 +229,25 @@ public class ScientificDashboardDialog extends DialogFragment {
         content.setPadding(0, dp(context, 8), 0, 0);
         section.addView(content);
 
+        TextView nextTitle = new TextView(context);
+        nextTitle.setText("下一步建议");
+        nextTitle.setTextSize(15f);
+        nextTitle.setTextColor(Color.parseColor("#F8FAFC"));
+        nextTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        nextTitle.setPadding(0, dp(context, 14), 0, dp(context, 6));
+        section.addView(nextTitle);
+
+        TextView nextContent = new TextView(context);
+        nextContent.setText(WorkflowRecommendationEngine.buildSummary(nodes, connections));
+        nextContent.setTextSize(13f);
+        nextContent.setTextColor(Color.parseColor("#D6E3F5"));
+        section.addView(nextContent);
+
         return section;
     }
 
 
-    private View buildAnalyticsSection(Context context, Map<String, Node> nodes) {
+    private View buildAnalyticsSection(Context context, Map<String, Node> nodes, Map<String, Connection> connections) {
         WorkflowAnalyticsEngine.AnalyticsReport report = WorkflowAnalyticsEngine.build(nodes);
 
         LinearLayout section = new LinearLayout(context);
@@ -301,7 +315,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         // 添加工作流概览卡片
         root.addView(buildWorkflowSummarySection(requireContext(), nodes, connections));
         root.addView(buildSpacer(12));
-        root.addView(buildAnalyticsSection(requireContext(), nodes));
+        root.addView(buildAnalyticsSection(requireContext(), nodes, connections));
         root.addView(buildSpacer(16));
 
         HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
