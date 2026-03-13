@@ -208,6 +208,32 @@ public class NodeEditDialog extends DialogFragment {
         row2.addView(premortem);
 
         wrap.addView(row2);
+
+        LinearLayout row3 = new LinearLayout(requireContext());
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView decisionLab = buildActionChip("决策实验室");
+        decisionLab.setOnClickListener(v -> {
+            dismiss();
+            activity.openDecisionLab(node);
+        });
+        row3.addView(decisionLab);
+
+        TextView memory = buildActionChip("记忆复习");
+        memory.setOnClickListener(v -> {
+            dismiss();
+            activity.openMemoryReview();
+        });
+        row3.addView(memory);
+
+        TextView focus = buildActionChip("Focus");
+        focus.setOnClickListener(v -> {
+            dismiss();
+            activity.openFocusSession(node);
+        });
+        row3.addView(focus);
+
+        wrap.addView(row3);
         return wrap;
     }
 

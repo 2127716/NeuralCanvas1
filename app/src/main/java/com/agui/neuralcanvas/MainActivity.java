@@ -202,6 +202,22 @@ public class MainActivity extends AppCompatActivity
         startActivity(new Intent(this, HelpActivity.class));
     }
 
+    public void openDecisionLab(Node node) {
+        if (node == null) return;
+        mindMapView.selectOnlyNode(node.getId());
+        openDecisionMatrix();
+    }
+
+    public void openFocusSession(Node node) {
+        if (node == null) return;
+        mindMapView.selectOnlyNode(node.getId());
+        openFocusSession();
+    }
+
+    public void openGraphIntelligence() {
+        openGraphInsights();
+    }
+
     public void confirmClearAll() {
         new AlertDialog.Builder(this)
                 .setTitle("清除全部")
@@ -242,6 +258,36 @@ public class MainActivity extends AppCompatActivity
                 mindMapView.getNodesInternal(),
                 mindMapView.getConnectionsInternal()
         );
+    }
+
+    public void openDecisionMatrix() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先选中一个决策/项目/目标节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DecisionMatrixDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal(), new Runnable() {
+            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
+        }).show(getSupportFragmentManager(), "decision_matrix_dialog");
+    }
+
+    public void openMemoryReview() {
+        MemoryReviewDialog.newInstance(mindMapView.getNodesInternal(), new Runnable() {
+            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
+        }).show(getSupportFragmentManager(), "memory_review_dialog");
+    }
+
+    public void openFocusSession() {
+        Node baseNode = getSingleSelectedNode();
+        FocusSessionDialog.newInstance(baseNode, mindMapView.getNodesInternal(), new Runnable() {
+            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
+        }).show(getSupportFragmentManager(), "focus_session_dialog");
+    }
+
+    public void openGraphInsights() {
+        Node baseNode = getSingleSelectedNode();
+        GraphInsightDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal())
+                .show(getSupportFragmentManager(), "graph_insight_dialog");
     }
 
     // =========================

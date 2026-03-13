@@ -107,6 +107,26 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_decision_matrix) {
+            activity.openDecisionMatrix();
+            return true;
+        }
+
+        if (id == R.id.action_memory_review) {
+            activity.openMemoryReview();
+            return true;
+        }
+
+        if (id == R.id.action_focus_session) {
+            activity.openFocusSession();
+            return true;
+        }
+
+        if (id == R.id.action_graph_insights) {
+            activity.openGraphInsights();
+            return true;
+        }
+
         if (id == R.id.action_ai_assistant) {
             activity.showAiAssistantDialog();
             return true;
