@@ -20,12 +20,19 @@ import java.util.Map;
 public class ExecutionLogDialog extends DialogFragment {
 
     private static final String ARG_NODE_ID = "node_id";
+    private Runnable onSaved;
 
     public static ExecutionLogDialog newInstance(String nodeId) {
         ExecutionLogDialog dialog = new ExecutionLogDialog();
         Bundle args = new Bundle();
         args.putString(ARG_NODE_ID, nodeId);
         dialog.setArguments(args);
+        return dialog;
+    }
+
+    public static ExecutionLogDialog newInstance(Node node, Map<String, Node> nodes, Runnable onSaved) {
+        ExecutionLogDialog dialog = newInstance(node == null ? "" : node.getId());
+        dialog.onSaved = onSaved;
         return dialog;
     }
 
@@ -95,6 +102,7 @@ public class ExecutionLogDialog extends DialogFragment {
             if (activity.getMindMapView() != null) {
                 activity.getMindMapView().invalidate();
             }
+            if (onSaved != null) onSaved.run();
 
             Toast.makeText(requireContext(), "执行记录已保存", Toast.LENGTH_SHORT).show();
             dismiss();

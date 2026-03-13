@@ -24,12 +24,19 @@ import java.util.Map;
 public class DecisionFollowThroughDialog extends DialogFragment {
 
     private static final String ARG_NODE_ID = "node_id";
+    private Runnable onSaved;
 
     public static DecisionFollowThroughDialog newInstance(String nodeId) {
         DecisionFollowThroughDialog dialog = new DecisionFollowThroughDialog();
         Bundle args = new Bundle();
         args.putString(ARG_NODE_ID, nodeId);
         dialog.setArguments(args);
+        return dialog;
+    }
+
+    public static DecisionFollowThroughDialog newInstance(Node node, Map<String, Node> nodes, Map<String, Connection> connections, Runnable onSaved) {
+        DecisionFollowThroughDialog dialog = newInstance(node == null ? "" : node.getId());
+        dialog.onSaved = onSaved;
         return dialog;
     }
 
@@ -174,6 +181,7 @@ public class DecisionFollowThroughDialog extends DialogFragment {
             }
 
             activity.getMindMapView().invalidate();
+            if (onSaved != null) onSaved.run();
             Toast.makeText(requireContext(), "决策推进信息已保存", Toast.LENGTH_SHORT).show();
             dismiss();
         }));

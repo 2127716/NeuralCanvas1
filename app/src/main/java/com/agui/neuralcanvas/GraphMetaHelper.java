@@ -69,6 +69,7 @@ public final class GraphMetaHelper {
         node.setMetaJson(stringify(map));
     }
 
+    public static void putString(Node node, String key, String value) { put(node, key, value); }
     public static void putInt(Node node, String key, int value) { put(node, key, String.valueOf(value)); }
     public static void putLong(Node node, String key, long value) { put(node, key, String.valueOf(value)); }
     public static void putFloat(Node node, String key, float value) { put(node, key, String.valueOf(value)); }

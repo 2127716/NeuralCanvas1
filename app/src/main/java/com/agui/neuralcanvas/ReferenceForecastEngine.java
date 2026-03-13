@@ -97,6 +97,50 @@ public final class ReferenceForecastEngine {
         return result;
     }
 
+
+    public static ForecastResult analyze(Node currentNode, Map<String, Node> nodes) {
+        return build(currentNode, nodes);
+    }
+
+    public static void applyForecastToNode(Node node, ForecastResult result) {
+        if (node == null || result == null) return;
+        GraphMetaHelper.putInt(node, "forecast_sample_count", result.sampleCount);
+        GraphMetaHelper.putFloat(node, "forecast_avg_estimated_hours", result.avgEstimatedHours);
+        GraphMetaHelper.putFloat(node, "forecast_avg_actual_hours", result.avgActualHours);
+        GraphMetaHelper.putFloat(node, "forecast_median_actual_hours", result.medianActualHours);
+        GraphMetaHelper.putFloat(node, "forecast_p80_actual_hours", result.p80ActualHours);
+        GraphMetaHelper.putFloat(node, "forecast_avg_bias_ratio", result.avgBiasRatio);
+        if (node.getEffortEstimate() <= 0f && result.p80ActualHours > 0f) {
+            node.setEffortEstimate(result.p80ActualHours);
+        }
+        String hint = buildPlanningHint(node, result);
+        String content = node.getContent() == null ? "" : node.getContent().trim();
+        String marker = "【参考类预测】";
+        int idx = content.indexOf(marker);
+        if (idx >= 0) content = content.substring(0, idx).trim();
+        node.setContent((content.isEmpty() ? "" : content + "\n\n") + marker + "\n" + hint);
+    }
+
+    public static String buildPlanningHint(Node currentNode, ForecastResult result) {
+        if (result == null || result.sampleCount <= 0) {
+            return "参考类预测：暂无足够历史样本，先保守预估并记录实际耗时。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("参考类预测：建议优先按 P80 实际耗时 ");
+        sb.append(String.format(Locale.getDefault(), "%.1f", result.p80ActualHours));
+        sb.append("h 规划。");
+        if (result.avgBiasRatio > 1.15f) {
+            sb.append(" 你过往普遍低估耗时。");
+        } else if (result.avgBiasRatio > 0f && result.avgBiasRatio < 0.85f) {
+            sb.append(" 你过往普遍高估耗时。");
+        } else if (result.avgBiasRatio > 0f) {
+            sb.append(" 你的估时相对稳定。");
+        }
+        sb.append(" 样本数=").append(result.sampleCount).append("。");
+        return sb.toString();
+    }
+
     public static String buildPlanningHint(Node currentNode, Map<String, Node> nodes) {
         ForecastResult result = build(currentNode, nodes);
         if (result.sampleCount <= 0) {
