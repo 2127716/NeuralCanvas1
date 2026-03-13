@@ -123,6 +123,7 @@ public class MindMapView extends View {
     // 防误触：节点显示太小时，不允许长按弹编辑
     private float minLongPressNodeScreenSizePx;
     private float longPressMoveTolerancePx;
+    private static final float MIN_NODE_DRAG_EFFECTIVE_SCALE = 0.28f;
     private String pendingLongPressNodeId;
     private boolean pendingLongPressEligible = false;
 
@@ -556,7 +557,7 @@ public class MindMapView extends View {
                     return true;
                 }
 
-                Node touchedNode = findNodeAtExpanded(x, y, dp(10f));
+                Node touchedNode = findNodeAtExpanded(x, y, getNodeTouchExtraPx());
                 updateLongPressCandidate(touchedNode);
                 Connection touchedConnection = touchedNode == null ? findConnectionAt(x, y) : null;
 
@@ -588,12 +589,16 @@ public class MindMapView extends View {
                 float totalDy = y - downY;
 
                 double moveDistance = Math.hypot(totalDx, totalDy);
-                if (pendingLongPressEligible && moveDistance > longPressMoveTolerancePx) {
+                boolean pressingNode = draggingNode != null;
+                float longPressTolerance = pressingNode ? getNodeLongPressMoveTolerancePx() : longPressMoveTolerancePx;
+                float dragStartThreshold = pressingNode ? getNodeDragStartThresholdPx() : touchSlop;
+
+                if (pendingLongPressEligible && moveDistance > longPressTolerance) {
                     cancelLongPressCandidate();
                     suppressLongPressUntilUp = true;
                 }
 
-                if (!movedEnough && moveDistance > touchSlop) {
+                if (!movedEnough && moveDistance > dragStartThreshold) {
                     movedEnough = true;
                     suppressLongPressUntilUp = true;
                 }
@@ -605,11 +610,16 @@ public class MindMapView extends View {
                 }
 
                 if (movedEnough) {
-                    float dx = (x - lastTouchX) / scale;
-                    float dy = (y - lastTouchY) / scale;
+                    float screenDx = x - lastTouchX;
+                    float screenDy = y - lastTouchY;
+                    float dx = screenDx / scale;
+                    float dy = screenDy / scale;
 
                     if (dx != 0f || dy != 0f) {
                         if (draggingNode != null) {
+                            float effectiveScale = Math.max(scale, MIN_NODE_DRAG_EFFECTIVE_SCALE);
+                            dx = screenDx / effectiveScale;
+                            dy = screenDy / effectiveScale;
                             isDraggingNode = true;
                             draggingNode.setDragging(true);
                             previewNode = null;
@@ -687,6 +697,30 @@ private Node findNodeAtExpanded(float touchX, float touchY, float extraPx) {
     return null;
 }
 
+private float getNodeTouchExtraPx() {
+    float base = dp(14f);
+    if (scale >= 0.8f) return base;
+    if (scale >= 0.45f) return dp(18f);
+    if (scale >= 0.22f) return dp(28f);
+    return dp(40f);
+}
+
+private float getNodeLongPressMoveTolerancePx() {
+    if (scale >= 1.0f) return dp(16f);
+    if (scale >= 0.6f) return dp(20f);
+    if (scale >= 0.35f) return dp(26f);
+    if (scale >= 0.22f) return dp(34f);
+    return dp(42f);
+}
+
+private float getNodeDragStartThresholdPx() {
+    if (scale >= 1.0f) return Math.max(touchSlop, dp(10f));
+    if (scale >= 0.6f) return dp(14f);
+    if (scale >= 0.35f) return dp(20f);
+    if (scale >= 0.22f) return dp(28f);
+    return dp(36f);
+}
+
 private void performLongPressHaptic() {
     try {
         Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
@@ -749,16 +783,7 @@ private void performLongPressHaptic() {
         if (suppressLongPressUntilUp) return true;
 
         long now = SystemClock.uptimeMillis();
-        if (now - lastScaleEndTime < LONG_PRESS_BLOCK_AFTER_SCALE_MS) {
-            return true;
-        }
-
-        RectF rect = getNodeScreenRect(node);
-        float width = rect.width();
-        float height = rect.height();
-
-        // 仅在极小且确实难以操作时才拦截，避免正常节点长按偶发失效
-        return width < minLongPressNodeScreenSizePx && height < minLongPressNodeScreenSizePx;
+        return now - lastScaleEndTime < LONG_PRESS_BLOCK_AFTER_SCALE_MS;
     }
 
     public void addNode(Node node) {
@@ -1292,7 +1317,7 @@ private void performLongPressHaptic() {
 
             Node touchedNode = getPendingLongPressNode();
             if (touchedNode == null) {
-                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), dp(12f));
+                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), getNodeTouchExtraPx());
             }
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
