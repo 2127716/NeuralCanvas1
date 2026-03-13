@@ -86,6 +86,22 @@
                 android:title="生成应用迁移" />
 
             <item
+                android:id="@+id/action_generate_wrap"
+                android:title="生成WRAP决策护栏" />
+
+            <item
+                android:id="@+id/action_generate_bayes"
+                android:title="生成贝叶斯更新" />
+
+            <item
+                android:id="@+id/action_generate_dsrp"
+                android:title="生成DSRP结构分析" />
+
+            <item
+                android:id="@+id/action_generate_reference_forecast"
+                android:title="生成参考类预测" />
+
+            <item
                 android:id="@+id/action_ai_gap_check"
                 android:title="AI检查缺口" />
 
