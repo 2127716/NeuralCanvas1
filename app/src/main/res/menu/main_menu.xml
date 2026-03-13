@@ -21,17 +21,19 @@
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/action_projects_hub"
-        android:title="项目中心"
-        android:icon="@android:drawable/ic_menu_sort_by_size"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_more"
         android:title="更多"
         android:icon="@android:drawable/ic_menu_more"
         app:showAsAction="always">
         <menu>
+
+            <item
+                android:id="@+id/action_change_theme"
+                android:title="🎨 切换主题" />
+
+            <item
+                android:id="@+id/action_projects_hub"
+                android:title="📁 项目中心" />
 
             <item
                 android:id="@+id/action_inbox_clarify"
