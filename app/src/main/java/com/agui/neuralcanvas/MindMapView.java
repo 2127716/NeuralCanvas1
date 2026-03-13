@@ -165,12 +165,12 @@ public class MindMapView extends View {
         longPressMoveTolerancePx = dp(14f);
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        previewCardPaint.setColor(Color.parseColor("#0F172A"));
+        previewCardPaint.setColor(Color.parseColor("#0A0F18"));
 
         previewBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewBorderPaint.setStyle(Paint.Style.STROKE);
         previewBorderPaint.setStrokeWidth(dp(1.2f));
-        previewBorderPaint.setColor(Color.parseColor("#2B3854"));
+        previewBorderPaint.setColor(Color.parseColor("#334155"));
 
         previewTitlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewTitlePaint.setColor(Color.parseColor("#F8FAFC"));

@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.DialogFragment;
 
 import java.util.ArrayList;
@@ -642,7 +643,7 @@ public class NodeEditDialog extends DialogFragment {
         metaJsonInput.setMinLines(3);
         addWithTopMargin(root, metaJsonInput, 14);
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.RoundedDialogTheme)
+        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), androidx.appcompat.R.style.Theme_AppCompat_Dialog))
                 .setTitle("编辑节点")
                 .setView(scrollView)
                 .setNegativeButton("取消", (d, which) -> d.dismiss())
@@ -694,8 +695,11 @@ public class NodeEditDialog extends DialogFragment {
                 .create();
 
         dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#EDE9FE"));
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#94A3B8"));
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_panel_popup);
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#F8FAFC"));
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#A8B3CF"));
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.parseColor("#FB7185"));
         });
 

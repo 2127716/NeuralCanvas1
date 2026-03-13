@@ -1,11 +1,12 @@
 package com.agui.neuralcanvas;
 
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.graphics.Color;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -13,6 +14,7 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.appcompat.view.ContextThemeWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +59,7 @@ public class SearchDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), androidx.appcompat.R.style.Theme_AppCompat_Dialog));
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.dialog_search, null);
 
@@ -110,7 +112,16 @@ public class SearchDialog extends DialogFragment {
                     }
                 });
 
-        return builder.create();
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_panel_popup);
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#F8FAFC"));
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#A8B3CF"));
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(Color.parseColor("#FB7185"));
+        });
+        return dialog;
     }
 
     private void performSearch() {
