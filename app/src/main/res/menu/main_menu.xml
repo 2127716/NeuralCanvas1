@@ -106,6 +106,10 @@
                 android:title="智能补强当前节点" />
 
             <item
+                android:id="@+id/action_scientific_autopilot"
+                android:title="全量科学推进当前节点" />
+
+            <item
                 android:id="@+id/action_ai_gap_check"
                 android:title="AI检查缺口" />
 
@@ -128,6 +132,14 @@
             <item
                 android:id="@+id/action_focus_session"
                 android:title="深度工作Session" />
+
+            <item
+                android:id="@+id/action_execution_log"
+                android:title="执行回填" />
+
+            <item
+                android:id="@+id/action_decision_follow"
+                android:title="决策落地" />
 
             <item
                 android:id="@+id/action_graph_insights"
