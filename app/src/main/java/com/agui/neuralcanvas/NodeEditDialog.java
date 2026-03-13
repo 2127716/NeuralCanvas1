@@ -234,6 +234,44 @@ public class NodeEditDialog extends DialogFragment {
         row3.addView(focus);
 
         wrap.addView(row3);
+
+        LinearLayout row4 = new LinearLayout(requireContext());
+        row4.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView wrapDecision = buildActionChip("WRAP");
+        wrapDecision.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.WRAP);
+        });
+        row4.addView(wrapDecision);
+
+        TextView bayes = buildActionChip("Bayes");
+        bayes.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.BAYES_UPDATE);
+        });
+        row4.addView(bayes);
+
+        TextView dsrp = buildActionChip("DSRP");
+        dsrp.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.DSRP_ANALYSIS);
+        });
+        row4.addView(dsrp);
+
+        wrap.addView(row4);
+
+        LinearLayout row5 = new LinearLayout(requireContext());
+        row5.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView forecast = buildActionChip("参考类预测");
+        forecast.setOnClickListener(v -> {
+            dismiss();
+            activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.REFERENCE_CLASS_FORECAST);
+        });
+        row5.addView(forecast);
+
+        wrap.addView(row5);
         return wrap;
     }
 

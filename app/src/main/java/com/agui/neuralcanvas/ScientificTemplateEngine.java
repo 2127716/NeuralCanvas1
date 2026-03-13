@@ -17,7 +17,11 @@ public class ScientificTemplateEngine {
         EVIDENCE_REVIEW,
         RETRIEVAL_PRACTICE,
         CONCEPT_DEEPENING,
-        TRANSFER_PRACTICE
+        TRANSFER_PRACTICE,
+        WRAP,
+        BAYES_UPDATE,
+        DSRP_ANALYSIS,
+        REFERENCE_CLASS_FORECAST
     }
 
     public static class TemplateResult {
@@ -796,6 +800,219 @@ public class ScientificTemplateEngine {
             }
         }
         return false;
+    }
+
+
+    public static TemplateResult generateWrap(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node widenNode = new Node("Widen options｜扩展选项", "至少列出 3 个可行方案，不准只在二选一里纠结。", cx - 420f, cy - 220f, Node.NodeType.OPTION);
+        widenNode.setShape(Node.NodeShape.RECT);
+        widenNode.setStatus(Node.NodeStatus.ACTIVE);
+        widenNode.setProjectId(ownerId);
+        widenNode.setTagsFromString("WRAP,Widen,Decision");
+
+        Node realityNode = new Node("Reality-test｜现实检验", "去找反例、基率、外部视角和真实约束，不要只找支持证据。", cx + 260f, cy - 220f, Node.NodeType.EVIDENCE);
+        realityNode.setShape(Node.NodeShape.HEXAGON);
+        realityNode.setStatus(Node.NodeStatus.ACTIVE);
+        realityNode.setProjectId(ownerId);
+        realityNode.setTagsFromString("WRAP,Reality,Decision");
+        realityNode.setEvidenceStrength(0.75f);
+
+        Node distanceNode = new Node("Attain distance｜拉开心理距离", "用 10/10/10、朋友视角、未来视角重新看这个决定。", cx - 420f, cy + 180f, Node.NodeType.REVIEW);
+        distanceNode.setShape(Node.NodeShape.OVAL);
+        distanceNode.setStatus(Node.NodeStatus.REVIEW);
+        distanceNode.setProjectId(ownerId);
+        distanceNode.setTagsFromString("WRAP,Distance,Decision");
+
+        Node prepareNode = new Node("Prepare to be wrong｜为出错做准备", "如果判断错了，什么信号最早出现？我预设什么止损线与修正动作？", cx + 260f, cy + 180f, Node.NodeType.RISK);
+        prepareNode.setShape(Node.NodeShape.DIAMOND);
+        prepareNode.setStatus(Node.NodeStatus.PLANNED);
+        prepareNode.setProjectId(ownerId);
+        prepareNode.setTagsFromString("WRAP,Prepare,Risk");
+
+        Node triggerNode = new Node("修正触发线", "如果出现这些信号，那么我立刻暂停、复查并切换方案。", cx - 80f, cy + 380f, Node.NodeType.TRIGGER);
+        triggerNode.setShape(Node.NodeShape.HEXAGON);
+        triggerNode.setStatus(Node.NodeStatus.PLANNED);
+        triggerNode.setProjectId(ownerId);
+        triggerNode.setTagsFromString("WRAP,Trigger,Correction");
+        triggerNode.setTriggerCondition("如果触发线被击中，那么我立刻停止惯性推进并复盘决策");
+
+        result.createdNodes.add(widenNode);
+        result.createdNodes.add(realityNode);
+        result.createdNodes.add(distanceNode);
+        result.createdNodes.add(prepareNode);
+        result.createdNodes.add(triggerNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), widenNode.getId(), Connection.ConnectionType.LEADS_TO, "扩展方案"));
+        result.createdConnections.add(new Connection(widenNode.getId(), realityNode.getId(), Connection.ConnectionType.LEADS_TO, "现实检验"));
+        result.createdConnections.add(new Connection(realityNode.getId(), distanceNode.getId(), Connection.ConnectionType.LEADS_TO, "拉开心理距离"));
+        result.createdConnections.add(new Connection(distanceNode.getId(), prepareNode.getId(), Connection.ConnectionType.LEADS_TO, "准备出错"));
+        result.createdConnections.add(new Connection(prepareNode.getId(), triggerNode.getId(), Connection.ConnectionType.TRIGGERS, "设定触发线"));
+        result.createdConnections.add(new Connection(triggerNode.getId(), baseNode.getId(), Connection.ConnectionType.MITIGATES, "降低误判损失"));
+
+        return result;
+    }
+
+    public static TemplateResult generateBayesUpdate(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node priorNode = new Node("Prior｜先验判断", "在看新证据前，我原本认为这个命题成立的概率是多少？为什么？", cx - 360f, cy - 180f, Node.NodeType.ASSUMPTION);
+        priorNode.setShape(Node.NodeShape.OVAL);
+        priorNode.setStatus(Node.NodeStatus.ACTIVE);
+        priorNode.setProjectId(ownerId);
+        priorNode.setTagsFromString("Bayes,Prior,Assumption");
+        priorNode.setConfidence(clamp01(baseNode.getConfidence()));
+
+        Node baseRateNode = new Node("Base rate｜基率", "在同类事情里，通常成功/成立的比例是多少？不要只看个案。", cx + 260f, cy - 180f, Node.NodeType.SOURCE);
+        baseRateNode.setShape(Node.NodeShape.RECT);
+        baseRateNode.setStatus(Node.NodeStatus.ACTIVE);
+        baseRateNode.setProjectId(ownerId);
+        baseRateNode.setTagsFromString("Bayes,BaseRate,Source");
+
+        Node evidenceForNode = new Node("Evidence +｜支持证据", "这条新证据若为真，会多大程度提高我对该命题的信心？", cx - 360f, cy + 140f, Node.NodeType.EVIDENCE);
+        evidenceForNode.setShape(Node.NodeShape.RECT);
+        evidenceForNode.setStatus(Node.NodeStatus.ACTIVE);
+        evidenceForNode.setProjectId(ownerId);
+        evidenceForNode.setTagsFromString("Bayes,EvidenceFor");
+        evidenceForNode.setEvidenceStrength(0.7f);
+
+        Node evidenceAgainstNode = new Node("Evidence -｜反向证据", "什么证据一旦出现，会明显削弱这个判断？它现在存在吗？", cx + 260f, cy + 140f, Node.NodeType.EVIDENCE);
+        evidenceAgainstNode.setShape(Node.NodeShape.RECT);
+        evidenceAgainstNode.setStatus(Node.NodeStatus.ACTIVE);
+        evidenceAgainstNode.setProjectId(ownerId);
+        evidenceAgainstNode.setTagsFromString("Bayes,EvidenceAgainst");
+        evidenceAgainstNode.setEvidenceStrength(0.7f);
+
+        Node posteriorNode = new Node("Posterior｜更新后判断", "综合基率与新证据后，我现在的判断概率是多少？下一步行动阈值是什么？", cx - 60f, cy + 420f, Node.NodeType.DECISION);
+        posteriorNode.setShape(Node.NodeShape.HEXAGON);
+        posteriorNode.setStatus(Node.NodeStatus.PLANNED);
+        posteriorNode.setProjectId(ownerId);
+        posteriorNode.setTagsFromString("Bayes,Posterior,Decision");
+        posteriorNode.setConfidence(clamp01((baseNode.getConfidence() + evidenceForNode.getEvidenceStrength() - (1f - evidenceAgainstNode.getEvidenceStrength()) * 0.35f) / 1.35f));
+
+        result.createdNodes.add(priorNode);
+        result.createdNodes.add(baseRateNode);
+        result.createdNodes.add(evidenceForNode);
+        result.createdNodes.add(evidenceAgainstNode);
+        result.createdNodes.add(posteriorNode);
+
+        result.createdConnections.add(new Connection(priorNode.getId(), posteriorNode.getId(), Connection.ConnectionType.SUPPORTS, "先验"));
+        result.createdConnections.add(new Connection(baseRateNode.getId(), posteriorNode.getId(), Connection.ConnectionType.REFERENCES, "基率"));
+        result.createdConnections.add(new Connection(evidenceForNode.getId(), posteriorNode.getId(), Connection.ConnectionType.EVIDENCE_FOR, "支持更新"));
+        result.createdConnections.add(new Connection(evidenceAgainstNode.getId(), posteriorNode.getId(), Connection.ConnectionType.EVIDENCE_AGAINST, "反向更新"));
+        result.createdConnections.add(new Connection(posteriorNode.getId(), baseNode.getId(), Connection.ConnectionType.LEADS_TO, "更新原判断"));
+
+        return result;
+    }
+
+    public static TemplateResult generateDsrpAnalysis(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node distinctionNode = new Node("D｜区分", "它是什么？它不是什么？边界在哪？最容易混淆的对象是什么？", cx, cy - 280f, Node.NodeType.CONCEPT);
+        distinctionNode.setShape(Node.NodeShape.OVAL);
+        distinctionNode.setStatus(Node.NodeStatus.ACTIVE);
+        distinctionNode.setProjectId(ownerId);
+        distinctionNode.setTagsFromString("DSRP,Distinction");
+
+        Node systemNode = new Node("S｜系统", "它由哪些部分构成？哪些是核心部件，哪些只是外层现象？", cx - 360f, cy + 40f, Node.NodeType.PROJECT);
+        systemNode.setShape(Node.NodeShape.HEXAGON);
+        systemNode.setStatus(Node.NodeStatus.ACTIVE);
+        systemNode.setProjectId(ownerId);
+        systemNode.setTagsFromString("DSRP,System");
+
+        Node relationNode = new Node("R｜关系", "它和别的变量之间有什么因果、约束、依赖、反馈关系？", cx + 360f, cy + 40f, Node.NodeType.EVIDENCE);
+        relationNode.setShape(Node.NodeShape.RECT);
+        relationNode.setStatus(Node.NodeStatus.ACTIVE);
+        relationNode.setProjectId(ownerId);
+        relationNode.setTagsFromString("DSRP,Relation");
+
+        Node perspectiveNode = new Node("P｜视角", "从用户、执行者、评审者、未来的我等不同视角看，会得到什么不同结论？", cx, cy + 360f, Node.NodeType.REVIEW);
+        perspectiveNode.setShape(Node.NodeShape.DIAMOND);
+        perspectiveNode.setStatus(Node.NodeStatus.REVIEW);
+        perspectiveNode.setProjectId(ownerId);
+        perspectiveNode.setTagsFromString("DSRP,Perspective");
+
+        result.createdNodes.add(distinctionNode);
+        result.createdNodes.add(systemNode);
+        result.createdNodes.add(relationNode);
+        result.createdNodes.add(perspectiveNode);
+
+        result.createdConnections.add(new Connection(baseNode.getId(), distinctionNode.getId(), Connection.ConnectionType.LEADS_TO, "先做区分"));
+        result.createdConnections.add(new Connection(distinctionNode.getId(), systemNode.getId(), Connection.ConnectionType.LEADS_TO, "识别系统"));
+        result.createdConnections.add(new Connection(systemNode.getId(), relationNode.getId(), Connection.ConnectionType.CAUSES, "梳理关系"));
+        result.createdConnections.add(new Connection(relationNode.getId(), perspectiveNode.getId(), Connection.ConnectionType.LEADS_TO, "切换视角"));
+        result.createdConnections.add(new Connection(perspectiveNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "结构化理解"));
+
+        return result;
+    }
+
+    public static TemplateResult generateReferenceClassForecast(Node baseNode, Map<String, Node> existingNodes) {
+        TemplateResult result = new TemplateResult();
+        if (baseNode == null) return result;
+
+        float cx = baseNode.getX();
+        float cy = baseNode.getY();
+        String ownerId = resolveOwnerId(baseNode);
+
+        Node classNode = new Node("参考类", "找 3~10 个真正相似的历史任务/项目，而不是只看这个个案。", cx - 360f, cy - 180f, Node.NodeType.SOURCE);
+        classNode.setShape(Node.NodeShape.RECT);
+        classNode.setStatus(Node.NodeStatus.ACTIVE);
+        classNode.setProjectId(ownerId);
+        classNode.setTagsFromString("Forecast,ReferenceClass,Source");
+
+        Node estimateNode = new Node("我的当前估计", "我直觉上认为它需要多久、成功率多少、难点在哪？", cx + 260f, cy - 180f, Node.NodeType.ASSUMPTION);
+        estimateNode.setShape(Node.NodeShape.OVAL);
+        estimateNode.setStatus(Node.NodeStatus.ACTIVE);
+        estimateNode.setProjectId(ownerId);
+        estimateNode.setTagsFromString("Forecast,Estimate,Assumption");
+
+        Node outsideViewNode = new Node("外部视角修正", "同类历史项目的中位时间、P80 时间、常见失败模式是什么？", cx - 360f, cy + 160f, Node.NodeType.EVIDENCE);
+        outsideViewNode.setShape(Node.NodeShape.HEXAGON);
+        outsideViewNode.setStatus(Node.NodeStatus.ACTIVE);
+        outsideViewNode.setProjectId(ownerId);
+        outsideViewNode.setTagsFromString("Forecast,OutsideView,Evidence");
+        outsideViewNode.setEvidenceStrength(0.8f);
+
+        Node bufferNode = new Node("缓冲与承诺", "基于外部视角后，我最终承诺的时间/资源缓冲是多少？", cx + 260f, cy + 160f, Node.NodeType.ACTION);
+        bufferNode.setShape(Node.NodeShape.RECT);
+        bufferNode.setStatus(Node.NodeStatus.PLANNED);
+        bufferNode.setProjectId(ownerId);
+        bufferNode.setTagsFromString("Forecast,Buffer,Action");
+        bufferNode.setTriggerCondition("如果开始排期，那么先按参考类结果加缓冲");
+
+        result.createdNodes.add(classNode);
+        result.createdNodes.add(estimateNode);
+        result.createdNodes.add(outsideViewNode);
+        result.createdNodes.add(bufferNode);
+
+        result.createdConnections.add(new Connection(classNode.getId(), outsideViewNode.getId(), Connection.ConnectionType.REFERENCES, "同类历史"));
+        result.createdConnections.add(new Connection(estimateNode.getId(), outsideViewNode.getId(), Connection.ConnectionType.OPPOSES, "直觉 vs 外部视角"));
+        result.createdConnections.add(new Connection(outsideViewNode.getId(), bufferNode.getId(), Connection.ConnectionType.TRIGGERS, "修正排期"));
+        result.createdConnections.add(new Connection(bufferNode.getId(), baseNode.getId(), Connection.ConnectionType.SUPPORTS, "提高计划稳健性"));
+
+        return result;
+    }
+
+    private static float clamp01(float value) {
+        if (value < 0f) return 0f;
+        if (value > 1f) return 1f;
+        return value;
     }
 
     private static String resolveOwnerId(Node baseNode) {

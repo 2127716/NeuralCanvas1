@@ -92,6 +92,26 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_generate_wrap) {
+            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WRAP);
+            return true;
+        }
+
+        if (id == R.id.action_generate_bayes) {
+            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.BAYES_UPDATE);
+            return true;
+        }
+
+        if (id == R.id.action_generate_dsrp) {
+            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.DSRP_ANALYSIS);
+            return true;
+        }
+
+        if (id == R.id.action_generate_reference_forecast) {
+            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.REFERENCE_CLASS_FORECAST);
+            return true;
+        }
+
         if (id == R.id.action_ai_gap_check) {
             activity.runAiGapCheck();
             return true;

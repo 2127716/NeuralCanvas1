@@ -167,6 +167,18 @@ public class MainActivity extends AppCompatActivity
             case TRANSFER_PRACTICE:
                 generateTransferPracticeFromSelectedNode();
                 break;
+            case WRAP:
+                generateWrapFromSelectedNode();
+                break;
+            case BAYES_UPDATE:
+                generateBayesUpdateFromSelectedNode();
+                break;
+            case DSRP_ANALYSIS:
+                generateDsrpAnalysisFromSelectedNode();
+                break;
+            case REFERENCE_CLASS_FORECAST:
+                generateReferenceClassForecastFromSelectedNode();
+                break;
             default:
                 Toast.makeText(this, "暂不支持该模板", Toast.LENGTH_SHORT).show();
                 break;
@@ -422,6 +434,18 @@ public class MainActivity extends AppCompatActivity
             case TRANSFER_PRACTICE:
                 applyTemplateResult(ScientificTemplateEngine.generateTransferPractice(node, mindMapView.getNodesInternal()));
                 break;
+            case WRAP:
+                applyTemplateResult(ScientificTemplateEngine.generateWrap(node, mindMapView.getNodesInternal()));
+                break;
+            case BAYES_UPDATE:
+                applyTemplateResult(ScientificTemplateEngine.generateBayesUpdate(node, mindMapView.getNodesInternal()));
+                break;
+            case DSRP_ANALYSIS:
+                applyTemplateResult(ScientificTemplateEngine.generateDsrpAnalysis(node, mindMapView.getNodesInternal()));
+                break;
+            case REFERENCE_CLASS_FORECAST:
+                applyTemplateResult(ScientificTemplateEngine.generateReferenceClassForecast(node, mindMapView.getNodesInternal()));
+                break;
             default:
                 break;
         }
@@ -621,6 +645,50 @@ public class MainActivity extends AppCompatActivity
         applyTemplateResult(ScientificTemplateEngine.generateConceptDeepening(baseNode, mindMapView.getNodesInternal()));
         mindMapView.focusNodeById(baseNode.getId());
         Toast.makeText(this, "已生成概念深化子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateWrapFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个决策/项目/目标节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateWrap(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 WRAP 决策护栏子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateBayesUpdateFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个假设/决策/问题节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateBayesUpdate(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成贝叶斯更新子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateDsrpAnalysisFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个概念/问题/项目节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateDsrpAnalysis(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成 DSRP 结构分析子图", Toast.LENGTH_SHORT).show();
+    }
+
+    private void generateReferenceClassForecastFromSelectedNode() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个项目/任务/目标节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificTemplateEngine.generateReferenceClassForecast(baseNode, mindMapView.getNodesInternal()));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已生成参考类预测子图", Toast.LENGTH_SHORT).show();
     }
 
     private void generateTransferPracticeFromSelectedNode() {
