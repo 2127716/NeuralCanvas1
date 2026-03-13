@@ -332,6 +332,14 @@ public class NodeEditDialog extends DialogFragment {
         LinearLayout row7 = new LinearLayout(requireContext());
         row7.setOrientation(LinearLayout.HORIZONTAL);
 
+        TextView triage = buildActionChip("体检");
+        triage.setOnClickListener(v -> {
+            dismiss();
+            activity.getMindMapView().selectOnlyNode(node.getId());
+            activity.openScientificTriage();
+        });
+        row7.addView(triage);
+
         TextView executionLog = buildActionChip("执行回填");
         executionLog.setOnClickListener(v -> {
             dismiss();

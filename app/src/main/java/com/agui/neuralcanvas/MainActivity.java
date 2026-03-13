@@ -264,6 +264,8 @@ public void openAiScienceCoach(String mode, Node node) {
         prompt = AiScientificPrompts.redTeam(node);
     } else if ("recommend".equalsIgnoreCase(normalized)) {
         prompt = AiScientificPrompts.workflowRecommendation(node);
+    } else if ("triage".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.triage(node);
     } else if ("autopilot".equalsIgnoreCase(normalized)) {
         prompt = AiScientificPrompts.autopilot(node);
     } else {
@@ -372,6 +374,30 @@ public void openAiScienceCoach(String mode, Node node) {
                     }
                 }
         ).show(getSupportFragmentManager(), "memory_review_dialog");
+    }
+
+
+    public void openScientificTriage() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先选中一个节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ScientificTriageEngine.TriageReport report = ScientificTriageEngine.analyze(
+                baseNode,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal()
+        );
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("节点体检")
+                .setMessage(ScientificTriageEngine.buildSummary(report))
+                .setPositiveButton("AI跟进", (d, w) -> openAiScienceCoach(report.suggestedAiMode, baseNode))
+                .setNeutralButton("全量推进", (d, w) -> {
+                    mindMapView.selectOnlyNode(baseNode.getId());
+                    runScientificAutopilot();
+                })
+                .setNegativeButton("关闭", null)
+                .show();
     }
 
     public void openExecutionLog() {

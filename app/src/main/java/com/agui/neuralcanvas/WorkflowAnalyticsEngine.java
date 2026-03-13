@@ -16,6 +16,9 @@ public final class WorkflowAnalyticsEngine {
         public float estimatedHours;
         public float actualHours;
         public float avgBiasRatio;
+        public int lowHealthNodes;
+        public int decisionFragileNodes;
+        public int blockedNodes;
         public int totalNodes;
         public int forecastedNodes;
         public int forecastSampleNodes;
@@ -36,6 +39,7 @@ public final class WorkflowAnalyticsEngine {
         for (Node node : nodes.values()) {
             if (node == null) continue;
             if (node.getStatus() == Node.NodeStatus.DONE) r.completedNodes++;
+            if (node.getStatus() == Node.NodeStatus.BLOCKED) r.blockedNodes++;
             r.focusSessions += GraphMetaHelper.getInt(node, "focus_sessions", 0);
             r.triggeredWins += GraphMetaHelper.getInt(node, "trigger_success", 0);
             r.triggeredMisses += GraphMetaHelper.getInt(node, "trigger_fail", 0);

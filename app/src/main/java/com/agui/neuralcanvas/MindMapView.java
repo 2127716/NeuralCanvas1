@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.Looper;
 import android.os.Build;
@@ -97,6 +98,14 @@ public class MindMapView extends View {
     private boolean viewportCacheDirty = true;
     private final List<Node> visibleNodeCache = new ArrayList<>();
     private final List<Connection> visibleConnectionCache = new ArrayList<>();
+    private boolean renderPosted = false;
+    private final Path gridPath = new Path();
+    private boolean gridCacheDirty = true;
+    private float gridCacheScale = -1f;
+    private float gridCacheOffsetX = Float.NaN;
+    private float gridCacheOffsetY = Float.NaN;
+    private int gridCacheWidth = -1;
+    private int gridCacheHeight = -1;
     private float cacheScale = Float.NaN;
     private float cacheOffsetX = Float.NaN;
     private float cacheOffsetY = Float.NaN;
@@ -205,16 +214,25 @@ public class MindMapView extends View {
 
 
     public void requestRender() {
+        if (renderPosted) return;
+        renderPosted = true;
+        Runnable renderRunnable = new Runnable() {
+            @Override public void run() {
+                renderPosted = false;
+                invalidate();
+            }
+        };
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            postInvalidateOnAnimation();
+            postOnAnimation(renderRunnable);
         } else {
-            postInvalidate();
+            post(renderRunnable);
         }
     }
 
     private void markNodeCacheDirty() {
         nodeDrawCacheDirty = true;
         viewportCacheDirty = true;
+        gridCacheDirty = true;
     }
 
     private List<Node> getNodeDrawCache() {
@@ -312,18 +330,31 @@ public class MindMapView extends View {
         float base = 36f * scale;
         if (base < 18f) return;
 
-        float width = getWidth();
-        float height = getHeight();
+        int width = getWidth();
+        int height = getHeight();
+        if (width <= 0 || height <= 0) return;
 
-        float startX = ((offsetX * scale) % base + base) % base;
-        float startY = ((offsetY * scale) % base + base) % base;
-
-        for (float x = startX; x < width; x += base) {
-            canvas.drawLine(x, 0, x, height, gridPaint);
+        if (gridCacheDirty || gridCacheScale != scale || gridCacheOffsetX != offsetX || gridCacheOffsetY != offsetY
+                || gridCacheWidth != width || gridCacheHeight != height) {
+            gridPath.reset();
+            float startX = ((offsetX * scale) % base + base) % base;
+            float startY = ((offsetY * scale) % base + base) % base;
+            for (float x = startX; x < width; x += base) {
+                gridPath.moveTo(x, 0f);
+                gridPath.lineTo(x, height);
+            }
+            for (float y = startY; y < height; y += base) {
+                gridPath.moveTo(0f, y);
+                gridPath.lineTo(width, y);
+            }
+            gridCacheDirty = false;
+            gridCacheScale = scale;
+            gridCacheOffsetX = offsetX;
+            gridCacheOffsetY = offsetY;
+            gridCacheWidth = width;
+            gridCacheHeight = height;
         }
-        for (float y = startY; y < height; y += base) {
-            canvas.drawLine(0, y, width, y, gridPaint);
-        }
+        canvas.drawPath(gridPath, gridPaint);
     }
 
     private void drawSearchHighlight(Canvas canvas, Node node) {

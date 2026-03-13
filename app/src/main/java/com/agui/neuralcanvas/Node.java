@@ -8,7 +8,9 @@ import android.graphics.RectF;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class Node {
@@ -119,6 +121,37 @@ public class Node {
     private transient Paint selectedPaint;
     private transient Paint badgePaint;
     private transient Paint badgeTextPaint;
+    private transient Paint reusableOutlinePaint;
+    private transient RectF reusableDrawBounds;
+    private transient RectF reusableShapeBounds;
+    private transient Path reusablePath;
+    private transient int cachedScaleBucket = Integer.MIN_VALUE;
+    private transient String cachedTitleText;
+    private transient String cachedContentText;
+    private transient String cachedTypeText;
+
+    private static final int COLOR_CONTENT = Color.parseColor("#EAF2FF");
+    private static final int COLOR_TYPE = Color.parseColor("#D8E6FF");
+    private static final int COLOR_SELECTED = Color.argb(200, 255, 255, 255);
+    private static final Map<NodeType, Integer> TYPE_COLOR_CACHE = new EnumMap<>(NodeType.class);
+    private static final Map<NodeStatus, Integer> STATUS_COLOR_CACHE = new EnumMap<>(NodeStatus.class);
+
+    static {
+        for (NodeType type : NodeType.values()) {
+            try {
+                TYPE_COLOR_CACHE.put(type, Color.parseColor(type.colorHex));
+            } catch (Exception ignore) {
+                TYPE_COLOR_CACHE.put(type, Color.parseColor("#4FC3F7"));
+            }
+        }
+        STATUS_COLOR_CACHE.put(NodeStatus.ACTIVE, Color.parseColor("#1E88E5"));
+        STATUS_COLOR_CACHE.put(NodeStatus.PLANNED, Color.parseColor("#5C6BC0"));
+        STATUS_COLOR_CACHE.put(NodeStatus.SOMEDAY, Color.parseColor("#8D6E63"));
+        STATUS_COLOR_CACHE.put(NodeStatus.BLOCKED, Color.parseColor("#E53935"));
+        STATUS_COLOR_CACHE.put(NodeStatus.WAITING, Color.parseColor("#FB8C00"));
+        STATUS_COLOR_CACHE.put(NodeStatus.REVIEW, Color.parseColor("#FDD835"));
+        STATUS_COLOR_CACHE.put(NodeStatus.DONE, Color.parseColor("#43A047"));
+    }
 
     public Node() {
         this.id = UUID.randomUUID().toString();
@@ -183,22 +216,21 @@ public class Node {
 
         if (contentPaint == null) {
             contentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            contentPaint.setColor(Color.parseColor("#EAF2FF"));
+            contentPaint.setColor(COLOR_CONTENT);
             contentPaint.setTextSize(20f);
         }
 
         if (typePaint == null) {
             typePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            typePaint.setColor(Color.parseColor("#D8E6FF"));
+            typePaint.setColor(COLOR_TYPE);
             typePaint.setTextSize(18f);
         }
 
         if (selectedPaint == null) {
             selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             selectedPaint.setStyle(Paint.Style.STROKE);
-            selectedPaint.setColor(Color.WHITE);
+            selectedPaint.setColor(COLOR_SELECTED);
             selectedPaint.setStrokeWidth(6f);
-            selectedPaint.setAlpha(200);
         }
 
         if (badgePaint == null) {
@@ -214,16 +246,19 @@ public class Node {
             badgeTextPaint.setTextAlign(Paint.Align.CENTER);
         }
 
+        if (reusableOutlinePaint == null) {
+            reusableOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            reusableOutlinePaint.setStyle(Paint.Style.STROKE);
+        }
+        if (reusableDrawBounds == null) reusableDrawBounds = new RectF();
+        if (reusableShapeBounds == null) reusableShapeBounds = new RectF();
+        if (reusablePath == null) reusablePath = new Path();
+
         applyTypeStyle();
     }
 
     private void applyTypeStyle() {
-        int baseColor;
-        try {
-            baseColor = Color.parseColor(type != null ? type.colorHex : "#4FC3F7");
-        } catch (Exception e) {
-            baseColor = Color.parseColor("#4FC3F7");
-        }
+        int baseColor = TYPE_COLOR_CACHE.containsKey(type) ? TYPE_COLOR_CACHE.get(type) : Color.parseColor("#4FC3F7");
 
         fillPaint.setColor(baseColor);
         strokePaint.setColor(adjustColorBrightness(baseColor, 0.72f));
@@ -244,7 +279,8 @@ public class Node {
         float drawW = width * scale;
         float drawH = height * scale;
 
-        RectF bounds = new RectF(drawX, drawY, drawX + drawW, drawY + drawH);
+        RectF bounds = reusableDrawBounds;
+        bounds.set(drawX, drawY, drawX + drawW, drawY + drawH);
         RectF shapeBounds = getRegularShapeBounds(bounds);
 
         if (selected) {
@@ -254,43 +290,26 @@ public class Node {
         drawShape(canvas, shapeBounds, fillPaint, scale);
         drawShapeOutline(canvas, shapeBounds, strokePaint, scale);
 
-        if (scale < 0.12f) {
-            return;
-        }
+        float padding = 15f * scale;
+        titlePaint.setTextSize(Math.max(20f, 24f * scale));
+        contentPaint.setTextSize(Math.max(15f, 17f * scale));
+        typePaint.setTextSize(Math.max(12f, 14f * scale));
+        badgeTextPaint.setTextSize(Math.max(11f, 12f * scale));
 
-        float padding = Math.max(8f, 12f * scale);
-        titlePaint.setTextSize(Math.max(11f, Math.min(19f, 15f * scale + 5f)));
-        contentPaint.setTextSize(Math.max(10f, Math.min(15f, 12f * scale + 3f)));
-        typePaint.setTextSize(Math.max(9f, Math.min(12f, 10f * scale + 2f)));
-        badgeTextPaint.setTextSize(Math.max(9f, Math.min(12f, 10f * scale + 2f)));
-
-        String safeTitle = title == null ? "" : title.trim();
-        String safeContent = content == null ? "" : content.trim();
+        String safeTitle = title == null ? "" : title;
+        String safeContent = content == null ? "" : content;
         String safeType = type == null ? "" : type.label;
 
         float textLeft = bounds.left + padding;
-        float textRight = bounds.right - padding;
-        float textTop = bounds.top + padding + titlePaint.getTextSize();
-        float maxTextWidth = Math.max(20f, textRight - textLeft);
+        float textTop = bounds.top + 34f * scale;
 
-        java.util.List<String> titleLines = wrapTextForNode(titlePaint, safeTitle, maxTextWidth, scale >= 0.60f ? 2 : 1);
-        float currentY = textTop;
-        for (String line : titleLines) {
-            canvas.drawText(line, textLeft, currentY, titlePaint);
-            currentY += titlePaint.getTextSize() + Math.max(2f, 3f * scale);
+        canvas.drawText(truncateText(safeTitle, 10), textLeft, textTop, titlePaint);
+
+        if (scale >= 0.55f) {
+            canvas.drawText(truncateText(safeContent, 8), textLeft, bounds.top + 58f * scale, contentPaint);
         }
 
-        if (scale >= 0.72f && !safeContent.isEmpty()) {
-            java.util.List<String> contentLines = wrapTextForNode(contentPaint, safeContent, maxTextWidth, scale >= 1.1f ? 2 : 1);
-            for (String line : contentLines) {
-                canvas.drawText(line, textLeft, currentY, contentPaint);
-                currentY += contentPaint.getTextSize() + Math.max(2f, 2.5f * scale);
-            }
-        }
-
-        if (scale >= 0.26f) {
-            canvas.drawText(safeType, textLeft, bounds.bottom - Math.max(8f, 10f * scale), typePaint);
-        }
+        canvas.drawText(safeType, textLeft, bounds.bottom - 14f * scale, typePaint);
 
         drawStatusBadge(canvas, bounds, scale);
     }
@@ -316,25 +335,17 @@ public class Node {
         canvas.drawText(badgeText, (left + right) / 2f, bottom - 6f * scale, badgeTextPaint);
     }
 
+
+    private void invalidateTextCache() {
+        cachedScaleBucket = Integer.MIN_VALUE;
+        cachedTitleText = null;
+        cachedContentText = null;
+        cachedTypeText = null;
+    }
     private int resolveStatusColor() {
         NodeStatus s = status == null ? NodeStatus.ACTIVE : status;
-        switch (s) {
-            case PLANNED:
-                return Color.parseColor("#5C6BC0");
-            case SOMEDAY:
-                return Color.parseColor("#8D6E63");
-            case BLOCKED:
-                return Color.parseColor("#E53935");
-            case WAITING:
-                return Color.parseColor("#FB8C00");
-            case REVIEW:
-                return Color.parseColor("#FDD835");
-            case DONE:
-                return Color.parseColor("#43A047");
-            case ACTIVE:
-            default:
-                return Color.parseColor("#1E88E5");
-        }
+        Integer color = STATUS_COLOR_CACHE.get(s);
+        return color == null ? Color.parseColor("#1E88E5") : color;
     }
 
     private RectF getRegularShapeBounds(RectF bounds) {
@@ -348,16 +359,18 @@ public class Node {
                 float size = Math.min(bounds.width(), bounds.height());
                 float cx = bounds.centerX();
                 float cy = bounds.centerY();
-                return new RectF(
+                reusableShapeBounds.set(
                         cx - size / 2f,
                         cy - size / 2f,
                         cx + size / 2f,
                         cy + size / 2f
                 );
+                return reusableShapeBounds;
             }
             case OVAL:
             default:
-                return bounds;
+                reusableShapeBounds.set(bounds);
+                return reusableShapeBounds;
         }
     }
 
@@ -389,7 +402,8 @@ public class Node {
     }
 
     private void drawShapeOutline(Canvas canvas, RectF rect, Paint paint, float scale) {
-        Paint p = new Paint(paint);
+        Paint p = reusableOutlinePaint;
+        p.set(paint);
         p.setStrokeWidth(Math.max(2f, paint.getStrokeWidth() * (0.55f + 0.45f * scale)));
 
         switch (getShape()) {
@@ -419,7 +433,8 @@ public class Node {
     }
 
     private Path createDiamondPath(RectF rect) {
-        Path path = new Path();
+        Path path = reusablePath;
+        path.reset();
         path.moveTo(rect.centerX(), rect.top);
         path.lineTo(rect.right, rect.centerY());
         path.lineTo(rect.centerX(), rect.bottom);
@@ -429,7 +444,8 @@ public class Node {
     }
 
     private Path createRegularPolygonPath(RectF rect, int sides, float startAngleDeg) {
-        Path path = new Path();
+        Path path = reusablePath;
+        path.reset();
 
         float cx = rect.centerX();
         float cy = rect.centerY();
@@ -604,8 +620,8 @@ public class Node {
     public String getNoteSource() { return noteSource == null ? "" : noteSource; }
     public String getMetaJson() { return metaJson == null ? "" : metaJson; }
 
-    public void setTitle(String title) { this.title = title == null ? "" : title; }
-    public void setContent(String content) { this.content = content == null ? "" : content; }
+    public void setTitle(String title) { this.title = title == null ? "" : title; invalidateTextCache(); }
+    public void setContent(String content) { this.content = content == null ? "" : content; invalidateTextCache(); }
     public void setX(float x) { this.x = x; }
     public void setY(float y) { this.y = y; }
     public void setWidth(float width) { this.width = width; }
@@ -615,6 +631,7 @@ public class Node {
 
     public void setType(NodeType type) {
         this.type = type == null ? NodeType.CONCEPT : type;
+        invalidateTextCache();
         ensurePaints();
         applyTypeStyle();
     }

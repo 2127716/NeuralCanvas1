@@ -247,6 +247,48 @@ public class ScientificDashboardDialog extends DialogFragment {
     }
 
 
+
+    private View buildTriageSection(Context context, Map<String, Node> nodes, Map<String, Connection> connections) {
+        LinearLayout section = new LinearLayout(context);
+        section.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(context, 12);
+        section.setPadding(padding, padding, padding, padding);
+        section.setBackground(createRoundedDrawable("#111827"));
+
+        TextView title = new TextView(context);
+        title.setText("节点体检");
+        title.setTextSize(16f);
+        title.setTextColor(Color.parseColor("#F8FAFC"));
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        section.addView(title);
+
+        Node weakest = null;
+        ScientificTriageEngine.TriageReport weakestReport = null;
+        if (nodes != null) {
+            for (Node node : nodes.values()) {
+                if (node == null) continue;
+                ScientificTriageEngine.TriageReport report = ScientificTriageEngine.analyze(node, nodes, connections);
+                if (weakestReport == null || report.healthScore < weakestReport.healthScore) {
+                    weakest = node;
+                    weakestReport = report;
+                }
+            }
+        }
+
+        TextView content = new TextView(context);
+        content.setTextColor(Color.parseColor("#D6E3F5"));
+        content.setTextSize(13f);
+        if (weakest == null || weakestReport == null) {
+            content.setText("当前没有可体检的节点");
+        } else {
+            content.setText("最需要处理：" + DashboardSectionBuilder.safe(weakest.getTitle()) + "
+" + ScientificTriageEngine.buildSummary(weakestReport));
+        }
+        content.setPadding(0, dp(context, 8), 0, 0);
+        section.addView(content);
+        return section;
+    }
+
     private View buildAnalyticsSection(Context context, Map<String, Node> nodes, Map<String, Connection> connections) {
         WorkflowAnalyticsEngine.AnalyticsReport report = WorkflowAnalyticsEngine.build(nodes);
 
@@ -314,6 +356,8 @@ public class ScientificDashboardDialog extends DialogFragment {
 
         // 添加工作流概览卡片
         root.addView(buildWorkflowSummarySection(requireContext(), nodes, connections));
+        root.addView(buildSpacer(12));
+        root.addView(buildTriageSection(requireContext(), nodes, connections));
         root.addView(buildSpacer(12));
         root.addView(buildAnalyticsSection(requireContext(), nodes, connections));
         root.addView(buildSpacer(16));
