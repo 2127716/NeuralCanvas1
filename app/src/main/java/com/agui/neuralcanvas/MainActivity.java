@@ -266,22 +266,83 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "请先选中一个决策/项目/目标节点", Toast.LENGTH_SHORT).show();
             return;
         }
-        DecisionMatrixDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal(), new Runnable() {
-            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
-        }).show(getSupportFragmentManager(), "decision_matrix_dialog");
+        DecisionMatrixDialog.newInstance(
+                baseNode,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal(),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        mindMapView.requestRender();
+                        scheduleAutoSave();
+                    }
+                }
+        ).show(getSupportFragmentManager(), "decision_matrix_dialog");
     }
 
     public void openMemoryReview() {
-        MemoryReviewDialog.newInstance(mindMapView.getNodesInternal(), new Runnable() {
-            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
-        }).show(getSupportFragmentManager(), "memory_review_dialog");
+        MemoryReviewDialog.newInstance(
+                mindMapView.getNodesInternal(),
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        mindMapView.requestRender();
+                        scheduleAutoSave();
+                    }
+                }
+        ).show(getSupportFragmentManager(), "memory_review_dialog");
     }
 
     public void openFocusSession() {
         Node baseNode = getSingleSelectedNode();
-        FocusSessionDialog.newInstance(baseNode, mindMapView.getNodesInternal(), new Runnable() {
-            @Override public void run() { mindMapView.requestRender(); scheduleAutoSave(); }
-        }).show(getSupportFragmentManager(), "focus_session_dialog");
+        if (baseNode == null) {
+            Toast.makeText(this, "请先选中一个任务/行动节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FocusSessionDialog.newInstance(this, baseNode)
+                .show(getSupportFragmentManager(), "focus_session_dialog");
+    }
+
+    public void startFocusSession(Node node, int minutes) {
+        if (node == null) {
+            Toast.makeText(this, "未选中节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FocusSessionEngine.start(this, node, minutes);
+        mindMapView.requestRender();
+        scheduleAutoSave();
+        Toast.makeText(this, "已开始专注 Session", Toast.LENGTH_SHORT).show();
+    }
+
+    public void finishRunningFocusSession(boolean interrupted) {
+        FocusSessionEngine.SessionInfo info = FocusSessionEngine.getCurrent(this);
+        if (info == null) {
+            Toast.makeText(this, "当前没有进行中的 Session", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Node node = mindMapView.getNodesInternal().get(info.nodeId);
+        if (node != null) {
+            FocusSessionEngine.markTrigger(node, !interrupted);
+        }
+
+        if (interrupted) {
+            FocusSessionEngine.interrupt(this);
+        }
+
+        float hours = FocusSessionEngine.finish(this, mindMapView.getNodesInternal(), !interrupted);
+
+        mindMapView.requestRender();
+        scheduleAutoSave();
+
+        Toast.makeText(
+                this,
+                interrupted
+                        ? "Session 已中断，记录时长 " + String.format(java.util.Locale.US, "%.2f", hours) + " 小时"
+                        : "Session 已完成，记录时长 " + String.format(java.util.Locale.US, "%.2f", hours) + " 小时",
+                Toast.LENGTH_SHORT
+        ).show();
     }
 
     public void openGraphInsights() {
@@ -713,4 +774,3 @@ public class MainActivity extends AppCompatActivity
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
-
