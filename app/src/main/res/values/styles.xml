@@ -1,19 +1,5 @@
 <resources>
-
-    <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.Dark">
-        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
-        <item name="android:textColorPrimary">@color/nc_text_primary</item>
-        <item name="android:textColorSecondary">@color/nc_text_secondary</item>
-        <item name="colorOnSurface">@color/nc_text_primary</item>
-        <item name="android:itemTextAppearance">@style/ToolbarPopupItemText</item>
-    </style>
-
-    <style name="ToolbarPopupItemText" parent="@style/TextAppearance.AppCompat.Body1">
-        <item name="android:textColor">@color/nc_text_primary</item>
-        <item name="android:textSize">16sp</item>
-    </style>
-
-    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+<style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/nc_accent</item>
         <item name="colorPrimaryVariant">#6D28D9</item>
         <item name="colorOnPrimary">#FFFFFF</item>
@@ -24,6 +10,13 @@
         <item name="android:statusBarColor">@color/nc_bg</item>
         <item name="android:navigationBarColor">@color/nc_bg</item>
         <item name="materialAlertDialogTheme">@style/RoundedDialogTheme</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="popupMenuStyle">@style/NcPopupMenuStyle</item>
+        <item name="android:popupMenuStyle">@style/NcPopupMenuStyle</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="textAppearanceLargePopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="textAppearanceSmallPopupMenu">@style/ToolbarPopupItemText</item>
     </style>
 
     <style name="RoundedDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
@@ -72,6 +65,29 @@
         <item name="android:textColor">@color/nc_danger</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">false</item>
+    </style>
+
+
+    <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
+        <item name="android:colorBackground">@color/nc_surface</item>
+        <item name="android:textColorPrimary">@color/nc_text_primary</item>
+        <item name="android:textColorSecondary">@color/nc_text_secondary</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="textAppearanceLargePopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="textAppearanceSmallPopupMenu">@style/ToolbarPopupItemText</item>
+        <item name="android:itemTextAppearance">@style/ToolbarPopupItemText</item>
+    </style>
+
+    <style name="ToolbarPopupItemText" parent="@style/TextAppearance.AppCompat.Body1">
+        <item name="android:textColor">@color/nc_text_primary</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="NcPopupMenuStyle" parent="Widget.AppCompat.PopupMenu.Overflow">
+        <item name="android:popupBackground">@drawable/bg_panel_popup</item>
     </style>
 
 </resources>
