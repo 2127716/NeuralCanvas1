@@ -279,7 +279,55 @@ public class NodeEditDialog extends DialogFragment {
         });
         row5.addView(forecast);
 
+        TextView autopilot = buildActionChip("全量推进");
+        autopilot.setOnClickListener(v -> {
+            dismiss();
+            activity.getMindMapView().selectOnlyNode(node.getId());
+            activity.runScientificAutopilot();
+        });
+        row5.addView(autopilot);
+
+        TextView aiGap = buildActionChip("AI缺口");
+        aiGap.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("gap", node);
+        });
+        row5.addView(aiGap);
+
         wrap.addView(row5);
+
+        LinearLayout row6 = new LinearLayout(requireContext());
+        row6.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView aiRed = buildActionChip("AI红队");
+        aiRed.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("redteam", node);
+        });
+        row6.addView(aiRed);
+
+        TextView aiExec = buildActionChip("AI执行");
+        aiExec.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("execution", node);
+        });
+        row6.addView(aiExec);
+
+        TextView aiLearn = buildActionChip("AI学习");
+        aiLearn.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("learning", node);
+        });
+        row6.addView(aiLearn);
+
+        TextView aiDecision = buildActionChip("AI决策");
+        aiDecision.setOnClickListener(v -> {
+            dismiss();
+            activity.openAiScienceCoach("decision", node);
+        });
+        row6.addView(aiDecision);
+
+        wrap.addView(row6);
         return wrap;
     }
 

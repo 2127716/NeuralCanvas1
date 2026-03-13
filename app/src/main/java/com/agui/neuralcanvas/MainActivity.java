@@ -205,6 +205,22 @@ public class MainActivity extends AppCompatActivity
         Toast.makeText(this, ScientificEnhancementEngine.buildSummary(result), Toast.LENGTH_LONG).show();
     }
 
+
+public void runScientificAutopilot() {
+    Node baseNode = getSingleSelectedNode();
+    if (baseNode == null) {
+        Toast.makeText(this, "请先单击选中一个节点", Toast.LENGTH_SHORT).show();
+        return;
+    }
+    applyTemplateResult(ScientificAutopilotEngine.run(
+            baseNode,
+            mindMapView.getNodesInternal(),
+            mindMapView.getConnectionsInternal()
+    ));
+    mindMapView.focusNodeById(baseNode.getId());
+    Toast.makeText(this, "已对当前节点执行全量科学推进", Toast.LENGTH_LONG).show();
+}
+
     public void runAiGapCheck() {
         generateAiGapCheckFromSelectedNode();
     }
@@ -222,6 +238,37 @@ public class MainActivity extends AppCompatActivity
         if (getSupportFragmentManager().findFragmentByTag("ai_assistant_dialog") != null) return;
         AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant_dialog");
     }
+
+
+public void showAiAssistantDialogWithPrompt(String presetPrompt) {
+    if (isFinishing() || isDestroyed()) return;
+    if (getSupportFragmentManager().findFragmentByTag("ai_assistant_dialog") != null) return;
+    AiAssistantDialog.newInstance(presetPrompt).show(getSupportFragmentManager(), "ai_assistant_dialog");
+}
+
+public void openAiScienceCoach(String mode, Node node) {
+    if (node == null) {
+        Toast.makeText(this, "请先选中一个节点", Toast.LENGTH_SHORT).show();
+        return;
+    }
+    mindMapView.selectOnlyNode(node.getId());
+    String prompt;
+    String normalized = mode == null ? "" : mode.trim();
+    if ("execution".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.executionCoach(node);
+    } else if ("learning".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.learningCoach(node);
+    } else if ("decision".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.decisionCoach(node);
+    } else if ("redteam".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.redTeam(node);
+    } else if ("autopilot".equalsIgnoreCase(normalized)) {
+        prompt = AiScientificPrompts.autopilot(node);
+    } else {
+        prompt = AiScientificPrompts.gapCheck(node);
+    }
+    showAiAssistantDialogWithPrompt(prompt);
+}
 
     public void showKnowledgeImportDialog() {
         if (isFinishing() || isDestroyed()) return;

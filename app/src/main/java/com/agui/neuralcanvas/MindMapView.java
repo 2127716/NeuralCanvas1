@@ -7,7 +7,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Looper;
+import android.os.Build;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -101,6 +104,9 @@ public class MindMapView extends View {
 
     // 防误触：节点显示太小时，不允许长按弹编辑
     private float minLongPressNodeScreenSizePx;
+    private float longPressMoveTolerancePx;
+    private String pendingLongPressNodeId;
+    private boolean pendingLongPressEligible = false;
 
     private enum PendingAction {
         NONE,
@@ -136,7 +142,8 @@ public class MindMapView extends View {
         gestureDetector = new GestureDetector(getContext(), new GestureListener());
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
 
-        minLongPressNodeScreenSizePx = dp(56f);
+        minLongPressNodeScreenSizePx = dp(44f);
+        longPressMoveTolerancePx = dp(14f);
 
         previewCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         previewCardPaint.setColor(Color.parseColor("#F8FAFC"));
@@ -464,12 +471,15 @@ public class MindMapView extends View {
                 isDraggingNode = false;
                 isScaling = false;
                 suppressLongPressUntilUp = false;
+                cancelLongPressCandidate();
 
                 if (previewRect != null && previewNode != null && previewRect.contains(x, y)) {
+                    updateLongPressCandidate(previewNode);
                     return true;
                 }
 
-                Node touchedNode = findNodeAt(x, y);
+                Node touchedNode = findNodeAtExpanded(x, y, dp(10f));
+                updateLongPressCandidate(touchedNode);
                 Connection touchedConnection = touchedNode == null ? findConnectionAt(x, y) : null;
 
                 clearSelections();
@@ -499,7 +509,13 @@ public class MindMapView extends View {
                 float totalDx = x - downX;
                 float totalDy = y - downY;
 
-                if (!movedEnough && Math.hypot(totalDx, totalDy) > touchSlop) {
+                double moveDistance = Math.hypot(totalDx, totalDy);
+                if (pendingLongPressEligible && moveDistance > longPressMoveTolerancePx) {
+                    cancelLongPressCandidate();
+                    suppressLongPressUntilUp = true;
+                }
+
+                if (!movedEnough && moveDistance > touchSlop) {
                     movedEnough = true;
                     suppressLongPressUntilUp = true;
                 }
@@ -542,18 +558,67 @@ public class MindMapView extends View {
                     notifyDataChanged();
                 }
 
+                if (!movedEnough) {
+                    performClick();
+                }
                 draggingNode = null;
                 isDraggingCanvas = false;
                 isDraggingNode = false;
                 isScaling = false;
                 movedEnough = false;
                 suppressLongPressUntilUp = false;
+                cancelLongPressCandidate();
                 break;
             }
         }
 
         return true;
     }
+
+    @Override
+    public boolean performClick() {
+        super.performClick();
+        return true;
+    }
+
+
+private void updateLongPressCandidate(Node node) {
+    pendingLongPressNodeId = node == null ? null : node.getId();
+    pendingLongPressEligible = node != null;
+}
+
+private void cancelLongPressCandidate() {
+    pendingLongPressEligible = false;
+}
+
+private Node getPendingLongPressNode() {
+    if (!pendingLongPressEligible || pendingLongPressNodeId == null) return null;
+    return nodes.get(pendingLongPressNodeId);
+}
+
+private Node findNodeAtExpanded(float touchX, float touchY, float extraPx) {
+    List<Node> nodeList = getNodeDrawCache();
+    for (int i = nodeList.size() - 1; i >= 0; i--) {
+        Node node = nodeList.get(i);
+        RectF rect = getNodeScreenRect(node);
+        rect.inset(-extraPx, -extraPx);
+        if (rect.contains(touchX, touchY)) return node;
+    }
+    return null;
+}
+
+private void performLongPressHaptic() {
+    try {
+        Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(18L, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            vibrator.vibrate(18L);
+        }
+    } catch (Exception ignored) {
+    }
+}
 
     private void clearSelections() {
         for (Node node : nodes.values()) {
@@ -612,8 +677,8 @@ public class MindMapView extends View {
         float width = rect.width();
         float height = rect.height();
 
-        // 缩得特别小时，不再允许长按弹编辑，避免误触
-        return width < minLongPressNodeScreenSizePx || height < minLongPressNodeScreenSizePx;
+        // 仅在极小且确实难以操作时才拦截，避免正常节点长按偶发失效
+        return width < minLongPressNodeScreenSizePx && height < minLongPressNodeScreenSizePx;
     }
 
     public void addNode(Node node) {
@@ -1142,7 +1207,10 @@ public class MindMapView extends View {
                 return;
             }
 
-            Node touchedNode = findNodeAt(e.getX(), e.getY());
+            Node touchedNode = getPendingLongPressNode();
+            if (touchedNode == null) {
+                touchedNode = findNodeAtExpanded(e.getX(), e.getY(), dp(12f));
+            }
 
             if (pendingAction == PendingAction.CREATE_CONNECTION && pendingSourceNode != null) {
                 if (touchedNode != null && !pendingSourceNode.getId().equals(touchedNode.getId())) {
@@ -1156,8 +1224,10 @@ public class MindMapView extends View {
                     return;
                 }
                 if (getContext() instanceof MainActivity) {
+                    performLongPressHaptic();
                     ((MainActivity) getContext()).showNodeEditDialog(touchedNode);
                 }
+                cancelLongPressCandidate();
                 return;
             }
 
@@ -1180,6 +1250,7 @@ public class MindMapView extends View {
             suppressLongPressUntilUp = true;
             draggingNode = null;
             previewRect = null;
+            cancelLongPressCandidate();
             return true;
         }
 

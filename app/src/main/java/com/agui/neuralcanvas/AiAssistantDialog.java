@@ -23,8 +23,18 @@ import androidx.fragment.app.DialogFragment;
 
 public class AiAssistantDialog extends DialogFragment {
 
+    private static final String ARG_PRESET_PROMPT = "preset_prompt";
+
     public static AiAssistantDialog newInstance() {
-        return new AiAssistantDialog();
+        return newInstance("");
+    }
+
+    public static AiAssistantDialog newInstance(String presetPrompt) {
+        AiAssistantDialog dialog = new AiAssistantDialog();
+        Bundle args = new Bundle();
+        args.putString(ARG_PRESET_PROMPT, presetPrompt == null ? "" : presetPrompt);
+        dialog.setArguments(args);
+        return dialog;
     }
 
     private int dp(int value) {
@@ -134,11 +144,20 @@ public class AiAssistantDialog extends DialogFragment {
         addQuickButton(quickRow, "补关系", "补全关键节点之间缺失的关系，并给连线添加合适文字");
         addQuickButton(quickRow, "查问题", "找出当前图谱中的逻辑冲突、断裂点和重复节点");
         addQuickButton(quickRow, "删杂线", "识别无关紧要或冗余的连线，并给出保守删除建议，不要乱删");
+        addQuickButton(quickRow, "科学缺口", "请作为科学方法教练，检查当前图谱在目标、执行、证据、复盘、学习上的关键缺口，并优先输出保守 commands 进行补强");
+        addQuickButton(quickRow, "执行补强", "请把当前焦点节点补成可执行闭环：最小下一步、If-Then、阻碍、预防动作、复盘锚点、保守估时。优先输出 commands");
+        addQuickButton(quickRow, "学习补强", "请把当前学习节点补成高质量学习链：检索练习、反例/边界、迁移应用、自测问题。优先输出 commands");
+        addQuickButton(quickRow, "决策红队", "请切换到红队视角，攻击当前节点及其相邻结构，补少量高价值反证、风险、替代方案节点，并用明确关系连接。优先输出 commands");
 
         addWithTopMargin(root, quickScroll, 8);
 
         EditText promptInput = new EditText(requireContext());
         promptInput.setHint("输入你的问题或要求，例如：请补充3个任务节点，并把它们与目标节点连接起来");
+        String presetPrompt = getArguments() == null ? "" : String.valueOf(getArguments().getString(ARG_PRESET_PROMPT, ""));
+        if (!presetPrompt.trim().isEmpty()) {
+            promptInput.setText(presetPrompt.trim());
+            promptInput.setSelection(promptInput.getText().length());
+        }
         promptInput.setMinLines(7);
         promptInput.setTextColor(Color.parseColor("#0F172A"));
         promptInput.setHintTextColor(Color.parseColor("#94A3B8"));
