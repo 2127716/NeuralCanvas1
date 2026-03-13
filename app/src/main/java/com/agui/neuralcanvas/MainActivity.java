@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ThemeManager.init(this);
         setContentView(R.layout.activity_main);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -283,6 +284,24 @@ public void openAiScienceCoach(String mode, Node node) {
     public void showHelpDialog() {
         if (isFinishing() || isDestroyed()) return;
         startActivity(new Intent(this, HelpActivity.class));
+    }
+
+    public void showThemePicker() {
+        ThemeManager.AppTheme[] themes = ThemeManager.AppTheme.values();
+        String[] labels = new String[themes.length];
+        for (int i = 0; i < themes.length; i++) labels[i] = themes[i].label;
+        int current = ThemeManager.getCurrentTheme().ordinal();
+
+        new AlertDialog.Builder(this)
+                .setTitle("切换主题")
+                .setSingleChoiceItems(labels, current, (dialog, which) -> {
+                    ThemeManager.setTheme(this, themes[which]);
+                    dialog.dismiss();
+                    // Recreate activity to apply theme
+                    recreate();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     public void openDecisionLab(Node node) {

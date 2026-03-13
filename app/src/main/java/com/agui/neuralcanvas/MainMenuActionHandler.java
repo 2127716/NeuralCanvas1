@@ -21,6 +21,11 @@ public class MainMenuActionHandler {
             return true;
         }
 
+        if (id == R.id.action_change_theme) {
+            activity.showThemePicker();
+            return true;
+        }
+
         if (id == R.id.action_projects_hub) {
             ProjectsHubDialog.newInstance()
                     .show(activity.getSupportFragmentManager(), "projects_hub");
