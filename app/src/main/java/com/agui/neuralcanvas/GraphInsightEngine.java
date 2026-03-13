@@ -15,33 +15,56 @@ public final class GraphInsightEngine {
         public final List<Node> highValueNodes = new ArrayList<>();
         public final List<String> gapFindings = new ArrayList<>();
     }
+
     private GraphInsightEngine() {}
 
     public static InsightReport analyze(Map<String, Node> nodes, Map<String, Connection> connections) {
         InsightReport report = new InsightReport();
         if (nodes == null) return report;
+
         Map<String, Integer> degreeMap = new LinkedHashMap<>();
         Map<String, Boolean> hasFor = new LinkedHashMap<>();
         Map<String, Boolean> hasAgainst = new LinkedHashMap<>();
-        for (Node node : nodes.values()) { if (node == null) continue; report.backlinks.put(node.getId(), new ArrayList<Node>()); degreeMap.put(node.getId(), 0); hasFor.put(node.getId(), false); hasAgainst.put(node.getId(), false); }
+
+        for (Node node : nodes.values()) {
+            if (node == null) continue;
+            report.backlinks.put(node.getId(), new ArrayList<Node>());
+            degreeMap.put(node.getId(), 0);
+            hasFor.put(node.getId(), false);
+            hasAgainst.put(node.getId(), false);
+        }
+
         if (connections != null) {
             for (Connection c : connections.values()) {
                 if (c == null) continue;
-                Node from = nodes.get(c.getFromNodeId()); Node to = nodes.get(c.getToNodeId()); if (from == null || to == null) continue;
-                report.backlinks.get(to.getId()).add(from); degreeMap.put(from.getId(), degreeMap.get(from.getId()) + 1); degreeMap.put(to.getId(), degreeMap.get(to.getId()) + 1);
+                Node from = nodes.get(c.getFromNodeId());
+                Node to = nodes.get(c.getToNodeId());
+                if (from == null || to == null) continue;
+                report.backlinks.get(to.getId()).add(from);
+                degreeMap.put(from.getId(), degreeMap.get(from.getId()) + 1);
+                degreeMap.put(to.getId(), degreeMap.get(to.getId()) + 1);
                 if (c.getType() == Connection.ConnectionType.EVIDENCE_FOR) hasFor.put(to.getId(), true);
                 if (c.getType() == Connection.ConnectionType.EVIDENCE_AGAINST) hasAgainst.put(to.getId(), true);
             }
         }
+
         for (Node node : nodes.values()) {
             if (node == null) continue;
             int degree = degreeMap.get(node.getId());
             if (degree == 0) report.isolatedNodes.add(node);
             if (hasFor.get(node.getId()) && hasAgainst.get(node.getId())) report.conflictEvidenceTargets.add(node);
-            if (degree >= 3 || node.getPriority() >= 4 || node.getType() == Node.NodeType.PROJECT || node.getType() == Node.NodeType.DECISION) report.highValueNodes.add(node);
+            if (degree >= 3 || node.getPriority() >= 4 || node.getType() == Node.NodeType.PROJECT || node.getType() == Node.NodeType.DECISION) {
+                report.highValueNodes.add(node);
+            }
             collectGap(node, report.gapFindings, nodes, connections);
         }
-        Collections.sort(report.highValueNodes, new Comparator<Node>() { @Override public int compare(Node a, Node b) { return Integer.compare(score(b, degreeMap), score(a, degreeMap)); } });
+
+        Collections.sort(report.highValueNodes, new Comparator<Node>() {
+            @Override
+            public int compare(Node a, Node b) {
+                return Integer.compare(score(b, degreeMap), score(a, degreeMap));
+            }
+        });
         if (report.highValueNodes.size() > 10) report.highValueNodes.subList(10, report.highValueNodes.size()).clear();
         return report;
     }
@@ -82,29 +105,45 @@ public final class GraphInsightEngine {
             List<Node> backlinks = report.backlinks.get(focusNode.getId());
             sb.append("Backlinks：").append(backlinks == null ? 0 : backlinks.size()).append(" 个
 ");
-            if (backlinks != null) for (Node node : backlinks) sb.append("- ").append(safeTitle(node)).append("
+            if (backlinks != null) {
+                for (Node node : backlinks) sb.append("- ").append(safeTitle(node)).append("
 ");
+            }
             sb.append("
 ");
         }
         sb.append("孤岛节点：").append(report.isolatedNodes.size()).append(" 个
-"); appendTop(sb, report.isolatedNodes);
+");
+        appendTop(sb, report.isolatedNodes);
         sb.append("
 冲突证据目标：").append(report.conflictEvidenceTargets.size()).append(" 个
-"); appendTop(sb, report.conflictEvidenceTargets);
+");
+        appendTop(sb, report.conflictEvidenceTargets);
         sb.append("
 高价值节点推荐：").append(report.highValueNodes.size()).append(" 个
-"); appendTop(sb, report.highValueNodes);
+");
+        appendTop(sb, report.highValueNodes);
         sb.append("
 全局缺口扫描：").append(report.gapFindings.size()).append(" 项
 ");
-        int limit = Math.min(report.gapFindings.size(), 15); for (int i = 0; i < limit; i++) sb.append("- ").append(report.gapFindings.get(i)).append("
-"); if (report.gapFindings.size() > limit) sb.append("- ……还有 ").append(report.gapFindings.size() - limit).append(" 项
+        int limit = Math.min(report.gapFindings.size(), 15);
+        for (int i = 0; i < limit; i++) sb.append("- ").append(report.gapFindings.get(i)).append("
+");
+        if (report.gapFindings.size() > limit) sb.append("- ……还有 ").append(report.gapFindings.size() - limit).append(" 项
 ");
         return sb.toString();
     }
-    private static void appendTop(StringBuilder sb, List<Node> nodes) { int limit = Math.min(nodes.size(), 8); for (int i = 0; i < limit; i++) sb.append("- ").append(safeTitle(nodes.get(i))).append("
-"); if (nodes.isEmpty()) sb.append("- 无
-"); }
-    private static String safeTitle(Node node) { String title = node == null ? "" : node.getTitle(); return title == null || title.trim().isEmpty() ? "(无标题)" : title.trim(); }
+
+    private static void appendTop(StringBuilder sb, List<Node> nodes) {
+        int limit = Math.min(nodes.size(), 8);
+        for (int i = 0; i < limit; i++) sb.append("- ").append(safeTitle(nodes.get(i))).append("
+");
+        if (nodes.isEmpty()) sb.append("- 无
+");
+    }
+
+    private static String safeTitle(Node node) {
+        String title = node == null ? "" : node.getTitle();
+        return title == null || title.trim().isEmpty() ? "(无标题)" : title.trim();
+    }
 }
