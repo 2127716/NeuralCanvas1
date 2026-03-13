@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -20,10 +21,12 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MindMapView extends View {
 
@@ -50,6 +53,9 @@ public class MindMapView extends View {
     private List<Node.NodeType> searchTypes = new ArrayList<>();
     private boolean highlightSearchResults = false;
     private final List<String> searchResultNodeIds = new ArrayList<>();
+    private final Set<String> searchResultNodeIdSet = new HashSet<>();
+    private final List<Node> nodeDrawCache = new ArrayList<>();
+    private boolean nodeDrawCacheDirty = true;
 
     // 几乎不限制缩放，但保留极端保护，避免浮点/绘制异常
     private float scale = 1.0f;
@@ -178,7 +184,29 @@ public class MindMapView extends View {
             node.setSelected(true);
             selectedNode = node;
         }
-        invalidate();
+        requestRender();
+    }
+
+
+    public void requestRender() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            postInvalidateOnAnimation();
+        } else {
+            postInvalidate();
+        }
+    }
+
+    private void markNodeCacheDirty() {
+        nodeDrawCacheDirty = true;
+    }
+
+    private List<Node> getNodeDrawCache() {
+        if (nodeDrawCacheDirty) {
+            nodeDrawCache.clear();
+            nodeDrawCache.addAll(nodes.values());
+            nodeDrawCacheDirty = false;
+        }
+        return nodeDrawCache;
     }
 
     private float dp(float value) {
@@ -211,12 +239,12 @@ public class MindMapView extends View {
             canvas.drawLine(startX, startY, pendingEndX, pendingEndY, tempLinePaint);
         }
 
-        for (Node node : nodes.values()) {
+        for (Node node : getNodeDrawCache()) {
             if (!isNodeVisible(node)) continue;
 
             node.draw(canvas, scale, offsetX, offsetY);
 
-            if (highlightSearchResults && searchResultNodeIds.contains(node.getId())) {
+            if (highlightSearchResults && searchResultNodeIdSet.contains(node.getId())) {
                 drawSearchHighlight(canvas, node);
             }
         }
@@ -450,17 +478,17 @@ public class MindMapView extends View {
                     touchedNode.setSelected(true);
                     selectedNode = touchedNode;
                     draggingNode = touchedNode;
-                    invalidate();
+                    requestRender();
                 } else if (touchedConnection != null) {
                     touchedConnection.setSelected(true);
                     selectedConnection = touchedConnection;
                     draggingNode = null;
-                    invalidate();
+                    requestRender();
                 } else {
                     draggingNode = null;
                     previewNode = null;
                     previewRect = null;
-                    invalidate();
+                    requestRender();
                 }
                 break;
             }
@@ -479,25 +507,27 @@ public class MindMapView extends View {
                 if (pendingAction != PendingAction.NONE && pendingSourceNode != null) {
                     pendingEndX = x;
                     pendingEndY = y;
-                    invalidate();
+                    requestRender();
                 }
 
                 if (movedEnough) {
                     float dx = (x - lastTouchX) / scale;
                     float dy = (y - lastTouchY) / scale;
 
-                    if (draggingNode != null) {
-                        isDraggingNode = true;
-                        draggingNode.setDragging(true);
-                        previewNode = null;
-                        previewRect = null;
-                        draggingNode.move(dx, dy);
-                    } else {
-                        isDraggingCanvas = true;
-                        offsetX += dx;
-                        offsetY += dy;
+                    if (dx != 0f || dy != 0f) {
+                        if (draggingNode != null) {
+                            isDraggingNode = true;
+                            draggingNode.setDragging(true);
+                            previewNode = null;
+                            previewRect = null;
+                            draggingNode.move(dx, dy);
+                        } else {
+                            isDraggingCanvas = true;
+                            offsetX += dx;
+                            offsetY += dy;
+                        }
+                        requestRender();
                     }
-                    invalidate();
                 }
 
                 lastTouchX = x;
@@ -545,7 +575,7 @@ public class MindMapView extends View {
     }
 
     private Node findNodeAt(float touchX, float touchY) {
-        List<Node> nodeList = new ArrayList<>(nodes.values());
+        List<Node> nodeList = getNodeDrawCache();
         for (int i = nodeList.size() - 1; i >= 0; i--) {
             Node node = nodeList.get(i);
             RectF rect = getNodeScreenRect(node);
@@ -588,7 +618,8 @@ public class MindMapView extends View {
 
     public void addNode(Node node) {
         nodes.put(node.getId(), node);
-        invalidate();
+        markNodeCacheDirty();
+        requestRender();
         notifyDataChanged();
     }
 
@@ -611,7 +642,8 @@ public class MindMapView extends View {
             }
 
             nodes.remove(nodeId);
-            invalidate();
+            markNodeCacheDirty();
+            requestRender();
             notifyDataChanged();
         }
     }
@@ -625,7 +657,7 @@ public class MindMapView extends View {
         if (fromNode != null) fromNode.addConnection(connection.getId());
         if (toNode != null) toNode.addConnection(connection.getId());
 
-        invalidate();
+        requestRender();
         notifyDataChanged();
     }
 
@@ -644,7 +676,7 @@ public class MindMapView extends View {
                 selectedConnection = null;
             }
 
-            invalidate();
+            requestRender();
             notifyDataChanged();
         }
     }
@@ -652,6 +684,7 @@ public class MindMapView extends View {
     public void clearAll() {
         nodes.clear();
         connections.clear();
+        markNodeCacheDirty();
         selectedNode = null;
         selectedConnection = null;
         previewNode = null;
@@ -659,7 +692,8 @@ public class MindMapView extends View {
         pendingAction = PendingAction.NONE;
         pendingSourceNode = null;
         searchResultNodeIds.clear();
-        invalidate();
+        searchResultNodeIdSet.clear();
+        requestRender();
         notifyDataChanged();
     }
 
@@ -682,15 +716,16 @@ public class MindMapView extends View {
     public void setNodes(Map<String, Node> map) {
         nodes.clear();
         if (map != null) nodes.putAll(map);
+        markNodeCacheDirty();
         previewNode = null;
         previewRect = null;
-        invalidate();
+        requestRender();
     }
 
     public void setConnections(Map<String, Connection> map) {
         connections.clear();
         if (map != null) connections.putAll(map);
-        invalidate();
+        requestRender();
     }
 
     public void search(String keyword, List<Node.NodeType> types, boolean highlight) {
@@ -719,13 +754,14 @@ public class MindMapView extends View {
 
             if (matches) {
                 searchResultNodeIds.add(node.getId());
+                searchResultNodeIdSet.add(node.getId());
             }
         }
 
         if (!searchResultNodeIds.isEmpty()) {
             focusNodeById(searchResultNodeIds.get(0));
         } else {
-            invalidate();
+            requestRender();
         }
     }
 
@@ -734,7 +770,8 @@ public class MindMapView extends View {
         searchTypes = new ArrayList<>();
         highlightSearchResults = false;
         searchResultNodeIds.clear();
-        invalidate();
+        searchResultNodeIdSet.clear();
+        requestRender();
     }
 
     public int getSearchResultCount() {
@@ -752,7 +789,7 @@ public class MindMapView extends View {
 
         previewNode = node;
         previewRect = null;
-        invalidate();
+        requestRender();
     }
 
     public void focusNodeById(String nodeId) {
@@ -766,7 +803,7 @@ public class MindMapView extends View {
         if (node != null) {
             node.setSelected(true);
             selectedNode = node;
-            invalidate();
+            requestRender();
         }
     }
 
@@ -829,7 +866,7 @@ public class MindMapView extends View {
     public void clearPreviewCard() {
         previewNode = null;
         previewRect = null;
-        invalidate();
+        requestRender();
     }
 
     public void startConnectionMode(Node sourceNode) {
@@ -837,13 +874,13 @@ public class MindMapView extends View {
         pendingSourceNode = sourceNode;
         previewNode = null;
         previewRect = null;
-        invalidate();
+        requestRender();
     }
 
     public void cancelPendingAction() {
         pendingAction = PendingAction.NONE;
         pendingSourceNode = null;
-        invalidate();
+        requestRender();
     }
 
     private Connection findConnectionBetween(String fromId, String toId) {
@@ -1013,7 +1050,7 @@ public class MindMapView extends View {
                     }
 
                     cancelPendingAction();
-                    invalidate();
+                    requestRender();
 
                     if (changedOnly) {
                         notifyDataChanged();
@@ -1066,13 +1103,13 @@ public class MindMapView extends View {
                     previewNode = node;
                     previewRect = null;
                 }
-                invalidate();
+                requestRender();
                 return true;
             } else {
                 if (previewNode != null) {
                     previewNode = null;
                     previewRect = null;
-                    invalidate();
+                    requestRender();
                     return true;
                 }
             }
@@ -1163,7 +1200,7 @@ public class MindMapView extends View {
             offsetY = (focusY / scale) - worldFocusY;
 
             previewRect = null;
-            invalidate();
+            requestRender();
             return true;
         }
 

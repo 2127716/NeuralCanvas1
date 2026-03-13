@@ -1,11 +1,15 @@
 package com.agui.neuralcanvas;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Menu;
 import android.widget.Toast;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,7 +36,10 @@ public class MainActivity extends AppCompatActivity
     private SimpleDataManager dataManager;
 
     private final Handler autoSaveHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private final Runnable autoSaveRunnable = this::saveCurrentDataSilently;
+
+    private long lastToastAt = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +71,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void onGraphMutatedByAi() {
-        mindMapView.invalidate();
+        mindMapView.requestRender();
         scheduleAutoSave();
     }
 
@@ -179,15 +186,20 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void showAiAssistantDialog() {
-        Toast.makeText(this, "AI 助手功能待继续接入", Toast.LENGTH_SHORT).show();
+        if (isFinishing() || isDestroyed()) return;
+        if (getSupportFragmentManager().findFragmentByTag("ai_assistant_dialog") != null) return;
+        AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant_dialog");
     }
 
     public void showKnowledgeImportDialog() {
-        Toast.makeText(this, "知识导入功能待继续接入", Toast.LENGTH_SHORT).show();
+        if (isFinishing() || isDestroyed()) return;
+        if (getSupportFragmentManager().findFragmentByTag("knowledge_import_dialog") != null) return;
+        KnowledgeImportDialog.newInstance().show(getSupportFragmentManager(), "knowledge_import_dialog");
     }
 
     public void showHelpDialog() {
-        Toast.makeText(this, "帮助页面待继续完善", Toast.LENGTH_SHORT).show();
+        if (isFinishing() || isDestroyed()) return;
+        startActivity(new Intent(this, HelpActivity.class));
     }
 
     public void confirmClearAll() {
@@ -212,13 +224,13 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onNodeConverted(Node node) {
                 onNodeUpdated(node);
-                mindMapView.invalidate();
+                mindMapView.requestRender();
                 scheduleAutoSave();
             }
 
             @Override
             public void onBatchFinished() {
-                mindMapView.invalidate();
+                mindMapView.requestRender();
                 scheduleAutoSave();
             }
         });
@@ -257,7 +269,7 @@ public class MainActivity extends AppCompatActivity
                 .setItems(items, (dialog, which) -> {
                     String action = actions.get(which);
                     QuickActionEngine.executeDynamicAction(this, node, action);
-                    mindMapView.invalidate();
+                    mindMapView.requestRender();
                     scheduleAutoSave();
                 })
                 .setNegativeButton("取消", null)
@@ -308,7 +320,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         mindMapView.focusNodeById(node.getId());
-        mindMapView.invalidate();
+        mindMapView.requestRender();
         scheduleAutoSave();
     }
 
@@ -325,7 +337,7 @@ public class MainActivity extends AppCompatActivity
                 .setMessage("确定删除“" + safeTitle(node) + "”？")
                 .setPositiveButton("删除", (dialog, which) -> {
                     mindMapView.removeNode(node.getId());
-                    mindMapView.invalidate();
+                    mindMapView.requestRender();
                     scheduleAutoSave();
                 })
                 .setNegativeButton("取消", null)
@@ -376,7 +388,7 @@ public class MainActivity extends AppCompatActivity
                     }
 
                     onNodeUpdated(node);
-                    mindMapView.invalidate();
+                    mindMapView.requestRender();
                     scheduleAutoSave();
                 })
                 .setNegativeButton("取消", null)
@@ -569,7 +581,7 @@ public class MainActivity extends AppCompatActivity
             mindMapView.addConnection(connection);
         }
 
-        mindMapView.invalidate();
+        mindMapView.requestRender();
         scheduleAutoSave();
     }
 
@@ -580,14 +592,20 @@ public class MainActivity extends AppCompatActivity
 
     private void scheduleAutoSave() {
         autoSaveHandler.removeCallbacks(autoSaveRunnable);
-        autoSaveHandler.postDelayed(autoSaveRunnable, 700);
+        autoSaveHandler.postDelayed(autoSaveRunnable, 550);
     }
 
     private void saveCurrentDataSilently() {
         try {
-            Map<String, Node> nodes = mindMapView.getNodes();
-            Map<String, Connection> connections = mindMapView.getConnections();
-            dataManager.saveMindMap(nodes, connections);
+            final Map<String, Node> nodes = mindMapView.getNodes();
+            final Map<String, Connection> connections = mindMapView.getConnections();
+            ioExecutor.execute(() -> {
+                try {
+                    dataManager.saveMindMap(nodes, connections);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -595,15 +613,15 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onNodeUpdated(Node node) {
-        mindMapView.invalidate();
+        mindMapView.requestRender();
         scheduleAutoSave();
-        Toast.makeText(this, "节点已更新", Toast.LENGTH_SHORT).show();
+        maybeToast("节点已更新");
     }
 
     @Override
     public void onNodeDeleted(Node node) {
         scheduleAutoSave();
-        Toast.makeText(this, "节点已删除", Toast.LENGTH_SHORT).show();
+        maybeToast("节点已删除");
     }
 
     @Override
@@ -611,16 +629,16 @@ public class MainActivity extends AppCompatActivity
         mindMapView.search(keyword, types, highlight);
         int resultCount = mindMapView.getSearchResultCount();
         if (resultCount > 0) {
-            Toast.makeText(this, "找到 " + resultCount + " 个匹配节点", Toast.LENGTH_SHORT).show();
+            maybeToast("找到 " + resultCount + " 个匹配节点");
         } else {
-            Toast.makeText(this, "未找到匹配节点", Toast.LENGTH_SHORT).show();
+            maybeToast("未找到匹配节点");
         }
     }
 
     @Override
     public void onClearSearch() {
         mindMapView.clearSearch();
-        Toast.makeText(this, "搜索已清除", Toast.LENGTH_SHORT).show();
+        maybeToast("搜索已清除");
     }
 
     @Override
@@ -634,4 +652,19 @@ public class MainActivity extends AppCompatActivity
         autoSaveHandler.removeCallbacks(autoSaveRunnable);
         saveCurrentDataSilently();
     }
+
+    @Override
+    protected void onDestroy() {
+        autoSaveHandler.removeCallbacks(autoSaveRunnable);
+        ioExecutor.shutdown();
+        super.onDestroy();
+    }
+
+    private void maybeToast(String message) {
+        long now = System.currentTimeMillis();
+        if (now - lastToastAt < 500L) return;
+        lastToastAt = now;
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
 }
+
