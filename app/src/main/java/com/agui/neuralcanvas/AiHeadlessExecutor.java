@@ -1,0 +1,29 @@
+package com.agui.neuralcanvas;
+
+import android.graphics.Color;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class AiHeadlessExecutor {
+    private final Map<String, Node> nodes;
+    private final Map<String, Connection> connections;
+    public AiHeadlessExecutor(Map<String, Node> nodes, Map<String, Connection> connections) { this.nodes = nodes == null ? new HashMap<String, Node>() : nodes; this.connections = connections == null ? new HashMap<String, Connection>() : connections; }
+    public void execute(List<AiCommand> commands) { if (commands == null || commands.isEmpty()) return; Map<String, String> alias = new HashMap<>(); for (AiCommand cmd : commands) { if (cmd == null) continue; String action = low(cmd.getAction()); switch (action) { case "create_node": createNode(cmd, alias); break; case "update_node": updateNode(cmd, alias); break; case "delete_node": deleteNode(cmd, alias); break; case "create_connection": createConnection(cmd, alias); break; case "update_connection": updateConnection(cmd, alias); break; case "delete_connection": deleteConnection(cmd, alias); break; } } }
+    private void createNode(AiCommand cmd, Map<String, String> alias) { Node node = new Node(n(cmd.getTitle()), n(cmd.getContent()), cmd.getX()!=null?cmd.getX():0f, cmd.getY()!=null?cmd.getY():0f, parseType(cmd.getType())); node.setShape(parseShape(cmd.getShape())); if (cmd.getWidth()!=null) node.setWidth(Math.max(80f, cmd.getWidth())); if (cmd.getHeight()!=null) node.setHeight(Math.max(80f, cmd.getHeight())); WorkflowEngine.normalizeNodeForWorkflow(node); nodes.put(node.getId(), node); if (!blank(cmd.getTempId())) alias.put(cmd.getTempId().trim(), node.getId()); }
+    private void updateNode(AiCommand cmd, Map<String, String> alias) { Node node = nodes.get(resolve(cmd.getNodeId(), alias)); if (node == null) return; if (!blank(cmd.getTitle())) node.setTitle(cmd.getTitle()); if (!blank(cmd.getContent())) node.setContent(cmd.getContent()); if (!blank(cmd.getType())) node.setType(parseType(cmd.getType())); if (!blank(cmd.getShape())) node.setShape(parseShape(cmd.getShape())); if (cmd.getX()!=null) node.setX(cmd.getX()); if (cmd.getY()!=null) node.setY(cmd.getY()); if (cmd.getWidth()!=null) node.setWidth(Math.max(80f, cmd.getWidth())); if (cmd.getHeight()!=null) node.setHeight(Math.max(80f, cmd.getHeight())); WorkflowEngine.normalizeNodeForWorkflow(node); }
+    private void deleteNode(AiCommand cmd, Map<String, String> alias) { String id = resolve(cmd.getNodeId(), alias); if (blank(id)) return; nodes.remove(id); List<String> toRemove = new ArrayList<>(); for (Connection c : connections.values()) if (id.equals(c.getFromNodeId()) || id.equals(c.getToNodeId())) toRemove.add(c.getId()); for (String cid : toRemove) { Connection c = connections.remove(cid); if (c != null) { Node a = nodes.get(c.getFromNodeId()); Node b = nodes.get(c.getToNodeId()); if (a != null) a.removeConnection(cid); if (b != null) b.removeConnection(cid);} } }
+    private void createConnection(AiCommand cmd, Map<String, String> alias) { String from = resolve(cmd.getFromNodeId(), alias); String to = resolve(cmd.getToNodeId(), alias); if (blank(from)||blank(to)||from.equals(to)||!nodes.containsKey(from)||!nodes.containsKey(to)) return; for (Connection c : connections.values()) { if (from.equals(c.getFromNodeId()) && to.equals(c.getToNodeId())) { apply(c, cmd); return; } } Connection c = new Connection(from,to,parseConn(cmd.getConnectionType()),n(cmd.getLabel())); apply(c, cmd); connections.put(c.getId(), c); nodes.get(from).addConnection(c.getId()); nodes.get(to).addConnection(c.getId()); }
+    private void updateConnection(AiCommand cmd, Map<String, String> alias) { String from = resolve(cmd.getFromNodeId(), alias); String to = resolve(cmd.getToNodeId(), alias); if (blank(from)||blank(to)) return; for (Connection c : connections.values()) if (from.equals(c.getFromNodeId()) && to.equals(c.getToNodeId())) { apply(c, cmd); return; } }
+    private void deleteConnection(AiCommand cmd, Map<String, String> alias) { String from = resolve(cmd.getFromNodeId(), alias); String to = resolve(cmd.getToNodeId(), alias); if (blank(from)||blank(to)) return; String hit = null; for (Connection c : connections.values()) if (from.equals(c.getFromNodeId()) && to.equals(c.getToNodeId())) { hit = c.getId(); break; } if (hit != null) { Connection removed = connections.remove(hit); if (removed != null) { Node a = nodes.get(removed.getFromNodeId()); Node b = nodes.get(removed.getToNodeId()); if (a != null) a.removeConnection(hit); if (b != null) b.removeConnection(hit); } } }
+    private void apply(Connection c, AiCommand cmd) { if (!blank(cmd.getLabel())) c.setLabel(cmd.getLabel()); if (!blank(cmd.getConnectionType())) c.setType(parseConn(cmd.getConnectionType())); if (cmd.getStrokeWidth()!=null) c.setStrokeWidth(Math.max(2f, cmd.getStrokeWidth())); if (!blank(cmd.getConnectionColorHex())) try { c.setCustomColor(Color.parseColor(cmd.getConnectionColorHex())); } catch (Exception ignored) {} }
+    private String resolve(String id, Map<String,String> alias){ if(blank(id)) return ""; id=id.trim(); return alias.containsKey(id)?alias.get(id):id; }
+    private boolean blank(String s){ return s==null||s.trim().isEmpty(); }
+    private String low(String s){ return s==null?"":s.trim().toLowerCase(); }
+    private String n(String s){ return s==null?"":s; }
+    private Node.NodeType parseType(String v){ try{return Node.NodeType.valueOf(v.trim().toUpperCase());}catch(Exception e){return Node.NodeType.CONCEPT;}}
+    private Node.NodeShape parseShape(String v){ try{return Node.NodeShape.valueOf(v.trim().toUpperCase());}catch(Exception e){return Node.NodeShape.RECT;}}
+    private Connection.ConnectionType parseConn(String v){ try{return Connection.ConnectionType.valueOf(v.trim().toUpperCase());}catch(Exception e){return Connection.ConnectionType.LEADS_TO;}}
+}

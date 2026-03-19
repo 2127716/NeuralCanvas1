@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity
     private final Runnable autoSaveRunnable = this::saveCurrentDataSilently;
 
     private long lastToastAt = 0L;
+    private long lastGuidanceShownAt = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +72,62 @@ public class MainActivity extends AppCompatActivity
         if (root != null) root.setBackgroundColor(ThemeManager.getBg());
 
         loadSavedData();
+        BrainAutopilotScheduler.ensureScheduled(this);
+        BrainAutopilotScheduler.requestImmediatePulse(this);
+        handleBrainLaunchIntent(getIntent());
+        maybeShowPendingBrainGuidance(false);
+    }
+
+
+
+    private void handleBrainLaunchIntent(Intent intent) {
+        if (intent == null || mindMapView == null) return;
+        final String focusNodeId = intent.getStringExtra("brain_focus_node_id");
+        final String focusMode = intent.getStringExtra("brain_focus_mode");
+        final boolean openMode = intent.getBooleanExtra("brain_open_mode", false);
+        if (focusNodeId == null || focusNodeId.trim().isEmpty()) return;
+
+        mindMapView.post(() -> {
+            Node node = mindMapView.getNodesInternal().get(focusNodeId);
+            if (node == null) return;
+            mindMapView.focusNodeById(focusNodeId);
+            mindMapView.selectNodeById(focusNodeId);
+            maybeToast("智能巡检已定位到关键节点");
+            if (openMode) {
+                WorkflowModeDialog.show(this, node, focusMode);
+            }
+        });
+
+        intent.removeExtra("brain_focus_node_id");
+        intent.removeExtra("brain_focus_mode");
+        intent.removeExtra("brain_open_mode");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleBrainLaunchIntent(intent);
+        maybeShowPendingBrainGuidance(true);
+    }
+
+    private void maybeShowPendingBrainGuidance(boolean force) {
+        if (dataManager == null || mindMapView == null) return;
+        BrainPendingGuidance guidance = dataManager.loadPendingBrainGuidance();
+        if (guidance == null) return;
+        long now = System.currentTimeMillis();
+        if (!force && now - lastGuidanceShownAt < 1200L) return;
+        lastGuidanceShownAt = now;
+        dataManager.clearPendingBrainGuidance();
+
+        if (guidance.focusNodeId != null && !guidance.focusNodeId.trim().isEmpty()) {
+            mindMapView.post(() -> {
+                mindMapView.focusNodeById(guidance.focusNodeId);
+                mindMapView.selectNodeById(guidance.focusNodeId);
+            });
+        }
+
+        mindMapView.post(() -> AiAutopilotGuideDialog.show(this, guidance));
     }
 
     public MindMapView getMindMapView() {
@@ -974,6 +1031,19 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onDataChanged() {
         scheduleAutoSave();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        maybeShowPendingBrainGuidance(false);
+        try {
+            BrainAutopilotSettings settings = dataManager == null ? null : dataManager.loadAutopilotSettings();
+            if (settings != null && settings.isEnabled() && settings.isApiAutopilotEnabled() && settings.isInAppPulseOnResume()) {
+                BrainAutopilotScheduler.requestImmediatePulse(this);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
