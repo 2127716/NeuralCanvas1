@@ -1,3 +1,4 @@
+
 package com.agui.neuralcanvas;
 
 import java.util.ArrayList;
@@ -13,6 +14,8 @@ public final class WorkflowQuickFixEngine {
         public int createdNodeCount = 0;
         public int createdConnectionCount = 0;
         public final List<String> notes = new ArrayList<>();
+        public final Set<String> touchedNodeIds = new LinkedHashSet<>();
+        public final Set<String> createdNodeIds = new LinkedHashSet<>();
 
         public int totalChanges() {
             return changedNodeCount + createdNodeCount + createdConnectionCount;
@@ -41,6 +44,7 @@ public final class WorkflowQuickFixEngine {
         Map<String, Node> nodes = view.getNodesInternal();
         Map<String, Connection> connections = view.getConnectionsInternal();
 
+        touch(result, baseNode);
         WorkflowEngine.normalizeNodeForWorkflow(baseNode);
 
         if (isProjectLike(baseNode)) {
@@ -61,6 +65,7 @@ public final class WorkflowQuickFixEngine {
                 baseNode.setTriggerCondition(defaultTriggerFor(baseNode));
                 result.changedNodeCount++;
                 result.notes.add("补了触发条件");
+                touch(result, baseNode);
             }
         }
 
@@ -79,6 +84,7 @@ public final class WorkflowQuickFixEngine {
                 baseNode.setConfidence(0.65f);
                 result.changedNodeCount++;
                 result.notes.add("下调了过高置信度");
+                touch(result, baseNode);
             }
         }
 
@@ -87,6 +93,7 @@ public final class WorkflowQuickFixEngine {
                 baseNode.setReviewAt("尽快第一次回忆");
                 result.changedNodeCount++;
                 result.notes.add("安排了首次复习");
+                touch(result, baseNode);
             }
             if (!hasNearbyType(baseNode, nodes, Node.NodeType.QUESTION)) {
                 createRetrievalQuestion(view, baseNode, result);
@@ -112,7 +119,6 @@ public final class WorkflowQuickFixEngine {
 
         Set<String> handled = new LinkedHashSet<>();
         int budget = 12;
-
         budget = applyList(activity, report.stuckProjects, handled, budget, total);
         budget = applyList(activity, report.projectsWithoutKr, handled, budget, total);
         budget = applyList(activity, report.projectsWithoutReview, handled, budget, total);
@@ -120,16 +126,11 @@ public final class WorkflowQuickFixEngine {
         budget = applyList(activity, report.weakEvidenceDecisions, handled, budget, total);
         budget = applyList(activity, report.staleLearningNodes, handled, budget, total);
         applyList(activity, report.overdueActions, handled, budget, total);
-
         activity.onGraphMutatedByAi();
         return total;
     }
 
-    private static int applyList(MainActivity activity,
-                                 List<Node> source,
-                                 Set<String> handled,
-                                 int budget,
-                                 FixResult total) {
+    private static int applyList(MainActivity activity, List<Node> source, Set<String> handled, int budget, FixResult total) {
         if (source == null) return budget;
         for (Node node : source) {
             if (node == null || budget <= 0) break;
@@ -147,6 +148,19 @@ public final class WorkflowQuickFixEngine {
         into.createdNodeCount += from.createdNodeCount;
         into.createdConnectionCount += from.createdConnectionCount;
         into.notes.addAll(from.notes);
+        into.touchedNodeIds.addAll(from.touchedNodeIds);
+        into.createdNodeIds.addAll(from.createdNodeIds);
+    }
+
+    private static void touch(FixResult result, Node node) {
+        if (result != null && node != null) result.touchedNodeIds.add(node.getId());
+    }
+
+    private static void created(FixResult result, Node node) {
+        if (result != null && node != null) {
+            result.createdNodeIds.add(node.getId());
+            result.touchedNodeIds.add(node.getId());
+        }
     }
 
     private static void ensureProjectId(Node node, FixResult result) {
@@ -155,6 +169,7 @@ public final class WorkflowQuickFixEngine {
             node.addTag("Project");
             result.changedNodeCount++;
             result.notes.add("补了项目归属");
+            touch(result, node);
         }
     }
 
@@ -236,6 +251,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了 KR 节点");
+        created(result, node);
     }
 
     private static void createReviewNode(MindMapView view, Node baseNode, FixResult result) {
@@ -251,6 +267,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了复盘节点");
+        created(result, node);
     }
 
     private static void createNextActionNode(MindMapView view, Node baseNode, FixResult result) {
@@ -266,6 +283,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了最小下一步");
+        created(result, node);
     }
 
     private static void createObstacleNode(MindMapView view, Node baseNode, FixResult result) {
@@ -280,6 +298,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了障碍节点");
+        created(result, node);
     }
 
     private static void createEvidenceNode(MindMapView view, Node baseNode, FixResult result) {
@@ -297,6 +316,8 @@ public final class WorkflowQuickFixEngine {
         result.createdConnectionCount++;
         result.changedNodeCount++;
         result.notes.add("补了证据节点");
+        created(result, node);
+        touch(result, baseNode);
     }
 
     private static void createRiskNode(MindMapView view, Node baseNode, FixResult result) {
@@ -311,6 +332,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了风险节点");
+        created(result, node);
     }
 
     private static void createRetrievalQuestion(MindMapView view, Node baseNode, FixResult result) {
@@ -326,6 +348,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了检索问题");
+        created(result, node);
     }
 
     private static void createExampleNode(MindMapView view, Node baseNode, FixResult result) {
@@ -340,6 +363,7 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了例子/来源");
+        created(result, node);
     }
 
     private static void createTransferExperiment(MindMapView view, Node baseNode, FixResult result) {
@@ -355,5 +379,6 @@ public final class WorkflowQuickFixEngine {
         result.createdNodeCount++;
         result.createdConnectionCount++;
         result.notes.add("补了迁移验证");
+        created(result, node);
     }
 }

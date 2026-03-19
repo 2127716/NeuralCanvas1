@@ -1,3 +1,4 @@
+
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
@@ -26,9 +27,7 @@ public class ProjectHealthDialog extends DialogFragment {
 
     private int dp(int value) {
         return (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                value,
-                requireContext().getResources().getDisplayMetrics()
+                TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics()
         );
     }
 
@@ -51,9 +50,7 @@ public class ProjectHealthDialog extends DialogFragment {
 
     private View spacer(int hDp) {
         View v = new View(requireContext());
-        v.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(hDp)
-        ));
+        v.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(hDp)));
         return v;
     }
 
@@ -78,22 +75,18 @@ public class ProjectHealthDialog extends DialogFragment {
         if (label.isEmpty()) label = "未命名节点";
         String extra = DashboardSectionBuilder.buildNodeExtra(node);
         String text = "• " + label + " [" + node.getType().label + "]";
-        if (!DashboardSectionBuilder.safe(extra).isEmpty()) {
-            text += "\n  " + extra;
-        }
+        if (!DashboardSectionBuilder.safe(extra).isEmpty()) text += "\n  " + extra;
         tv.setText(text);
         tv.setTextColor(Color.parseColor("#E2E8F0"));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setPadding(dp(12), dp(10), dp(12), dp(10));
         tv.setBackground(bg("#111827"));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        );
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);
         tv.setLayoutParams(lp);
         tv.setOnClickListener(v -> {
             activity.getMindMapView().focusNodeById(node.getId());
-            activity.getMindMapView().selectNodeById(node.getId());
+            activity.getMindMapView().selectOnlyNode(node.getId());
             dismiss();
         });
         return tv;
@@ -106,13 +99,9 @@ public class ProjectHealthDialog extends DialogFragment {
             root.addView(spacer(16));
             return;
         }
-        int limit = Math.min(nodes.size(), 8);
-        for (int i = 0; i < limit; i++) {
-            root.addView(nodeRow(nodes.get(i), activity));
-        }
-        if (nodes.size() > limit) {
-            root.addView(title("还有 " + (nodes.size() - limit) + " 个", 12, false, "#94A3B8"));
-        }
+        int limit = Math.min(nodes.size(), 6);
+        for (int i = 0; i < limit; i++) root.addView(nodeRow(nodes.get(i), activity));
+        if (nodes.size() > limit) root.addView(title("还有 " + (nodes.size() - limit) + " 个", 12, false, "#94A3B8"));
         root.addView(spacer(16));
     }
 
@@ -120,9 +109,7 @@ public class ProjectHealthDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         MainActivity activity = (MainActivity) getActivity();
-        if (activity == null || activity.getMindMapView() == null) {
-            return super.onCreateDialog(savedInstanceState);
-        }
+        if (activity == null || activity.getMindMapView() == null) return super.onCreateDialog(savedInstanceState);
 
         ProjectHealthEngine.ProjectHealthReport report = ProjectHealthEngine.analyze(
                 activity.getMindMapView().getNodesInternal(),
@@ -130,8 +117,6 @@ public class ProjectHealthDialog extends DialogFragment {
         );
 
         ScrollView sv = new ScrollView(requireContext());
-        sv.setFillViewport(true);
-
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(18), dp(18), dp(18), dp(18));
@@ -144,17 +129,13 @@ public class ProjectHealthDialog extends DialogFragment {
         root.addView(spacer(14));
 
         HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
-        hsv.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.addView(card("项目", String.valueOf(report.projects.size()), "#1E293B"));
         row.addView(card("卡住", String.valueOf(report.stuckProjects.size()), "#7F1D1D"));
         row.addView(card("缺 KR", String.valueOf(report.projectsWithoutKr.size()), "#1D4ED8"));
         row.addView(card("缺复盘", String.valueOf(report.projectsWithoutReview.size()), "#92400E"));
-        row.addView(card("逾期动作", String.valueOf(report.overdueActions.size()), "#7C2D12"));
         row.addView(card("无触发", String.valueOf(report.actionsWithoutTrigger.size()), "#0F766E"));
         row.addView(card("弱证据决策", String.valueOf(report.weakEvidenceDecisions.size()), "#581C87"));
-        row.addView(card("待复习学习", String.valueOf(report.staleLearningNodes.size()), "#14532D"));
         hsv.addView(row);
         root.addView(hsv);
         root.addView(spacer(18));
@@ -162,26 +143,29 @@ public class ProjectHealthDialog extends DialogFragment {
         addSection(root, "卡住项目", report.stuckProjects, activity);
         addSection(root, "缺 KR 项目", report.projectsWithoutKr, activity);
         addSection(root, "缺复盘项目", report.projectsWithoutReview, activity);
-        addSection(root, "逾期动作", report.overdueActions, activity);
         addSection(root, "无触发条件动作", report.actionsWithoutTrigger, activity);
         addSection(root, "高置信低证据决策", report.weakEvidenceDecisions, activity);
-        addSection(root, "待安排复习的学习节点", report.staleLearningNodes, activity);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(sv)
-                .setPositiveButton("一键修复", (d, w) -> {
+                .setPositiveButton("自动补强", (d, w) -> {
                     WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixProjectHealth(activity, report);
                     android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
+                    FocusGuideDialog.show(activity, NodeFocusGuideEngine.buildForFix(
+                            activity,
+                            !report.stuckProjects.isEmpty() ? report.stuckProjects.get(0)
+                                    : (!report.projectsWithoutKr.isEmpty() ? report.projectsWithoutKr.get(0)
+                                    : (!report.actionsWithoutTrigger.isEmpty() ? report.actionsWithoutTrigger.get(0)
+                                    : null)),
+                            fixResult
+                    ));
                 })
                 .setNegativeButton("关闭", null)
                 .create();
 
         dialog.setOnShowListener(d -> {
             if (dialog.getWindow() != null) {
-                dialog.getWindow().setLayout(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
+                dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 dialog.getWindow().setGravity(Gravity.CENTER);
             }
         });
