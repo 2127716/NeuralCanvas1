@@ -1,4 +1,3 @@
-
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
@@ -64,14 +63,14 @@ public class BrainCoachDialog extends DialogFragment {
             return super.onCreateDialog(savedInstanceState);
         }
 
-        Node resolvedNode = pendingNode;
-        if (resolvedNode == null) {
+        Node workingNode = pendingNode;
+        if (workingNode == null) {
             List<String> selectedIds = activity.getMindMapView().getSelectedNodeIds();
             if (selectedIds != null && !selectedIds.isEmpty()) {
-                resolvedNode = activity.getMindMapView().getNodesInternal().get(selectedIds.get(0));
+                workingNode = activity.getMindMapView().getNodesInternal().get(selectedIds.get(0));
             }
         }
-        final Node node = resolvedNode;
+        final Node node = workingNode;
 
         ProjectHealthEngine.ProjectHealthReport health = ProjectHealthEngine.analyze(
                 activity.getMindMapView().getNodesInternal(),
@@ -126,16 +125,16 @@ public class BrainCoachDialog extends DialogFragment {
         root.addView(buildCard("智能建议",
                 "建议把 AI 助手当成图谱操作员，而不是普通聊天框：\n" +
                         "1. 先体检/推荐\n" +
-                        "2. 再自动补强\n" +
+                        "2. 再一键修复\n" +
                         "3. 再交给 AI 做红队、执行补全或学习补全\n" +
-                        "4. 修复后跟着自动引导聚焦到第一关键节点"));
+                        "4. 修复后跟着引导聚焦到第一关键节点"));
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(sv)
                 .setPositiveButton("项目巡检", (d, w) ->
                         ProjectHealthDialog.newInstance().show(activity.getSupportFragmentManager(), "project_health_dialog"))
                 .setNeutralButton("AI 助手", (d, w) -> {
-                    String preset = node == null
+                    final String preset = node == null
                             ? "请先对当前图谱做系统体检，告诉我现在最该先补哪一块，并给出保守的命令式建议。"
                             : "请把当前节点作为核心，做系统分析：缺口、最优下一步、风险、复盘锚点，并优先给出保守可执行建议。";
                     activity.showAiAssistantDialogWithPrompt(preset);
