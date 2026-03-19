@@ -92,6 +92,72 @@ public class ScientificDashboardDialog extends DialogFragment {
         return card;
     }
 
+    private TextView buildActionChip(String text, String bgColor) {
+        TextView tv = new TextView(requireContext());
+        tv.setText(text);
+        tv.setTextColor(Color.parseColor("#F8FAFC"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
+        tv.setGravity(Gravity.CENTER);
+        tv.setBackground(createRoundedDrawable(bgColor));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        lp.rightMargin = dp(8);
+        tv.setLayoutParams(lp);
+        return tv;
+    }
+
+    private View buildQuickBar(MainActivity activity) {
+        HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
+        hsv.setHorizontalScrollBarEnabled(false);
+
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView projectHealth = buildActionChip("项目巡检", "#3F1D7A");
+        projectHealth.setOnClickListener(v ->
+                ProjectHealthDialog.newInstance().show(getParentFragmentManager(), "project_health_dialog"));
+        row.addView(projectHealth);
+
+        TextView weeklyReview = buildActionChip("每周回顾", "#92400E");
+        weeklyReview.setOnClickListener(v -> activity.openWeeklyReview());
+        row.addView(weeklyReview);
+
+        TextView graphInsights = buildActionChip("图谱洞察", "#14532D");
+        graphInsights.setOnClickListener(v -> activity.openGraphInsights());
+        row.addView(graphInsights);
+
+        hsv.addView(row);
+        return hsv;
+    }
+
+    private View buildProjectHealthSummarySection(Context context,
+                                                  ProjectHealthEngine.ProjectHealthReport report) {
+        LinearLayout section = new LinearLayout(context);
+        section.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(context, 12);
+        section.setPadding(padding, padding, padding, padding);
+        section.setBackground(createRoundedDrawable("#111827"));
+
+        TextView title = new TextView(context);
+        title.setText("项目巡检摘要");
+        title.setTextSize(16f);
+        title.setTextColor(Color.parseColor("#F8FAFC"));
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        section.addView(title);
+
+        TextView content = new TextView(context);
+        content.setText(ProjectHealthEngine.buildSummary(report));
+        content.setTextSize(14f);
+        content.setTextColor(Color.parseColor("#D6E3F5"));
+        content.setPadding(0, dp(context, 8), 0, 0);
+        section.addView(content);
+
+        return section;
+    }
+
     private void refreshSelf() {
         dismiss();
         new ScientificDashboardDialog().show(requireActivity().getSupportFragmentManager(), "scientific_dashboard");
@@ -274,6 +340,8 @@ public class ScientificDashboardDialog extends DialogFragment {
         java.util.List<Node> areaNodes = WorkflowEngine.getAreaNodes(nodes);
         java.util.List<Node> resourceNodes = WorkflowEngine.getResourceNodes(nodes);
         java.util.List<Node> archivedNodes = WorkflowEngine.getArchivedNodes(nodes);
+        ProjectHealthEngine.ProjectHealthReport healthReport =
+                ProjectHealthEngine.analyze(nodes, connections);
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
@@ -287,7 +355,7 @@ public class ScientificDashboardDialog extends DialogFragment {
         TextView title = buildTitle("科学工作台", 20, true, "#F8FAFC");
         root.addView(title);
 
-        TextView subtitle = buildTitle("已补上 workflow / quick action / PARA 收口", 13, false, "#94A3B8");
+        TextView subtitle = buildTitle("继续补强：项目巡检 / 快速导航 / 工作流收口", 13, false, "#94A3B8");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -296,10 +364,13 @@ public class ScientificDashboardDialog extends DialogFragment {
         subtitle.setLayoutParams(subLp);
         root.addView(subtitle);
 
+        root.addView(buildSpacer(14));
+        root.addView(buildQuickBar(activity));
         root.addView(buildSpacer(16));
 
-        // 添加工作流概览卡片
         root.addView(buildWorkflowSummarySection(requireContext(), nodes, connections));
+        root.addView(buildSpacer(12));
+        root.addView(buildProjectHealthSummarySection(requireContext(), healthReport));
         root.addView(buildSpacer(12));
         root.addView(buildAnalyticsSection(requireContext(), nodes));
         root.addView(buildSpacer(16));
@@ -314,6 +385,9 @@ public class ScientificDashboardDialog extends DialogFragment {
         cardRow.addView(buildCard("待复盘", String.valueOf(data.reviewNodes.size()), "#92400E"));
         cardRow.addView(buildCard("风险/受阻", String.valueOf(data.riskNodes.size()), "#7F1D1D"));
         cardRow.addView(buildCard("KR", String.valueOf(data.krNodes.size()), "#1D4ED8"));
+        cardRow.addView(buildCard("卡住项目", String.valueOf(healthReport.stuckProjects.size()), "#5B2133"));
+        cardRow.addView(buildCard("逾期动作", String.valueOf(healthReport.overdueActions.size()), "#7C2D12"));
+        cardRow.addView(buildCard("无触发", String.valueOf(healthReport.actionsWithoutTrigger.size()), "#115E59"));
         cardRow.addView(buildCard("Areas", String.valueOf(areaNodes.size()), "#3730A3"));
         cardRow.addView(buildCard("Resources", String.valueOf(resourceNodes.size()), "#14532D"));
         cardRow.addView(buildCard("Archives", String.valueOf(archivedNodes.size()), "#334155"));
