@@ -1,22 +1,15 @@
-
 package com.agui.neuralcanvas;
 
 import androidx.appcompat.app.AlertDialog;
 
 public final class AiAutopilotGuideDialog {
-
     private AiAutopilotGuideDialog() {}
 
-    public static void show(MainActivity activity, BrainPendingGuidance.Guidance guidance) {
+    public static void show(MainActivity activity, BrainPendingGuidance guidance) {
         if (activity == null || guidance == null) return;
 
         StringBuilder message = new StringBuilder();
-        if (guidance.reason != null && !guidance.reason.trim().isEmpty()) {
-            message.append(guidance.reason.trim());
-        } else {
-            message.append("AI 已完成一轮自动巡航。");
-        }
-
+        message.append(guidance.summary == null ? "AI 已完成一次自动巡航。" : guidance.summary);
         if (guidance.riskLevel != null && !guidance.riskLevel.trim().isEmpty()) {
             message.append("\n\n风险等级：").append(guidance.riskLevel);
         }
@@ -29,26 +22,22 @@ public final class AiAutopilotGuideDialog {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity)
                 .setTitle("AI 自动巡航")
                 .setMessage(message.toString())
-                .setNegativeButton("关闭", null);
+                .setNegativeButton("关闭", null)
+                .setPositiveButton("定位节点", (d, w) -> {
+                    if (guidance.focusNodeId != null && !guidance.focusNodeId.trim().isEmpty()) {
+                        activity.getMindMapView().focusNodeById(guidance.focusNodeId);
+                        activity.getMindMapView().selectNodeById(guidance.focusNodeId);
+                    }
+                });
 
-        if (guidance.focusNodeId != null && !guidance.focusNodeId.trim().isEmpty()) {
-            builder.setPositiveButton("定位节点", (d, w) -> {
-                activity.getMindMapView().focusNodeById(guidance.focusNodeId);
-                activity.getMindMapView().selectNodeById(guidance.focusNodeId);
-            });
+        if (guidance.responseJson != null
+                && !guidance.responseJson.trim().isEmpty()
+                && !guidance.autoApplied) {
+            builder.setNeutralButton("查看改动", (d, w) ->
+                    AiCommandPreviewDialog.newInstanceFromJson(guidance.responseJson)
+                            .show(activity.getSupportFragmentManager(), "ai_command_preview")
+            );
         }
-
-        if (guidance.responseJson != null && !guidance.responseJson.trim().isEmpty()) {
-            builder.setNeutralButton("查看建议", (d, w) -> {
-                try {
-                    AiResponse response = AiJsonParser.parseResponse(guidance.responseJson);
-                    AiCommandPreviewDialog.newInstance(response)
-                            .show(activity.getSupportFragmentManager(), "ai_command_preview");
-                } catch (Exception ignored) {
-                }
-            });
-        }
-
         builder.show();
     }
 }
