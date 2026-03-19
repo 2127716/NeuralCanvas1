@@ -49,7 +49,11 @@ public final class WorkflowHealthDialog {
                 .setTitle("工作流体检")
                 .setMessage(message.toString())
                 .setItems(items, (dialog, which) -> WorkflowMethodRecommendationEngine.execute(activity, node, top.get(which)))
-                .setPositiveButton("主模式入口", (dialog, which) -> WorkflowModeDialog.show(activity, node, analysis.dominantMode))
+                .setPositiveButton("一键修复", (dialog, which) -> {
+                    WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixNode(activity, node);
+                    android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
+                })
+                .setNeutralButton("主模式入口", (dialog, which) -> WorkflowModeDialog.show(activity, node, analysis.dominantMode))
                 .setNegativeButton("关闭", null)
                 .show();
     }

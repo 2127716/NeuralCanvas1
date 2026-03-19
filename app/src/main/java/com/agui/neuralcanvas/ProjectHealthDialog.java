@@ -169,7 +169,11 @@ public class ProjectHealthDialog extends DialogFragment {
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(sv)
-                .setPositiveButton("关闭", null)
+                .setPositiveButton("一键修复", (d, w) -> {
+                    WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixProjectHealth(activity, report);
+                    android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("关闭", null)
                 .create();
 
         dialog.setOnShowListener(d -> {

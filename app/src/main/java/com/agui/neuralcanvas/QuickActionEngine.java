@@ -56,6 +56,12 @@ public class QuickActionEngine {
                 activity.editNodeFromQuickAction(node);
                 return;
 
+            case "一键修复": {
+                WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixNode(activity, node);
+                android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+
             case "删除节点":
                 activity.deleteNodeFromQuickAction(node);
                 return;

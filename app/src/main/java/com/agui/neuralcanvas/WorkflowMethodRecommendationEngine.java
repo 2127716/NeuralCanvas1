@@ -263,6 +263,15 @@ public final class WorkflowMethodRecommendationEngine {
             analysis.dominantMode = "learning";
         }
 
+        if (!analysis.gaps.isEmpty()) {
+            analysis.recommendations.add(new Recommendation(
+                    "一键修复",
+                    "按当前缺口自动补最小但高价值的结构。",
+                    "action:QUICK_FIX",
+                    analysis.dominantMode,
+                    108));
+        }
+
         analysis.recommendations.add(new Recommendation(
                 "工作流体检",
                 "先看系统缺口，再决定先补哪一块。",
@@ -366,6 +375,11 @@ public final class WorkflowMethodRecommendationEngine {
                 return;
             case "action:WORKFLOW_HEALTH":
                 WorkflowHealthDialog.show(activity, node);
+                return;
+            case "action:QUICK_FIX":
+                WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixNode(activity, node);
+                activity.getMindMapView().focusNodeById(node.getId());
+                android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
                 return;
             default:
                 break;

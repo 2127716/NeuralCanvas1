@@ -12,6 +12,7 @@ public final class NodeTypeBehaviorRegistry {
         if (node == null) return actions;
 
         actions.add("编辑节点");
+        actions.add("一键修复");
         actions.add("方法推荐");
         actions.add(resolvePrimaryModeAction(node));
         actions.add("工作流体检");

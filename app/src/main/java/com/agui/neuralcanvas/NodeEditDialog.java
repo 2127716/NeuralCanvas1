@@ -161,8 +161,8 @@ public class NodeEditDialog extends DialogFragment {
         wrap.addView(buildSectionTitle("科学动作"));
 
         String[][] rows = {
-                {"推荐", "体检", "执行模式", "决策模式", "学习模式"},
-                {"快捷动作", "智能补强", "WOOP", "If-Then"},
+                {"推荐", "一键修复", "体检", "执行模式", "学习模式"},
+                {"决策模式", "快捷动作", "智能补强", "WOOP", "If-Then"},
                 {"周复盘", "检索练习", "Premortem"},
                 {"决策实验室", "记忆复习", "Focus"},
                 {"WRAP", "Bayes", "DSRP"},
@@ -192,6 +192,11 @@ public class NodeEditDialog extends DialogFragment {
         dismiss();
         switch (label) {
             case "推荐": WorkflowRecommendationDialog.show(activity, node); break;
+            case "一键修复": {
+                WorkflowQuickFixEngine.FixResult fixResult = WorkflowQuickFixEngine.quickFixNode(activity, node);
+                android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
+                break;
+            }
             case "执行模式": WorkflowModeDialog.show(activity, node, "execution"); break;
             case "决策模式": WorkflowModeDialog.show(activity, node, "decision"); break;
             case "学习模式": WorkflowModeDialog.show(activity, node, "learning"); break;
