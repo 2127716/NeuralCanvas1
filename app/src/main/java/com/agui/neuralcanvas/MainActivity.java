@@ -5,10 +5,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,10 +18,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 import androidx.multidex.MultiDex;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
         implements NodeEditDialog.NodeEditListener,
@@ -47,7 +45,6 @@ public class MainActivity extends AppCompatActivity
         ThemeManager.init(this);
         setContentView(R.layout.activity_main);
 
-        // No ActionBar — using fully custom toolbar
         if (getSupportActionBar() != null) getSupportActionBar().hide();
 
         mindMapView = findViewById(R.id.mindMapView);
@@ -55,7 +52,6 @@ public class MainActivity extends AppCompatActivity
 
         dataManager = new SimpleDataManager(getApplication());
 
-        // Wire custom toolbar buttons
         ImageButton btnAdd = findViewById(R.id.btn_add_node);
         if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddNodeDialog());
 
@@ -69,10 +65,8 @@ public class MainActivity extends AppCompatActivity
         ImageButton btnMore = findViewById(R.id.btn_more);
         if (btnMore != null) btnMore.setOnClickListener(v -> showMoreMenu());
 
-        // Apply theme colors to custom toolbar
         applyToolbarTheme();
 
-        // Apply theme background to root
         android.view.View root = findViewById(android.R.id.content);
         if (root != null) root.setBackgroundColor(ThemeManager.getBg());
 
@@ -139,10 +133,6 @@ public class MainActivity extends AppCompatActivity
     private int dpToPx(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
     }
-
-    // =========================
-    // 给 MainMenuActionHandler 用的公开方法
-    // =========================
 
     public void showAddNodeDialog() {
         float baseX = 120f;
@@ -219,7 +209,6 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
     public void runScientificEnhancement() {
         Node baseNode = getSingleSelectedNode();
         if (baseNode == null) {
@@ -239,21 +228,20 @@ public class MainActivity extends AppCompatActivity
         Toast.makeText(this, ScientificEnhancementEngine.buildSummary(result), Toast.LENGTH_LONG).show();
     }
 
-
-public void runScientificAutopilot() {
-    Node baseNode = getSingleSelectedNode();
-    if (baseNode == null) {
-        Toast.makeText(this, "请先单击选中一个节点", Toast.LENGTH_SHORT).show();
-        return;
+    public void runScientificAutopilot() {
+        Node baseNode = getSingleSelectedNode();
+        if (baseNode == null) {
+            Toast.makeText(this, "请先单击选中一个节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        applyTemplateResult(ScientificAutopilotEngine.run(
+                baseNode,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal()
+        ));
+        mindMapView.focusNodeById(baseNode.getId());
+        Toast.makeText(this, "已对当前节点执行全量科学推进", Toast.LENGTH_LONG).show();
     }
-    applyTemplateResult(ScientificAutopilotEngine.run(
-            baseNode,
-            mindMapView.getNodesInternal(),
-            mindMapView.getConnectionsInternal()
-    ));
-    mindMapView.focusNodeById(baseNode.getId());
-    Toast.makeText(this, "已对当前节点执行全量科学推进", Toast.LENGTH_LONG).show();
-}
 
     public void runAiGapCheck() {
         generateAiGapCheckFromSelectedNode();
@@ -273,40 +261,39 @@ public void runScientificAutopilot() {
         AiAssistantDialog.newInstance().show(getSupportFragmentManager(), "ai_assistant_dialog");
     }
 
-
-public void showAiAssistantDialogWithPrompt(String presetPrompt) {
-    if (isFinishing() || isDestroyed()) return;
-    if (getSupportFragmentManager().findFragmentByTag("ai_assistant_dialog") != null) return;
-    AiAssistantDialog.newInstance(presetPrompt).show(getSupportFragmentManager(), "ai_assistant_dialog");
-}
-
-public void openAiScienceCoach(String mode, Node node) {
-    if (node == null) {
-        Toast.makeText(this, "请先选中一个节点", Toast.LENGTH_SHORT).show();
-        return;
+    public void showAiAssistantDialogWithPrompt(String presetPrompt) {
+        if (isFinishing() || isDestroyed()) return;
+        if (getSupportFragmentManager().findFragmentByTag("ai_assistant_dialog") != null) return;
+        AiAssistantDialog.newInstance(presetPrompt).show(getSupportFragmentManager(), "ai_assistant_dialog");
     }
-    mindMapView.selectOnlyNode(node.getId());
-    String prompt;
-    String normalized = mode == null ? "" : mode.trim();
-    if ("execution".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.executionCoach(node);
-    } else if ("learning".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.learningCoach(node);
-    } else if ("decision".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.decisionCoach(node);
-    } else if ("redteam".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.redTeam(node);
-    } else if ("recommend".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.workflowRecommendation(node);
-    } else if ("triage".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.triage(node);
-    } else if ("autopilot".equalsIgnoreCase(normalized)) {
-        prompt = AiScientificPrompts.autopilot(node);
-    } else {
-        prompt = AiScientificPrompts.gapCheck(node);
+
+    public void openAiScienceCoach(String mode, Node node) {
+        if (node == null) {
+            Toast.makeText(this, "请先选中一个节点", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        mindMapView.selectOnlyNode(node.getId());
+        String prompt;
+        String normalized = mode == null ? "" : mode.trim();
+        if ("execution".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.executionCoach(node);
+        } else if ("learning".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.learningCoach(node);
+        } else if ("decision".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.decisionCoach(node);
+        } else if ("redteam".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.redTeam(node);
+        } else if ("recommend".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.workflowRecommendation(node);
+        } else if ("triage".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.triage(node);
+        } else if ("autopilot".equalsIgnoreCase(normalized)) {
+            prompt = AiScientificPrompts.autopilot(node);
+        } else {
+            prompt = AiScientificPrompts.gapCheck(node);
+        }
+        showAiAssistantDialogWithPrompt(prompt);
     }
-    showAiAssistantDialogWithPrompt(prompt);
-}
 
     public void showKnowledgeImportDialog() {
         if (isFinishing() || isDestroyed()) return;
@@ -330,7 +317,6 @@ public void openAiScienceCoach(String mode, Node node) {
                 .setSingleChoiceItems(labels, current, (dialog, which) -> {
                     ThemeManager.setTheme(this, themes[which]);
                     dialog.dismiss();
-                    // Recreate activity to apply theme
                     recreate();
                 })
                 .setNegativeButton("取消", null)
@@ -365,10 +351,6 @@ public void openAiScienceCoach(String mode, Node node) {
                 })
                 .show();
     }
-
-    // =========================
-    // 公开的 Inbox Clarify 和 Weekly Review 方法
-    // =========================
 
     public void openInboxClarifier() {
         InboxClarifierDialog.show(this, mindMapView.getNodesInternal(), new InboxClarifierDialog.Callback() {
@@ -427,7 +409,6 @@ public void openAiScienceCoach(String mode, Node node) {
                 }
         ).show(getSupportFragmentManager(), "memory_review_dialog");
     }
-
 
     public void openScientificTriage() {
         Node baseNode = getSingleSelectedNode();
@@ -537,10 +518,6 @@ public void openAiScienceCoach(String mode, Node node) {
         GraphInsightDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal())
                 .show(getSupportFragmentManager(), "graph_insight_dialog");
     }
-
-    // =========================
-    // 新增的工作流和快捷操作方法
-    // =========================
 
     public void openProjectsHubWorkflowView() {
         ProjectsHubDialog.newInstance()
@@ -707,10 +684,6 @@ public void openAiScienceCoach(String mode, Node node) {
         if (title == null || title.trim().isEmpty()) return "(无标题)";
         return title.trim();
     }
-
-    // =========================
-    // 原有模板生成逻辑
-    // =========================
 
     private void generateWoopFromSelectedNode() {
         Node baseNode = getSingleSelectedNode();
@@ -930,6 +903,13 @@ public void openAiScienceCoach(String mode, Node node) {
         for (Connection connection : result.createdConnections) {
             mindMapView.addConnection(connection);
         }
+
+        TemplateStateSynchronizer.synchronize(
+                baseNode,
+                result,
+                mindMapView.getNodesInternal(),
+                mindMapView.getConnectionsInternal()
+        );
 
         mindMapView.requestRender();
         scheduleAutoSave();

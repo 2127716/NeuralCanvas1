@@ -3,10 +3,6 @@ package com.agui.neuralcanvas;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 第一阶段收尾：把“不同节点类型支持哪些动作”集中管理，
- * 避免继续把行为散落在 MainActivity / Dashboard / QuickActionEngine 各处。
- */
 public final class NodeTypeBehaviorRegistry {
 
     private NodeTypeBehaviorRegistry() {}
@@ -16,6 +12,9 @@ public final class NodeTypeBehaviorRegistry {
         if (node == null) return actions;
 
         actions.add("编辑节点");
+        actions.add("方法推荐");
+        actions.add(resolvePrimaryModeAction(node));
+        actions.add("工作流体检");
 
         switch (node.getType()) {
             case INBOX:
@@ -23,12 +22,15 @@ public final class NodeTypeBehaviorRegistry {
                 break;
 
             case PROJECT:
+                actions.add("执行模式");
+                actions.add("决策模式");
                 actions.add("生成项目起步结构");
                 actions.add("标记完成");
                 actions.add("归档到 Archives");
                 break;
 
             case DECISION:
+                actions.add("决策模式");
                 actions.add("生成决策起步结构");
                 actions.add("归档到 Archives");
                 break;
@@ -39,6 +41,7 @@ public final class NodeTypeBehaviorRegistry {
             case SOURCE:
             case INSIGHT:
             case EVIDENCE:
+                actions.add("学习模式");
                 actions.add("生成学习起步结构");
                 actions.add("移动到 Resources");
                 if (!WorkflowEngine.safe(node.getAreaId()).isEmpty()) {
@@ -47,6 +50,7 @@ public final class NodeTypeBehaviorRegistry {
                 break;
 
             case KEY_RESULT:
+                actions.add("执行模式");
                 actions.add("KR +0.1");
                 actions.add("KR +1");
                 break;
@@ -56,6 +60,7 @@ public final class NodeTypeBehaviorRegistry {
             case ROUTINE:
             case TRIGGER:
             case OBSTACLE:
+                actions.add("执行模式");
                 if (node.getStatus() != Node.NodeStatus.DONE) {
                     actions.add("标记完成");
                 }
@@ -64,6 +69,7 @@ public final class NodeTypeBehaviorRegistry {
                 break;
 
             case REVIEW:
+                actions.add("执行模式");
                 if (node.getStatus() != Node.NodeStatus.DONE) {
                     actions.add("标记完成");
                 }
@@ -71,6 +77,7 @@ public final class NodeTypeBehaviorRegistry {
                 break;
 
             case RISK:
+                actions.add("决策模式");
                 if (node.getStatus() != Node.NodeStatus.DONE) {
                     actions.add("标记完成");
                 }
@@ -96,6 +103,13 @@ public final class NodeTypeBehaviorRegistry {
 
         actions.add("删除节点");
         return dedupe(actions);
+    }
+
+    private static String resolvePrimaryModeAction(Node node) {
+        if (node == null) return "执行模式";
+        if (node.isLearningNode()) return "学习模式";
+        if (node.isDecisionNode()) return "决策模式";
+        return "执行模式";
     }
 
     public static boolean canMoveToArea(Node node) {

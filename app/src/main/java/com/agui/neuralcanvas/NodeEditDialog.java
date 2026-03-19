@@ -155,21 +155,20 @@ public class NodeEditDialog extends DialogFragment {
         return 0;
     }
 
-    // ── 科学动作区 ──────────────────────────────────────────────────────────
-
     private View buildActionBar(MainActivity activity, Node node) {
         LinearLayout wrap = new LinearLayout(requireContext());
         wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.addView(buildSectionTitle("科学动作"));
 
         String[][] rows = {
-            {"快捷动作","智能补强","WOOP","If-Then"},
-            {"周复盘","检索练习","Premortem"},
-            {"决策实验室","记忆复习","Focus"},
-            {"WRAP","Bayes","DSRP"},
-            {"参考类预测","全量推进","AI缺口"},
-            {"AI红队","AI执行","AI学习","连线","AI决策"},
-            {"体检","执行回填","决策落地","AI建议","AI自动流"},
+                {"推荐", "体检", "执行模式", "决策模式", "学习模式"},
+                {"快捷动作", "智能补强", "WOOP", "If-Then"},
+                {"周复盘", "检索练习", "Premortem"},
+                {"决策实验室", "记忆复习", "Focus"},
+                {"WRAP", "Bayes", "DSRP"},
+                {"参考类预测", "全量推进", "AI缺口"},
+                {"AI红队", "AI执行", "AI学习", "连线", "AI决策"},
+                {"体检", "执行回填", "决策落地", "AI建议", "AI自动流"},
         };
 
         for (String[] rowItems : rows) {
@@ -192,6 +191,10 @@ public class NodeEditDialog extends DialogFragment {
     private void handleActionChip(String label, MainActivity activity, Node node) {
         dismiss();
         switch (label) {
+            case "推荐": WorkflowRecommendationDialog.show(activity, node); break;
+            case "执行模式": WorkflowModeDialog.show(activity, node, "execution"); break;
+            case "决策模式": WorkflowModeDialog.show(activity, node, "decision"); break;
+            case "学习模式": WorkflowModeDialog.show(activity, node, "learning"); break;
             case "快捷动作": activity.showQuickActionsForNode(node); break;
             case "智能补强": activity.getMindMapView().selectOnlyNode(node.getId()); activity.runScientificEnhancement(); break;
             case "WOOP": activity.applyScientificTemplateToNode(node, ScientificTemplateEngine.TemplateType.WOOP); break;
@@ -213,7 +216,7 @@ public class NodeEditDialog extends DialogFragment {
             case "AI学习": activity.openAiScienceCoach("learning", node); break;
             case "连线": currentMindMapView.startConnectionMode(node); break;
             case "AI决策": activity.openAiScienceCoach("decision", node); break;
-            case "体检": activity.getMindMapView().selectOnlyNode(node.getId()); activity.openScientificTriage(); break;
+            case "体检": WorkflowHealthDialog.show(activity, node); break;
             case "执行回填": activity.getMindMapView().selectOnlyNode(node.getId()); activity.openExecutionLog(); break;
             case "决策落地": activity.getMindMapView().selectOnlyNode(node.getId()); activity.openDecisionFollowThrough(); break;
             case "AI建议": activity.openAiScienceCoach("recommend", node); break;
@@ -278,12 +281,10 @@ public class NodeEditDialog extends DialogFragment {
         root.setBackgroundColor(ThemeManager.getDialogBg());
         scrollView.addView(root);
 
-        // 科学动作
         MainActivity activity = (MainActivity) getActivity();
         if (activity != null) root.addView(buildActionBar(activity, currentNode));
         root.addView(buildDivider());
 
-        // 基础信息
         root.addView(buildSectionTitle("基础信息"));
         EditText titleInput = buildEditText("新节点", currentNode.getTitle(), InputType.TYPE_CLASS_TEXT);
         addWithTopMargin(root, titleInput, 10);
@@ -309,7 +310,6 @@ public class NodeEditDialog extends DialogFragment {
 
         root.addView(buildDivider());
 
-        // 工作流字段
         root.addView(buildSectionTitle("工作流字段"));
         EditText tagsInput = buildEditText("标签，多个用逗号分隔", currentNode.getTagsAsString(), InputType.TYPE_CLASS_TEXT);
         addWithTopMargin(root, tagsInput, 10);
@@ -334,7 +334,6 @@ public class NodeEditDialog extends DialogFragment {
 
         root.addView(buildDivider());
 
-        // 归属与追踪
         root.addView(buildSectionTitle("归属与追踪"));
         TextView projectHint = new TextView(requireContext());
         projectHint.setText("所属项目（优先用选择器，不要再手填 UUID）");
@@ -373,7 +372,6 @@ public class NodeEditDialog extends DialogFragment {
 
         root.addView(buildDivider());
 
-        // 证据/来源/扩展
         root.addView(buildSectionTitle("证据 / 来源 / 扩展"));
         EditText evidenceStrengthInput = buildEditText("证据强度（0~1）", String.valueOf(currentNode.getEvidenceStrength()),
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -385,7 +383,6 @@ public class NodeEditDialog extends DialogFragment {
         metaJsonInput.setMinLines(3);
         addWithTopMargin(root, metaJsonInput, 12);
 
-        // ── Footer: 删除 | 连线 | (spacer) | 取消 | 保存 ──
         final AlertDialog[] dialogRef = {null};
 
         LinearLayout footer = new LinearLayout(requireContext());
@@ -454,7 +451,6 @@ public class NodeEditDialog extends DialogFragment {
         footer.addView(btnSave);
         root.addView(footer);
 
-        // bottom padding
         View bot = new View(requireContext());
         addWithTopMargin(root, bot, 12);
 
@@ -467,12 +463,12 @@ public class NodeEditDialog extends DialogFragment {
 
         dialog.setOnShowListener(d -> {
             if (dialog.getWindow() != null) {
-                    android.graphics.drawable.GradientDrawable winBg = new android.graphics.drawable.GradientDrawable();
-                    winBg.setColor(ThemeManager.getDialogBg());
-                    winBg.setCornerRadius(56f);
-                    winBg.setStroke(2, ThemeManager.getStroke());
-                    dialog.getWindow().setBackgroundDrawable(winBg);
-                }
+                android.graphics.drawable.GradientDrawable winBg = new android.graphics.drawable.GradientDrawable();
+                winBg.setColor(ThemeManager.getDialogBg());
+                winBg.setCornerRadius(56f);
+                winBg.setStroke(2, ThemeManager.getStroke());
+                dialog.getWindow().setBackgroundDrawable(winBg);
+            }
         });
 
         return dialog;

@@ -44,12 +44,10 @@ public class QuickActionEngine {
         activity.onNodeUpdated(node);
     }
 
-    /** 修复 MainActivity 编译报错：真正提供动态动作列表 */
     public static List<String> getDynamicActions(Node node) {
         return NodeTypeBehaviorRegistry.getActions(node);
     }
 
-    /** 修复 MainActivity 编译报错：把字符串动作落到真实行为 */
     public static void executeDynamicAction(MainActivity activity, Node node, String action) {
         if (activity == null || node == null || action == null) return;
 
@@ -60,6 +58,26 @@ public class QuickActionEngine {
 
             case "删除节点":
                 activity.deleteNodeFromQuickAction(node);
+                return;
+
+            case "方法推荐":
+                WorkflowRecommendationDialog.show(activity, node);
+                return;
+
+            case "执行模式":
+                WorkflowModeDialog.show(activity, node, "execution");
+                return;
+
+            case "决策模式":
+                WorkflowModeDialog.show(activity, node, "decision");
+                return;
+
+            case "学习模式":
+                WorkflowModeDialog.show(activity, node, "learning");
+                return;
+
+            case "工作流体检":
+                WorkflowHealthDialog.show(activity, node);
                 return;
 
             case "澄清到工作流":
