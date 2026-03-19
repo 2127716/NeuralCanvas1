@@ -1,4 +1,3 @@
-
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
@@ -24,6 +23,14 @@ public class AiCommandPreviewDialog extends DialogFragment {
         AiCommandPreviewDialog dialog = new AiCommandPreviewDialog();
         Bundle args = new Bundle();
         args.putString(ARG_JSON, AiJsonParser.toJson(response));
+        dialog.setArguments(args);
+        return dialog;
+    }
+
+    public static AiCommandPreviewDialog newInstanceFromJson(String responseJson) {
+        AiCommandPreviewDialog dialog = new AiCommandPreviewDialog();
+        Bundle args = new Bundle();
+        args.putString(ARG_JSON, responseJson == null ? "{}" : responseJson);
         dialog.setArguments(args);
         return dialog;
     }
