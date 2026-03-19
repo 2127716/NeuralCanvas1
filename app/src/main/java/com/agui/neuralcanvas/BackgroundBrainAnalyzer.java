@@ -14,6 +14,7 @@ public final class BackgroundBrainAnalyzer {
         public boolean autoApplied = false;
         public String responseJson = "";
         public String riskLevel = "LOW";
+        public String agentProfile = "auto";
     }
 
     private BackgroundBrainAnalyzer() {}
@@ -33,6 +34,11 @@ public final class BackgroundBrainAnalyzer {
         }
 
         AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
+        report.agentProfile = AiAgentPromptBuilder.chooseProfile(snapshot).key;
+        if (settings != null && !"auto".equalsIgnoreCase(settings.getPreferredAutopilotAgent())) {
+            report.agentProfile = settings.getPreferredAutopilotAgent();
+        }
+
         AiResponse response = new AiAutopilotApi().runAutopilot(config, snapshot, settings);
         report.responseJson = AiJsonParser.toJson(response);
         report.summary = response == null ? "AI没有返回结果" : safe(response.getAnswer());
@@ -68,12 +74,16 @@ public final class BackgroundBrainAnalyzer {
 
         Node focusNode = nodes == null ? null : nodes.get(report.focusNodeId);
         report.focusNodeTitle = focusNode == null ? "" : safe(focusNode.getTitle());
-        report.suggestedMode = inferMode(focusNode, response);
+        report.suggestedMode = inferMode(focusNode, response, report.agentProfile);
         if (report.summary.isEmpty()) report.summary = "AI 已完成一次自动巡航";
         return report;
     }
 
-    private static String inferMode(Node focusNode, AiResponse response) {
+    private static String inferMode(Node focusNode, AiResponse response, String agentProfile) {
+        if ("learning".equalsIgnoreCase(agentProfile)) return "learning";
+        if ("decision".equalsIgnoreCase(agentProfile)) return "decision";
+        if ("execution".equalsIgnoreCase(agentProfile)) return "execution";
+
         if (focusNode != null) {
             if (focusNode.isLearningNode()) return "learning";
             if (focusNode.isDecisionNode()) return "decision";

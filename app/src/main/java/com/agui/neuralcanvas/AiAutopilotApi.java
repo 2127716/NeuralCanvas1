@@ -34,30 +34,14 @@ public class AiAutopilotApi {
         }
         if (snapshot == null) snapshot = new AiGraphSnapshot();
 
-        String graphJson = AiJsonParser.toJson(snapshot);
-        int nodeCount = snapshot.nodes == null ? 0 : snapshot.nodes.size();
-        int connectionCount = snapshot.connections == null ? 0 : snapshot.connections.size();
-
-        String systemPrompt = "你是 NeuralCanvas 的 API 自动代理，是用户的第二大脑。"
-                + "你负责自动分析图谱、提出最小但高价值的改动，并在低风险场景下直接生成可执行命令。"
-                + "输出必须是纯 JSON，格式固定为 {\"answer\":\"...\",\"commands\":[...] }。"
-                + "commands 仅允许使用 create_node, update_node, delete_node, create_connection, update_connection, delete_connection, focus_node, auto_layout。"
-                + "优先少量高价值命令，通常 1 到 8 条。";
-
-        String userPrompt = "自动巡航目标：\n" + settings.getAutopilotInstruction()
-                + "\n\n当前图谱：节点 " + nodeCount + " 个，连线 " + connectionCount + " 条。"
-                + "\n图谱 JSON：\n" + graphJson
-                + "\n\n请执行：\n1. 找出当前最值得优先处理的 1 个核心问题"
-                + "\n2. 若能低风险修复，则直接生成命令"
-                + "\n3. 生成一个 focus_node，指向最关键节点"
-                + "\n4. answer 用中文简短说明：你发现了什么、准备怎么改、为什么"
-                + "\n5. 若无需改图，则 commands 返回空数组，但仍给 answer。";
+        AiAgentPromptBuilder.AgentPlan plan = AiAgentPromptBuilder.build(snapshot, settings);
 
         JSONObject body = new JSONObject();
         body.put("model", config.getModel());
+
         JSONArray messages = new JSONArray();
-        messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
-        messages.put(new JSONObject().put("role", "user").put("content", userPrompt));
+        messages.put(new JSONObject().put("role", "system").put("content", plan.systemPrompt));
+        messages.put(new JSONObject().put("role", "user").put("content", plan.userPrompt));
         body.put("messages", messages);
         body.put("temperature", 0.1);
         body.put("top_p", 0.9);
@@ -80,6 +64,9 @@ public class AiAutopilotApi {
             }
             AiResponse parsed = AiJsonParser.parseResponse(stripMarkdownCodeFence(content));
             sanitize(parsed);
+            if (parsed != null && (parsed.getAnswer() == null || parsed.getAnswer().trim().isEmpty())) {
+                parsed.setAnswer("AI 已完成一次 " + plan.profile.label + " 分析");
+            }
             return parsed;
         }
     }
