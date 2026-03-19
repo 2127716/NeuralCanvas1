@@ -1,4 +1,3 @@
-
 package com.agui.neuralcanvas;
 
 import java.util.ArrayList;
@@ -61,6 +60,27 @@ public final class NodeFocusGuideEngine {
         return report;
     }
 
+    public static GuideReport buildForNode(MainActivity activity, Node baseNode) {
+        GuideReport report = new GuideReport();
+        if (activity == null || activity.getMindMapView() == null || baseNode == null) return report;
+
+        Map<String, Node> nodes = activity.getMindMapView().getNodesInternal();
+        report.items.add(new GuideItem(baseNode.getId(), safeTitle(baseNode), "当前焦点节点", score(baseNode) + 15));
+
+        for (Node node : nodes.values()) {
+            if (node == null || node.getId().equals(baseNode.getId())) continue;
+            if (sameOwner(baseNode, node) || distance(baseNode, node) <= 900f) {
+                report.items.add(new GuideItem(node.getId(), safeTitle(node), resolveHint(node), score(node)));
+            }
+        }
+
+        report.items.sort((a, b) -> Integer.compare(b.score, a.score));
+        if (!report.items.isEmpty()) {
+            report.headline = "当前最值得先处理：" + report.items.get(0).title;
+        }
+        return report;
+    }
+
     private static boolean contains(GuideReport report, String id) {
         for (GuideItem item : report.items) {
             if (item.nodeId.equals(id)) return true;
@@ -109,5 +129,17 @@ public final class NodeFocusGuideEngine {
             case RISK: return "先看失败点，减少白忙";
             default: return "这是本轮补强后的关键节点";
         }
+    }
+
+    private static boolean sameOwner(Node a, Node b) {
+        String ownerA = WorkflowEngine.resolveOwnerId(a);
+        String ownerB = WorkflowEngine.resolveOwnerId(b);
+        return !WorkflowEngine.isBlank(ownerA) && ownerA.equals(ownerB);
+    }
+
+    private static double distance(Node a, Node b) {
+        float dx = a.getX() - b.getX();
+        float dy = a.getY() - b.getY();
+        return Math.sqrt(dx * dx + dy * dy);
     }
 }
