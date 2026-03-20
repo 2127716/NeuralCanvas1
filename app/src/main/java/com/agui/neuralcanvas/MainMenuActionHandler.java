@@ -5,193 +5,103 @@ public class MainMenuActionHandler {
     public static boolean handle(MainActivity activity, int id) {
         if (activity == null) return false;
 
-        if (id == R.id.action_add_node) {
-            activity.showAddNodeDialog();
-            return true;
-        }
+        switch (id) {
+            case MoreMenuDialog.ID_WORKSPACE_DASHBOARD:
+                activity.openScientificDashboard();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_PROJECTS:
+                activity.openProjectsHubWorkflowView();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_INBOX:
+                activity.openInboxClarifier();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_WEEKLY:
+                activity.openWeeklyReview();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_MEMORY:
+                activity.openMemoryReview();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_FOCUS:
+                activity.openFocusSession();
+                return true;
+            case MoreMenuDialog.ID_WORKSPACE_GRAPH:
+                activity.openGraphInsights();
+                return true;
 
-        if (id == R.id.action_search) {
-            activity.showSearchDialog();
-            return true;
-        }
+            case MoreMenuDialog.ID_TEMPLATE_WOOP:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WOOP);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_IF_THEN:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.IF_THEN);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_WEEKLY_REVIEW:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WEEKLY_REVIEW);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_PREMORTEM:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.PREMORTEM);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_WRAP:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WRAP);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_BAYES:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.BAYES_UPDATE);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_DSRP:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.DSRP_ANALYSIS);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_REFERENCE:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.REFERENCE_CLASS_FORECAST);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_RETRIEVAL:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.RETRIEVAL_PRACTICE);
+                return true;
+            case MoreMenuDialog.ID_TEMPLATE_TRANSFER:
+                activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.TRANSFER_PRACTICE);
+                return true;
 
-        if (id == R.id.action_dashboard) {
-            ScientificDashboardDialog.newInstance()
-                    .show(activity.getSupportFragmentManager(), "scientific_dashboard");
-            return true;
-        }
+            case MoreMenuDialog.ID_AI_ENHANCE:
+                activity.runScientificEnhancement();
+                return true;
+            case MoreMenuDialog.ID_AI_AUTOPILOT:
+                activity.runScientificAutopilot();
+                return true;
+            case MoreMenuDialog.ID_AI_GAP:
+                activity.runAiGapCheck();
+                return true;
+            case MoreMenuDialog.ID_AI_EXECUTION:
+                activity.runAiExecutionPatch();
+                return true;
+            case MoreMenuDialog.ID_AI_LEARNING:
+                activity.runAiLearningPatch();
+                return true;
+            case MoreMenuDialog.ID_AI_ASSISTANT:
+                activity.showAiAssistantDialog();
+                return true;
 
-        if (id == R.id.action_change_theme) {
-            activity.showThemePicker();
-            return true;
+            case MoreMenuDialog.ID_IMPORT_KNOWLEDGE:
+                activity.showKnowledgeImportDialog();
+                return true;
+            case MoreMenuDialog.ID_BOX_SELECT:
+                activity.getMindMapView().startBoxSelectionMode();
+                return true;
+            case MoreMenuDialog.ID_DELETE_SELECTED:
+                int count = activity.getMindMapView().deleteSelectedNodes();
+                android.widget.Toast.makeText(activity, count > 0 ? "已删除 " + count + " 个节点" : "当前没有选中节点", android.widget.Toast.LENGTH_SHORT).show();
+                return true;
+            case MoreMenuDialog.ID_CANCEL_BOX_SELECT:
+                activity.getMindMapView().cancelBoxSelectionMode();
+                return true;
+            case MoreMenuDialog.ID_SYSTEM_THEME:
+                activity.showThemePicker();
+                return true;
+            case MoreMenuDialog.ID_SYSTEM_HELP:
+                activity.showHelpDialog();
+                return true;
+            case MoreMenuDialog.ID_SYSTEM_CLEAR:
+                activity.confirmClearAll();
+                return true;
+            default:
+                return false;
         }
-
-        if (id == R.id.action_projects_hub) {
-            ProjectsHubDialog.newInstance()
-                    .show(activity.getSupportFragmentManager(), "projects_hub");
-            return true;
-        }
-
-        if (id == R.id.action_inbox_clarify) {
-            activity.openInboxClarifier();
-            return true;
-        }
-
-        if (id == R.id.action_weekly_review) {
-            activity.openWeeklyReview();
-            return true;
-        }
-
-        if (id == R.id.action_generate_woop) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WOOP);
-            return true;
-        }
-
-        if (id == R.id.action_generate_if_then) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.IF_THEN);
-            return true;
-        }
-
-        if (id == R.id.action_generate_daily_review) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.DAILY_REVIEW);
-            return true;
-        }
-
-        if (id == R.id.action_generate_weekly_review) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WEEKLY_REVIEW);
-            return true;
-        }
-
-        if (id == R.id.action_generate_aar) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.AAR);
-            return true;
-        }
-
-        if (id == R.id.action_generate_decision_tree) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.DECISION_TREE);
-            return true;
-        }
-
-        if (id == R.id.action_generate_premortem) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.PREMORTEM);
-            return true;
-        }
-
-        if (id == R.id.action_generate_evidence_review) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.EVIDENCE_REVIEW);
-            return true;
-        }
-
-        if (id == R.id.action_generate_retrieval_practice) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.RETRIEVAL_PRACTICE);
-            return true;
-        }
-
-        if (id == R.id.action_generate_concept_deepening) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.CONCEPT_DEEPENING);
-            return true;
-        }
-
-        if (id == R.id.action_generate_transfer_practice) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.TRANSFER_PRACTICE);
-            return true;
-        }
-
-        if (id == R.id.action_generate_wrap) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.WRAP);
-            return true;
-        }
-
-        if (id == R.id.action_generate_bayes) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.BAYES_UPDATE);
-            return true;
-        }
-
-        if (id == R.id.action_generate_dsrp) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.DSRP_ANALYSIS);
-            return true;
-        }
-
-        if (id == R.id.action_generate_reference_forecast) {
-            activity.generateScientificTemplate(ScientificTemplateEngine.TemplateType.REFERENCE_CLASS_FORECAST);
-            return true;
-        }
-
-        if (id == R.id.action_scientific_enhance) {
-            activity.runScientificEnhancement();
-            return true;
-        }
-
-        if (id == R.id.action_scientific_autopilot) {
-            activity.runScientificAutopilot();
-            return true;
-        }
-
-        if (id == R.id.action_ai_gap_check) {
-            activity.runAiGapCheck();
-            return true;
-        }
-
-        if (id == R.id.action_ai_execution_patch) {
-            activity.runAiExecutionPatch();
-            return true;
-        }
-
-        if (id == R.id.action_ai_learning_patch) {
-            activity.runAiLearningPatch();
-            return true;
-        }
-
-        if (id == R.id.action_decision_matrix) {
-            activity.openDecisionMatrix();
-            return true;
-        }
-
-        if (id == R.id.action_memory_review) {
-            activity.openMemoryReview();
-            return true;
-        }
-
-        if (id == R.id.action_focus_session) {
-            activity.openFocusSession();
-            return true;
-        }
-
-        if (id == R.id.action_execution_log) {
-            activity.openExecutionLog();
-            return true;
-        }
-
-        if (id == R.id.action_decision_follow) {
-            activity.openDecisionFollowThrough();
-            return true;
-        }
-
-        if (id == R.id.action_graph_insights) {
-            activity.openGraphInsights();
-            return true;
-        }
-
-        if (id == R.id.action_ai_assistant) {
-            activity.showAiAssistantDialog();
-            return true;
-        }
-
-        if (id == R.id.action_import_knowledge) {
-            activity.showKnowledgeImportDialog();
-            return true;
-        }
-
-        if (id == R.id.action_clear_all) {
-            activity.confirmClearAll();
-            return true;
-        }
-
-        if (id == R.id.action_help) {
-            activity.showHelpDialog();
-            return true;
-        }
-
-        return false;
     }
 }
