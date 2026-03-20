@@ -3,19 +3,13 @@ package com.agui.neuralcanvas;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Build;
 
-/**
- * ThemeManager — 三种主题
- *
- * MODERN  现代深色（深紫黑，原始风格）
- * MONET   莫奈印象（取自莫奈《睡莲》色板：深靛蓝、水草绿、藕荷紫、暮光橙）
- * LIQUID  液态玻璃（Apple visionOS 风格：极深灰黑底，高透明磨砂白，冰蓝绿 accent）
- */
 public class ThemeManager {
 
     public enum AppTheme {
-        MODERN("现代深色"),
-        MONET("莫奈印象"),
+        MONET("Monet 动态"),
+        MODERN("深色紫调"),
         LIQUID("液态玻璃");
 
         public final String label;
@@ -24,176 +18,229 @@ public class ThemeManager {
 
     private static final String PREF_FILE = "nc_prefs";
     private static final String KEY_THEME = "app_theme";
-    private static AppTheme current = AppTheme.MODERN;
+    private static AppTheme current = AppTheme.MONET;
+    private static Context appContext;
 
     public static void init(Context ctx) {
-        String saved = ctx.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
-                .getString(KEY_THEME, AppTheme.MODERN.name());
-        try { current = AppTheme.valueOf(saved); } catch (Exception e) { current = AppTheme.MODERN; }
+        appContext = ctx.getApplicationContext();
+        String saved = appContext.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+                .getString(KEY_THEME, AppTheme.MONET.name());
+        try {
+            current = AppTheme.valueOf(saved);
+        } catch (Exception e) {
+            current = AppTheme.MONET;
+        }
     }
 
-    public static AppTheme getCurrentTheme() { return current; }
+    public static AppTheme getCurrentTheme() {
+        return current;
+    }
 
     public static void setTheme(Context ctx, AppTheme t) {
-        current = t;
-        ctx.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
-                .edit().putString(KEY_THEME, t.name()).apply();
+        appContext = ctx.getApplicationContext();
+        current = t == null ? AppTheme.MONET : t;
+        appContext.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_THEME, current.name())
+                .apply();
     }
 
-    // ─── Colors ─────────────────────────────────────────────────────────────
+    private static int dynamicColor(int resId, String fallbackHex) {
+        if (appContext == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return Color.parseColor(fallbackHex);
+        }
+        try {
+            return appContext.getColor(resId);
+        } catch (Exception e) {
+            return Color.parseColor(fallbackHex);
+        }
+    }
 
-    /** Main canvas background */
+    private static int withAlpha(int color, int alpha) {
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+    }
+
     public static int getBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#0D1520"); // 深靛夜蓝
-            case LIQUID: return Color.parseColor("#08090C"); // 极深纯黑
-            default:     return Color.parseColor("#070B14");
+            case MONET:
+                return dynamicColor(android.R.color.system_neutral1_1000, "#0B1220");
+            case LIQUID:
+                return Color.parseColor("#08090C");
+            default:
+                return Color.parseColor("#0A0F1E");
         }
     }
 
-    /** Dialog / sheet surface */
     public static int getDialogBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#111E30"); // 深蓝绿
-            case LIQUID: return Color.parseColor("#18181E"); // 深磨砂黑
-            default:     return Color.parseColor("#0F172A");
+            case MONET:
+                return dynamicColor(android.R.color.system_neutral1_900, "#121A29");
+            case LIQUID:
+                return Color.parseColor("#14161B");
+            default:
+                return Color.parseColor("#121826");
         }
     }
 
-    /** Card / chip / input surface */
     public static int getSurface() {
         switch (current) {
-            case MONET:  return Color.parseColor("#162338");
-            case LIQUID: return Color.parseColor("#141418");
-            default:     return Color.parseColor("#0F172A");
+            case MONET:
+                return dynamicColor(android.R.color.system_neutral2_900, "#172133");
+            case LIQUID:
+                return Color.parseColor("#17191F");
+            default:
+                return Color.parseColor("#182235");
         }
     }
 
-    /** Primary accent — interactive highlights */
     public static int getAccent() {
         switch (current) {
-            case MONET:  return Color.parseColor("#7BA7BC"); // 莫奈水面蓝
-            case LIQUID: return Color.parseColor("#64D2FF"); // visionOS 冰蓝
-            default:     return Color.parseColor("#8B5CF6");
+            case MONET:
+                return dynamicColor(android.R.color.system_accent1_300, "#8AA4FF");
+            case LIQUID:
+                return Color.parseColor("#64D2FF");
+            default:
+                return Color.parseColor("#8B5CF6");
         }
     }
 
-    /** Secondary accent */
     public static int getAccent2() {
         switch (current) {
-            case MONET:  return Color.parseColor("#8FAF7E"); // 莫奈荷叶绿
-            case LIQUID: return Color.parseColor("#30D158"); // Apple 绿
-            default:     return Color.parseColor("#38BDF8");
+            case MONET:
+                return dynamicColor(android.R.color.system_accent2_300, "#7AC7C4");
+            case LIQUID:
+                return Color.parseColor("#30D158");
+            default:
+                return Color.parseColor("#38BDF8");
         }
     }
 
-    /** Primary text — headings, labels */
     public static int getTextPrimary() {
         switch (current) {
-            case MONET:  return Color.parseColor("#E4EAF0"); // 晨雾白
-            case LIQUID: return Color.parseColor("#F5F5F7"); // Apple 白
-            default:     return Color.parseColor("#F8FAFC");
+            case MONET:
+                return dynamicColor(android.R.color.system_neutral1_50, "#F4F7FB");
+            case LIQUID:
+                return Color.parseColor("#F5F5F7");
+            default:
+                return Color.parseColor("#F8FAFC");
         }
     }
 
-    /** Secondary text — hints, subtitles */
     public static int getTextSecondary() {
         switch (current) {
-            case MONET:  return Color.parseColor("#8FAABB"); // 烟蓝灰
-            case LIQUID: return Color.parseColor("#98989D"); // Apple 灰
-            default:     return Color.parseColor("#A8B3CF");
+            case MONET:
+                return dynamicColor(android.R.color.system_neutral2_200, "#B3C0D1");
+            case LIQUID:
+                return Color.parseColor("#A1A1AA");
+            default:
+                return Color.parseColor("#A8B3CF");
         }
     }
 
-    /** Dividers and borders */
     public static int getStroke() {
         switch (current) {
-            case MONET:  return Color.parseColor("#1E3248"); // 深靛分隔线
-            case LIQUID: return Color.parseColor("#FFFFFF1A"); // 半透明白线
-            default:     return Color.parseColor("#23314D");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_neutral2_300, "#38516D"), 110);
+            case LIQUID:
+                return Color.parseColor("#33FFFFFF");
+            default:
+                return Color.parseColor("#23314D");
         }
     }
 
-    /** Chip / action button background */
     public static int getChipBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#152236"); // 深水蓝
-            case LIQUID: return Color.parseColor("#FFFFFF0F"); // 极淡磨砂
-            default:     return Color.parseColor("#182338");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_accent1_700, "#20314F"), 120);
+            case LIQUID:
+                return Color.parseColor("#1AFFFFFF");
+            default:
+                return Color.parseColor("#1A2438");
         }
     }
 
-    /** Chip border */
     public static int getChipStroke() {
         switch (current) {
-            case MONET:  return Color.parseColor("#2B4060"); // 蓝灰边
-            case LIQUID: return Color.parseColor("#FFFFFF28"); // 半透明白边
-            default:     return Color.parseColor("#334155");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_accent1_300, "#7598D8"), 120);
+            case LIQUID:
+                return Color.parseColor("#33FFFFFF");
+            default:
+                return Color.parseColor("#334155");
         }
     }
 
-    /** EditText background */
     public static int getEditTextBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#0F1A2A");
-            case LIQUID: return Color.parseColor("#FFFFFF08");
-            default:     return Color.parseColor("#111827");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_neutral2_800, "#131D2E"), 180);
+            case LIQUID:
+                return Color.parseColor("#12FFFFFF");
+            default:
+                return Color.parseColor("#111827");
         }
     }
 
-    /** EditText stroke */
     public static int getEditTextStroke() {
         switch (current) {
-            case MONET:  return Color.parseColor("#1E3248");
-            case LIQUID: return Color.parseColor("#FFFFFF22");
-            default:     return Color.parseColor("#24324D");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_accent1_200, "#8CA7D9"), 100);
+            case LIQUID:
+                return Color.parseColor("#26FFFFFF");
+            default:
+                return Color.parseColor("#24324D");
         }
     }
 
-    /** Spinner background */
     public static int getSpinnerBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#0F1A2A");
-            case LIQUID: return Color.parseColor("#FFFFFF0F");
-            default:     return Color.parseColor("#182338");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_neutral2_800, "#142033"), 190);
+            case LIQUID:
+                return Color.parseColor("#16FFFFFF");
+            default:
+                return Color.parseColor("#182338");
         }
     }
 
-    /** Toolbar background color (used programmatically) */
     public static int getToolbarBg() {
         switch (current) {
-            case MONET:  return Color.parseColor("#CC111E30");
-            case LIQUID: return Color.parseColor("#AA08090C");
-            default:     return Color.parseColor("#D90F172A");
+            case MONET:
+                return withAlpha(dynamicColor(android.R.color.system_neutral1_900, "#122033"), 212);
+            case LIQUID:
+                return Color.parseColor("#B314161B");
+            default:
+                return Color.parseColor("#D9121826");
         }
     }
 
-    /** Popup / menu background */
     public static int getPopupBg() {
+        return getDialogBg();
+    }
+
+    public static int getDanger() {
         switch (current) {
-            case MONET:  return Color.parseColor("#111E30");
-            case LIQUID: return Color.parseColor("#18181E");
-            default:     return Color.parseColor("#0F172A");
+            case MONET:
+                return dynamicColor(android.R.color.system_accent3_300, "#FF7A90");
+            case LIQUID:
+                return Color.parseColor("#FF5C7A");
+            default:
+                return Color.parseColor("#F43F5E");
         }
     }
 
-    public static int getDanger() { return Color.parseColor("#F43F5E"); }
-
-    /** Connect / link action color */
     public static int getLinkColor() {
         switch (current) {
-            case MONET:  return Color.parseColor("#8FAF7E");
-            case LIQUID: return Color.parseColor("#30D158");
-            default:     return Color.parseColor("#34D399");
+            case MONET:
+                return dynamicColor(android.R.color.system_accent2_300, "#77C6B1");
+            case LIQUID:
+                return Color.parseColor("#30D158");
+            default:
+                return Color.parseColor("#34D399");
         }
     }
 
-    /** Section title for monet: accent color of season (warm amber) */
     public static int getSectionTitleColor() {
-        switch (current) {
-            case MONET:  return Color.parseColor("#7BA7BC");
-            case LIQUID: return Color.parseColor("#64D2FF");
-            default:     return Color.parseColor("#8B5CF6");
-        }
+        return getAccent();
     }
 }

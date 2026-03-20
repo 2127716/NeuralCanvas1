@@ -49,7 +49,9 @@ public class MainActivity extends AppCompatActivity
         if (getSupportActionBar() != null) getSupportActionBar().hide();
 
         mindMapView = findViewById(R.id.mindMapView);
-        mindMapView.setOnDataChangeListener(this);
+        if (mindMapView != null) {
+            mindMapView.setOnDataChangeListener(this);
+        }
 
         dataManager = new SimpleDataManager(getApplication());
 
@@ -133,11 +135,13 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void onGraphMutatedByAi() {
+        if (mindMapView == null) return;
         mindMapView.requestRender();
         scheduleAutoSave();
     }
 
     private void loadSavedData() {
+        if (mindMapView == null) return;
         try {
             Map<?, ?> savedData = dataManager.loadMindMap();
             Map<String, Node> nodes = (Map<String, Node>) savedData.get("nodes");
@@ -186,6 +190,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void showAddNodeDialog() {
+        if (mindMapView == null) return;
         float baseX = 120f;
         float baseY = 120f;
 
@@ -201,6 +206,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void showSearchDialog() {
+        if (mindMapView == null) return;
         DialogFragment dialog = SearchDialog.newInstance(mindMapView);
         dialog.show(getSupportFragmentManager(), "search_dialog");
     }
@@ -937,6 +943,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private Node getSingleSelectedNode() {
+        if (mindMapView == null) return null;
         List<String> selectedIds = mindMapView.getSelectedNodeIds();
         if (selectedIds == null || selectedIds.isEmpty()) return null;
         String firstId = selectedIds.get(0);
@@ -944,7 +951,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void applyTemplateResult(ScientificTemplateEngine.TemplateResult result) {
-        if (result == null) return;
+        if (result == null || mindMapView == null) return;
 
         Node baseNode = getSingleSelectedNode();
         TemplatePostProcessor.postProcess(baseNode, result, mindMapView.getNodesInternal());
@@ -969,6 +976,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void showNodeEditDialog(Node node) {
+        if (node == null || mindMapView == null) return;
         DialogFragment dialog = NodeEditDialog.newInstance(node, mindMapView);
         dialog.show(getSupportFragmentManager(), "node_edit_dialog");
     }
@@ -979,6 +987,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void saveCurrentDataSilently() {
+        if (mindMapView == null) return;
         try {
             final Map<String, Node> nodes = mindMapView.getNodes();
             final Map<String, Connection> connections = mindMapView.getConnections();
@@ -996,7 +1005,9 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onNodeUpdated(Node node) {
-        mindMapView.requestRender();
+        if (mindMapView != null) {
+            mindMapView.requestRender();
+        }
         scheduleAutoSave();
         maybeToast("节点已更新");
     }
@@ -1009,6 +1020,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onSearch(String keyword, List<Node.NodeType> types, boolean highlight) {
+        if (mindMapView == null) return;
         mindMapView.search(keyword, types, highlight);
         int resultCount = mindMapView.getSearchResultCount();
         if (resultCount > 0) {
@@ -1020,7 +1032,9 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onClearSearch() {
-        mindMapView.clearSearch();
+        if (mindMapView != null) {
+            mindMapView.clearSearch();
+        }
         maybeToast("搜索已清除");
     }
 
