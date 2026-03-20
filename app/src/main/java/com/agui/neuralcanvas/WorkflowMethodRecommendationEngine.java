@@ -1,4 +1,3 @@
-
 package com.agui.neuralcanvas;
 
 import java.util.ArrayList;
@@ -159,6 +158,22 @@ public final class WorkflowMethodRecommendationEngine {
         analysis.recommendations.add(new Recommendation("工作流体检", "先看系统缺口，再决定先补哪一块。", "action:WORKFLOW_HEALTH", analysis.dominantMode, 70));
         sortAndDedupe(analysis.recommendations);
         return analysis;
+    }
+
+    // 兼容 WorkflowModeDialog 的调用
+    public static List<Recommendation> getModeRecommendations(Node node,
+                                                              Map<String, Node> nodes,
+                                                              Map<String, Connection> connections,
+                                                              String mode) {
+        Analysis analysis = analyze(node, nodes, connections);
+        List<Recommendation> result = new ArrayList<>();
+        String normalized = mode == null ? "" : mode.trim().toLowerCase();
+        for (Recommendation item : analysis.recommendations) {
+            if (normalized.isEmpty() || normalized.equals(item.mode)) {
+                result.add(item);
+            }
+        }
+        return result;
     }
 
     public static String buildReadableReport(Analysis analysis) {

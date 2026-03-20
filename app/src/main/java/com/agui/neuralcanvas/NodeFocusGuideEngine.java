@@ -1,4 +1,3 @@
-
 package com.agui.neuralcanvas;
 
 import java.util.ArrayList;
@@ -29,6 +28,31 @@ public final class NodeFocusGuideEngine {
 
     private NodeFocusGuideEngine() {}
 
+    // 兼容 BrainCoachDialog 的调用
+    public static GuideReport buildForNode(MainActivity activity, Node baseNode) {
+        GuideReport report = new GuideReport();
+        if (activity == null || activity.getMindMapView() == null || baseNode == null) return report;
+
+        Map<String, Node> nodes = activity.getMindMapView().getNodesInternal();
+
+        report.items.add(new GuideItem(baseNode.getId(), safeTitle(baseNode), "当前焦点节点", score(baseNode)));
+
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.ACTION, Node.NodeType.TASK));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.TRIGGER));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.REVIEW));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.EVIDENCE));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.OBSTACLE, Node.NodeType.RISK));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.QUESTION));
+        addIfPresent(report, findNearby(nodes, baseNode, Node.NodeType.EXPERIMENT));
+
+        report.items.sort((a, b) -> Integer.compare(b.score, a.score));
+        if (!report.items.isEmpty()) {
+            report.headline = "建议先看：" + report.items.get(0).title;
+        }
+        report.notes.add("已根据当前节点及邻近结构生成聚焦引导");
+        return report;
+    }
+
     public static GuideReport buildForFix(MainActivity activity,
                                           Node baseNode,
                                           WorkflowQuickFixEngine.FixResult fixResult) {
@@ -37,28 +61,70 @@ public final class NodeFocusGuideEngine {
 
         Map<String, Node> nodes = activity.getMindMapView().getNodesInternal();
         if (fixResult != null) {
-            for (String id : fixResult.createdNodeIds) {
-                Node node = nodes.get(id);
-                if (node != null) {
-                    report.items.add(new GuideItem(id, safeTitle(node), resolveHint(node), score(node) + 10));
-                }
+            for (String note : fixResult.notes) {
+                report.notes.add(note);
             }
-            for (String id : fixResult.touchedNodeIds) {
-                Node node = nodes.get(id);
-                if (node != null && !contains(report, id)) {
-                    report.items.add(new GuideItem(id, safeTitle(node), resolveHint(node), score(node)));
-                }
+        }
+
+        report.items.add(new GuideItem(baseNode.getId(), safeTitle(baseNode), "当前焦点节点", score(baseNode)));
+
+        GuideReport around = buildForNode(activity, baseNode);
+        for (GuideItem item : around.items) {
+            if (!contains(report, item.nodeId)) {
+                report.items.add(item);
             }
-            report.notes.addAll(fixResult.notes);
         }
-        if (!contains(report, baseNode.getId())) {
-            report.items.add(new GuideItem(baseNode.getId(), safeTitle(baseNode), "当前焦点节点", score(baseNode)));
-        }
+
         report.items.sort((a, b) -> Integer.compare(b.score, a.score));
         if (!report.items.isEmpty()) {
             report.headline = "修复后建议先处理：" + report.items.get(0).title;
         }
         return report;
+    }
+
+    private static void addIfPresent(GuideReport report, Node node) {
+        if (node == null || contains(report, node.getId())) return;
+        report.items.add(new GuideItem(node.getId(), safeTitle(node), resolveHint(node), score(node)));
+    }
+
+    private static Node findNearby(Map<String, Node> nodes, Node baseNode, Node.NodeType... types) {
+        if (nodes == null || baseNode == null || types == null) return null;
+        Node best = null;
+        int bestScore = Integer.MIN_VALUE;
+
+        for (Node node : nodes.values()) {
+            if (node == null || node.getId().equals(baseNode.getId())) continue;
+            boolean matched = false;
+            for (Node.NodeType type : types) {
+                if (node.getType() == type) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) continue;
+
+            int candidateScore = score(node);
+            if (sameOwner(baseNode, node)) candidateScore += 25;
+            if (distance(baseNode, node) <= 920f) candidateScore += 15;
+
+            if (candidateScore > bestScore) {
+                bestScore = candidateScore;
+                best = node;
+            }
+        }
+        return best;
+    }
+
+    private static boolean sameOwner(Node a, Node b) {
+        String ownerA = WorkflowEngine.resolveOwnerId(a);
+        String ownerB = WorkflowEngine.resolveOwnerId(b);
+        return !WorkflowEngine.isBlank(ownerA) && ownerA.equals(ownerB);
+    }
+
+    private static double distance(Node a, Node b) {
+        float dx = a.getX() - b.getX();
+        float dy = a.getY() - b.getY();
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     private static boolean contains(GuideReport report, String id) {
@@ -107,7 +173,7 @@ public final class NodeFocusGuideEngine {
             case EXPERIMENT: return "这里负责迁移验证";
             case OBSTACLE:
             case RISK: return "先看失败点，减少白忙";
-            default: return "这是本轮补强后的关键节点";
+            default: return "这是当前结构中的关键节点";
         }
     }
 }
