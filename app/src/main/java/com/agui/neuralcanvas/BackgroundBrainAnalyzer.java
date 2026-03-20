@@ -15,6 +15,7 @@ public final class BackgroundBrainAnalyzer {
         public String responseJson = "";
         public String riskLevel = "LOW";
         public String agentProfile = "auto";
+        public String orchestratorSummary = "";
     }
 
     private BackgroundBrainAnalyzer() {}
@@ -34,31 +35,34 @@ public final class BackgroundBrainAnalyzer {
         }
 
         AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
-        report.agentProfile = AiAgentPromptBuilder.chooseProfile(snapshot).key;
-        if (settings != null && !"auto".equalsIgnoreCase(settings.getPreferredAutopilotAgent())) {
-            report.agentProfile = settings.getPreferredAutopilotAgent();
-        }
+        AiAutopilotOrchestrator.OrchestratorResult orchestrated =
+                AiAutopilotOrchestrator.run(config, snapshot, settings);
 
-        AiResponse response = new AiAutopilotApi().runAutopilot(config, snapshot, settings);
-        report.responseJson = AiJsonParser.toJson(response);
-        report.summary = response == null ? "AI没有返回结果" : safe(response.getAnswer());
+        report.orchestratorSummary = orchestrated.buildSummary();
+        report.responseJson = AiJsonParser.toJson(orchestrated.mergedResponse);
+        report.summary = orchestrated.mergedResponse == null ? "AI没有返回结果" : safe(orchestrated.mergedResponse.getAnswer());
 
-        AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(response);
+        AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(orchestrated.mergedResponse);
         report.riskLevel = safety.riskLevel.name();
         report.reason = safety.buildSummary();
         report.severity = safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.HIGH ? 95
                 : safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.MEDIUM ? 78 : 64;
         report.shouldNotify = true;
 
-        if (response != null && response.getCommands() != null) {
-            for (AiCommand cmd : response.getCommands()) {
+        if (!orchestrated.runs.isEmpty()) {
+            AiAgentRunResult last = orchestrated.runs.get(orchestrated.runs.size() - 1);
+            report.agentProfile = last.profile == null ? "auto" : last.profile.key;
+        }
+
+        if (orchestrated.mergedResponse != null && orchestrated.mergedResponse.getCommands() != null) {
+            for (AiCommand cmd : orchestrated.mergedResponse.getCommands()) {
                 if (cmd != null && "focus_node".equalsIgnoreCase(cmd.getAction())) {
                     report.focusNodeId = safe(cmd.getNodeId());
                     break;
                 }
             }
             if (report.focusNodeId.isEmpty()) {
-                for (AiCommand cmd : response.getCommands()) {
+                for (AiCommand cmd : orchestrated.mergedResponse.getCommands()) {
                     if (cmd == null) continue;
                     if (!safe(cmd.getNodeId()).isEmpty()) {
                         report.focusNodeId = safe(cmd.getNodeId());
@@ -74,8 +78,8 @@ public final class BackgroundBrainAnalyzer {
 
         Node focusNode = nodes == null ? null : nodes.get(report.focusNodeId);
         report.focusNodeTitle = focusNode == null ? "" : safe(focusNode.getTitle());
-        report.suggestedMode = inferMode(focusNode, response, report.agentProfile);
-        if (report.summary.isEmpty()) report.summary = "AI 已完成一次自动巡航";
+        report.suggestedMode = inferMode(focusNode, orchestrated.mergedResponse, report.agentProfile);
+        if (report.summary.isEmpty()) report.summary = "AI 已完成一次多代理自动巡航";
         return report;
     }
 

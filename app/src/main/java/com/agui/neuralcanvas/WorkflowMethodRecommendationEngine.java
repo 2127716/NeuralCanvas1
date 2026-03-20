@@ -1,3 +1,4 @@
+
 package com.agui.neuralcanvas;
 
 import java.util.ArrayList;
@@ -154,23 +155,10 @@ public final class WorkflowMethodRecommendationEngine {
         if (!analysis.gaps.isEmpty()) {
             analysis.recommendations.add(new Recommendation("自动补强", "按当前缺口自动补最小但高价值的结构。", "action:QUICK_FIX", analysis.dominantMode, 108));
         }
+
         analysis.recommendations.add(new Recommendation("工作流体检", "先看系统缺口，再决定先补哪一块。", "action:WORKFLOW_HEALTH", analysis.dominantMode, 70));
         sortAndDedupe(analysis.recommendations);
         return analysis;
-    }
-
-    public static List<Recommendation> getModeRecommendations(Node node,
-                                                              Map<String, Node> nodes,
-                                                              Map<String, Connection> connections,
-                                                              String mode) {
-        Analysis analysis = analyze(node, nodes, connections);
-        List<Recommendation> result = new ArrayList<>();
-        for (Recommendation item : analysis.recommendations) {
-            if (mode == null || mode.trim().isEmpty() || mode.equalsIgnoreCase(item.mode)) {
-                result.add(item);
-            }
-        }
-        return result;
     }
 
     public static String buildReadableReport(Analysis analysis) {
