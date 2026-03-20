@@ -59,10 +59,6 @@ public class MainActivity extends AppCompatActivity
         ImageButton btnSearch = findViewById(R.id.btn_search);
         if (btnSearch != null) btnSearch.setOnClickListener(v -> showSearchDialog());
 
-        ImageButton btnDashboard = findViewById(R.id.btn_dashboard);
-        if (btnDashboard != null) btnDashboard.setOnClickListener(v ->
-                ScientificDashboardDialog.newInstance().show(getSupportFragmentManager(), "scientific_dashboard"));
-
         ImageButton btnMore = findViewById(R.id.btn_more);
         if (btnMore != null) btnMore.setOnClickListener(v -> showMoreMenu());
 
@@ -77,8 +73,6 @@ public class MainActivity extends AppCompatActivity
         handleBrainLaunchIntent(getIntent());
         maybeShowPendingBrainGuidance(false);
     }
-
-
 
     private void handleBrainLaunchIntent(Intent intent) {
         if (intent == null || mindMapView == null) return;
@@ -180,7 +174,7 @@ public class MainActivity extends AppCompatActivity
         if (subtitle != null) subtitle.setTextColor(ThemeManager.getTextSecondary());
 
         int iconTint = ThemeManager.getTextPrimary();
-        int[] btnIds = {R.id.btn_add_node, R.id.btn_search, R.id.btn_dashboard, R.id.btn_more};
+        int[] btnIds = {R.id.btn_add_node, R.id.btn_search, R.id.btn_more};
         for (int id : btnIds) {
             android.widget.ImageButton btn = findViewById(id);
             if (btn != null) btn.setColorFilter(iconTint);
@@ -497,7 +491,8 @@ public class MainActivity extends AppCompatActivity
             return;
         }
         ExecutionLogDialog.newInstance(baseNode, mindMapView.getNodesInternal(), new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 mindMapView.requestRender();
                 scheduleAutoSave();
             }
@@ -511,7 +506,8 @@ public class MainActivity extends AppCompatActivity
             return;
         }
         DecisionFollowThroughDialog.newInstance(baseNode, mindMapView.getNodesInternal(), mindMapView.getConnectionsInternal(), new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 mindMapView.requestRender();
                 scheduleAutoSave();
             }
@@ -700,7 +696,7 @@ public class MainActivity extends AppCompatActivity
         };
 
         String[] labels = new String[] {
-                "任务", "动作", "项目", "想法", "概念", "问题", "资源", "决策", "笔记"
+                "任务", "行动", "项目", "想法", "概念", "问题", "资源", "决策", "笔记"
         };
 
         new AlertDialog.Builder(this)
