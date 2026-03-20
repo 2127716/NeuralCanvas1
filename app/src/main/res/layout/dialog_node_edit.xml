@@ -3,108 +3,94 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="20dp"
+    android:background="#0F172A">
 
-    <!-- 标题输入 -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="标题："
-        android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
+        android:text="节点详情"
+        android:textColor="#F8FAFC"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="现代化分组布局：基础信息优先，低频字段下沉"
+        android:textColor="#94A3B8"
+        android:textSize="13sp" />
 
     <EditText
         android:id="@+id/edit_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="输入节点标题"
-        android:padding="12dp"
-        android:background="@android:drawable/editbox_background"
-        android:layout_marginBottom="16dp" />
-
-    <!-- 内容输入 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="内容："
-        android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginTop="16dp"
+        android:background="#162033"
+        android:hint="标题"
+        android:padding="14dp"
+        android:textColor="#F8FAFC"
+        android:textColorHint="#94A3B8" />
 
     <EditText
         android:id="@+id/edit_content"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:hint="输入节点内容"
-        android:padding="12dp"
-        android:background="@android:drawable/editbox_background"
+        android:layout_height="120dp"
+        android:layout_marginTop="12dp"
+        android:background="#162033"
         android:gravity="top"
-        android:layout_marginBottom="16dp" />
-
-    <!-- 类型选择 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="类型："
-        android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
+        android:hint="内容"
+        android:padding="14dp"
+        android:textColor="#F8FAFC"
+        android:textColorHint="#94A3B8" />
 
     <Spinner
         android:id="@+id/spinner_type"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:background="@android:drawable/spinner_background"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginTop="12dp"
+        android:background="#162033" />
 
-    <!-- 底部按钮栏：删除 | 链接 | 取消 | 保存 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_marginTop="18dp"
+        android:gravity="end"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/btn_delete"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:padding="10dp"
             android:text="删除"
-            android:textSize="16sp"
-            android:textColor="#D32F2F"
-            android:padding="10dp" />
+            android:textColor="#FB7185" />
 
         <TextView
             android:id="@+id/btn_link"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="链接"
-            android:textSize="16sp"
-            android:textColor="#FF9800"
             android:padding="10dp"
-            android:gravity="center" />
+            android:text="连线"
+            android:textColor="#A78BFA" />
 
         <TextView
             android:id="@+id/btn_cancel"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="取消"
-            android:textSize="16sp"
-            android:textColor="#FF9800"
             android:padding="10dp"
-            android:gravity="center" />
+            android:text="取消"
+            android:textColor="#94A3B8" />
 
         <TextView
             android:id="@+id/btn_save"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="保存"
-            android:textSize="16sp"
-            android:textColor="#FF9800"
             android:padding="10dp"
-            android:gravity="end" />
+            android:text="保存"
+            android:textColor="#38BDF8"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </LinearLayout>
