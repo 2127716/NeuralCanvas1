@@ -17,6 +17,7 @@ public final class FocusSessionEngine {
 
     public static void start(Context context, Node node, int plannedMinutes) {
         if (context == null || node == null) return;
+        NodeIntelligenceEngine.markFocus(node);
         SharedPreferences.Editor editor = prefs(context).edit();
         editor.putString(KEY_NODE_ID, node.getId()); editor.putString(KEY_TITLE, safeTitle(node)); editor.putLong(KEY_STARTED_AT, System.currentTimeMillis()); editor.putInt(KEY_MINUTES, Math.max(5, plannedMinutes)); editor.putInt(KEY_INTERRUPTS, 0); editor.apply();
     }
@@ -39,6 +40,8 @@ public final class FocusSessionEngine {
             GraphMetaHelper.putInt(node, "focus_interruptions", GraphMetaHelper.getInt(node, "focus_interruptions", 0) + info.interruptions);
             GraphMetaHelper.putBoolean(node, "focus_last_completed", completed);
             if (node.getEffortEstimate() > 0f) GraphMetaHelper.putFloat(node, "effort_ratio", node.getActualEffort() / Math.max(0.01f, node.getEffortEstimate()));
+            OutcomeFeedbackEngine.markExecutionLogged(node);
+            NodeIntelligenceEngine.markFocus(node);
         }
         clear(context); return hours;
     }

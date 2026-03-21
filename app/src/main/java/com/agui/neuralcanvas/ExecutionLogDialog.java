@@ -98,6 +98,8 @@ public class ExecutionLogDialog extends DialogFragment {
             String old = safe(node.getContent());
             String merged = old.isEmpty() ? note : (old + "\n" + note);
             node.setContent(merged);
+            OutcomeFeedbackEngine.markExecutionLogged(node);
+            NodeIntelligenceEngine.markFocus(node);
 
             if (activity.getMindMapView() != null) {
                 activity.getMindMapView().invalidate();

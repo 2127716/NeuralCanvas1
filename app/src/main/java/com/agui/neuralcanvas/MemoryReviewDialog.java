@@ -62,6 +62,7 @@ public class MemoryReviewDialog extends DialogFragment {
 
         final Node node = snapshot.dueNodes.get(0);
         LearningLoopEngine.ensureReviewAnchor(node);
+        NodeIntelligenceEngine.markFocus(node);
         String content = node.getContent() == null || node.getContent().trim().isEmpty() ? "(无内容)" : node.getContent();
         head.append("当前复习：").append(safeTitle(node))
                 .append("\n\n").append(content)
@@ -80,6 +81,7 @@ public class MemoryReviewDialog extends DialogFragment {
     private void apply(Node node, MemoryEngine.Grade grade) {
         MemoryEngine.review(node, grade);
         LearningLoopEngine.ensureReviewAnchor(node);
+        OutcomeFeedbackEngine.markReviewed(node);
         if (onSaved != null) onSaved.run();
     }
 

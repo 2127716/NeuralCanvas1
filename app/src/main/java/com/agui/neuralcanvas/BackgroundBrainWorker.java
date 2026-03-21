@@ -67,6 +67,7 @@ public class BackgroundBrainWorker extends Worker {
                         && response.getCommands() != null
                         && !response.getCommands().isEmpty()) {
                     new AiHeadlessExecutor(nodes, connections).execute(response.getCommands());
+                    OutcomeFeedbackEngine.backfillFromCommands(nodes, response);
                     dataManager.saveMindMap(nodes, connections);
                     report.autoApplied = true;
                     report.summary = (report.summary == null ? "" : report.summary)
@@ -77,6 +78,10 @@ public class BackgroundBrainWorker extends Worker {
                 if (!afterAudit.isHealthy()) {
                     report.summary = (report.summary == null ? "" : report.summary)
                             + "\n\n【执行后二次审查】\n" + afterAudit.buildSummary();
+                    for (String issue : afterAudit.issues) {
+                        Node target = findFirstMentionedNode(nodes, issue);
+                        if (target != null) NodeIntelligenceEngine.markIssue(target);
+                    }
                 }
 
                 LearningLoopEngine.LearningReport learningReport = LearningLoopEngine.analyze(nodes, connections);
@@ -93,9 +98,15 @@ public class BackgroundBrainWorker extends Worker {
                 record.commands = response == null ? null : response.getCommands();
                 BehaviorMemoryEngine.record(dataManager, record);
 
+                Node focusNode = nodes == null ? null : nodes.get(report.focusNodeId);
+                if (focusNode != null) NodeIntelligenceEngine.markFocus(focusNode);
+
                 BehaviorMemoryProfile profile = dataManager.loadBehaviorMemoryProfile();
+                PrioritySchedulerEngine.PriorityBoard board = PrioritySchedulerEngine.build(nodes, connections, profile);
+
                 report.summary = (report.summary == null ? "" : report.summary)
-                        + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile);
+                        + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile)
+                        + "\n\n【今日优先级】\n" + board.buildSummary();
             }
 
             BrainPendingGuidance guidance = new BrainPendingGuidance();
@@ -118,5 +129,15 @@ public class BackgroundBrainWorker extends Worker {
             e.printStackTrace();
             return Result.retry();
         }
+    }
+
+    private Node findFirstMentionedNode(Map<String, Node> nodes, String issue) {
+        if (nodes == null || issue == null || issue.trim().isEmpty()) return null;
+        for (Node node : nodes.values()) {
+            if (node == null) continue;
+            String title = node.getTitle() == null ? "" : node.getTitle().trim();
+            if (!title.isEmpty() && issue.contains(title)) return node;
+        }
+        return null;
     }
 }
