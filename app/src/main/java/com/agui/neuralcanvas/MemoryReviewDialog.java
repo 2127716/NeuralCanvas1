@@ -31,6 +31,8 @@ public class MemoryReviewDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        LearningLoopEngine.LearningReport learningReport =
+                LearningLoopEngine.analyze(currentNodes, null);
         MemoryEngine.MemorySnapshot snapshot = MemoryEngine.build(currentNodes);
 
         ScrollView scroll = new ScrollView(requireContext());
@@ -44,8 +46,13 @@ public class MemoryReviewDialog extends DialogFragment {
         tv.setTextColor(Color.parseColor("#0F172A"));
         root.addView(tv);
 
+        StringBuilder head = new StringBuilder();
+        head.append(learningReport.buildSummary()).append("\n\n");
+
         if (snapshot.dueNodes.isEmpty()) {
-            tv.setText("当前没有到期复习节点。\n未来待复习：" + snapshot.upcomingNodes.size() + " 个");
+            head.append("当前没有到期复习节点。")
+                    .append("\n未来待复习：").append(snapshot.upcomingNodes.size()).append(" 个");
+            tv.setText(head.toString());
             return new AlertDialog.Builder(requireContext())
                     .setTitle("间隔复习队列")
                     .setView(scroll)
@@ -54,8 +61,12 @@ public class MemoryReviewDialog extends DialogFragment {
         }
 
         final Node node = snapshot.dueNodes.get(0);
+        LearningLoopEngine.ensureReviewAnchor(node);
         String content = node.getContent() == null || node.getContent().trim().isEmpty() ? "(无内容)" : node.getContent();
-        tv.setText("当前复习：" + safeTitle(node) + "\n\n" + content + "\n\n" + MemoryEngine.getStatsText(node));
+        head.append("当前复习：").append(safeTitle(node))
+                .append("\n\n").append(content)
+                .append("\n\n").append(MemoryEngine.getStatsText(node));
+        tv.setText(head.toString());
 
         return new AlertDialog.Builder(requireContext())
                 .setTitle("间隔复习队列")
@@ -68,6 +79,7 @@ public class MemoryReviewDialog extends DialogFragment {
 
     private void apply(Node node, MemoryEngine.Grade grade) {
         MemoryEngine.review(node, grade);
+        LearningLoopEngine.ensureReviewAnchor(node);
         if (onSaved != null) onSaved.run();
     }
 

@@ -39,6 +39,19 @@ public class BackgroundBrainWorker extends Worker {
             if (report.responseJson != null && !report.responseJson.trim().isEmpty()) {
                 response = AiJsonParser.parseResponse(report.responseJson);
 
+                try {
+                    AiModelSelfReviewEngine.ReviewOutcome modelReview =
+                            new AiModelSelfReviewEngine().review(config, AiGraphSnapshot.from(nodes, connections), response);
+                    if (modelReview != null) {
+                        response = modelReview.response == null ? response : modelReview.response;
+                        report.summary = (report.summary == null ? "" : report.summary)
+                                + "\n\n【模型复审】\n" + modelReview.summary;
+                    }
+                } catch (Exception ignored) {
+                    report.summary = (report.summary == null ? "" : report.summary)
+                            + "\n\n【模型复审】\n模型复审跳过，已回退到规则复审";
+                }
+
                 reviewResult = AiSelfReviewEngine.review(response, nodes, connections);
                 response = reviewResult.response;
                 report.responseJson = AiJsonParser.toJson(response);
@@ -65,6 +78,10 @@ public class BackgroundBrainWorker extends Worker {
                     report.summary = (report.summary == null ? "" : report.summary)
                             + "\n\n【执行后二次审查】\n" + afterAudit.buildSummary();
                 }
+
+                LearningLoopEngine.LearningReport learningReport = LearningLoopEngine.analyze(nodes, connections);
+                report.summary = (report.summary == null ? "" : report.summary)
+                        + "\n\n【学习闭环】\n" + learningReport.buildSummary();
 
                 BehaviorMemoryEngine.PulseRecord record = new BehaviorMemoryEngine.PulseRecord();
                 record.agentProfile = report.agentProfile;
