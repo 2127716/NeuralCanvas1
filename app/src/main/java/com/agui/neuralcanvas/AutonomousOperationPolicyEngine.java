@@ -63,7 +63,7 @@ public final class AutonomousOperationPolicyEngine {
         sb.append("自治执行策略：自动执行 ").append(autoCommands.size())
                 .append(" 条，待确认 ").append(confirmCommands.size())
                 .append(" 条，拦截 ").append(blockedCommands.size()).append(" 条");
-        sb.append("\n").append(result.impactSummary.buildSummary());
+        sb.append("\\n").append(result.impactSummary.buildSummary());
         result.summary = sb.toString();
 
         return result;

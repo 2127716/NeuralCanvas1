@@ -14,15 +14,15 @@ public final class AiAutopilotGuideDialog {
         StringBuilder message = new StringBuilder();
         message.append(guidance.summary == null ? "AI 已完成一次自动巡航。" : guidance.summary);
         if (guidance.riskLevel != null && !guidance.riskLevel.trim().isEmpty()) {
-            message.append("\n\n风险等级：").append(guidance.riskLevel);
+            message.append("\\n\\n风险等级：").append(guidance.riskLevel);
         }
         if (guidance.autoApplied) {
-            message.append("\n\n已自动执行低风险改动。你现在最该看的是定位到的关键节点。");
+            message.append("\\n\\n已自动执行低风险改动。你现在最该看的是定位到的关键节点。");
         }
         if (pending != null && pending.commandCount > 0) {
-            message.append("\n\n另有 ").append(pending.commandCount).append(" 条中高风险改动等待你确认。");
+            message.append("\\n\\n另有 ").append(pending.commandCount).append(" 条中高风险改动等待你确认。");
         } else if (guidance.responseJson != null && !guidance.responseJson.trim().isEmpty() && !guidance.autoApplied) {
-            message.append("\n\nAI 已准备好建议改动，你可以先看后执行。");
+            message.append("\\n\\nAI 已准备好建议改动，你可以先看后执行。");
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(activity)

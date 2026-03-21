@@ -4,7 +4,6 @@ import android.app.Dialog;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -62,14 +61,14 @@ public class OperationApprovalDialog extends DialogFragment {
         summary.setTextColor(Color.parseColor("#0F172A"));
         summary.setTextSize(14);
         summary.setText((bundle.summary == null ? "" : bundle.summary)
-                + "\n\n"
+                + "\\n\\n"
                 + (bundle.impactSummary == null ? "" : bundle.impactSummary));
         root.addView(summary);
 
         TextView hint = new TextView(requireContext());
         hint.setTextColor(Color.parseColor("#475569"));
         hint.setTextSize(13);
-        hint.setText("\n这些改动被判定为中高风险或结构改动较大，建议人工确认后再执行。");
+        hint.setText("\\n这些改动被判定为中高风险或结构改动较大，建议人工确认后再执行。");
         root.addView(hint);
 
         return new AlertDialog.Builder(requireContext())
