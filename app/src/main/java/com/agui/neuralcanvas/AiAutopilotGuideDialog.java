@@ -8,6 +8,9 @@ public final class AiAutopilotGuideDialog {
     public static void show(MainActivity activity, BrainPendingGuidance guidance) {
         if (activity == null || guidance == null) return;
 
+        PendingOperationBundle pending = activity.getDataManager() == null
+                ? null : activity.getDataManager().loadPendingOperationBundle();
+
         StringBuilder message = new StringBuilder();
         message.append(guidance.summary == null ? "AI 已完成一次自动巡航。" : guidance.summary);
         if (guidance.riskLevel != null && !guidance.riskLevel.trim().isEmpty()) {
@@ -15,7 +18,10 @@ public final class AiAutopilotGuideDialog {
         }
         if (guidance.autoApplied) {
             message.append("\n\n已自动执行低风险改动。你现在最该看的是定位到的关键节点。");
-        } else if (guidance.responseJson != null && !guidance.responseJson.trim().isEmpty()) {
+        }
+        if (pending != null && pending.commandCount > 0) {
+            message.append("\n\n另有 ").append(pending.commandCount).append(" 条中高风险改动等待你确认。");
+        } else if (guidance.responseJson != null && !guidance.responseJson.trim().isEmpty() && !guidance.autoApplied) {
             message.append("\n\nAI 已准备好建议改动，你可以先看后执行。");
         }
 
@@ -30,13 +36,16 @@ public final class AiAutopilotGuideDialog {
                     }
                 });
 
-        if (guidance.responseJson != null
+        if (pending != null && pending.commandCount > 0) {
+            builder.setNeutralButton("确认改动", (d, w) ->
+                    OperationApprovalDialog.newInstance()
+                            .show(activity.getSupportFragmentManager(), "operation_approval_dialog"));
+        } else if (guidance.responseJson != null
                 && !guidance.responseJson.trim().isEmpty()
                 && !guidance.autoApplied) {
             builder.setNeutralButton("查看改动", (d, w) ->
                     AiCommandPreviewDialog.newInstanceFromJson(guidance.responseJson)
-                            .show(activity.getSupportFragmentManager(), "ai_command_preview")
-            );
+                            .show(activity.getSupportFragmentManager(), "ai_command_preview"));
         }
         builder.show();
     }
