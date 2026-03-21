@@ -51,6 +51,7 @@ public class AiCommandPreviewDialog extends DialogFragment {
         }
 
         MainActivity activity = (MainActivity) getActivity();
+        final SimpleDataManager dataManager = activity.getDataManager();
         AiResponse response;
         try {
             response = AiJsonParser.parseResponse(getArguments().getString(ARG_JSON, "{}"));
@@ -61,6 +62,9 @@ public class AiCommandPreviewDialog extends DialogFragment {
                     .setPositiveButton("关闭", null)
                     .create();
         }
+
+        final AiResponse finalResponse = response;
+        final boolean[] decided = {false};
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
@@ -110,15 +114,29 @@ public class AiCommandPreviewDialog extends DialogFragment {
             }
         }
 
-        return new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("AI命令预览")
                 .setView(scrollView)
-                .setNegativeButton("取消", null)
+                .setNegativeButton("取消", (d, which) -> {
+                    decided[0] = true;
+                    SuggestionFeedbackEngine.recordRejected(dataManager, finalResponse, "manual_preview");
+                })
                 .setPositiveButton("确认执行", (d, which) -> {
-                    new AiGraphExecutor(activity.getMindMapView()).execute(response.getCommands());
+                    decided[0] = true;
+                    new AiGraphExecutor(activity.getMindMapView()).execute(finalResponse.getCommands());
                     activity.onGraphMutatedByAi();
+                    SuggestionFeedbackEngine.recordAccepted(dataManager, finalResponse, "manual_preview");
+                    SuggestionFeedbackEngine.recordEffectiveness(dataManager, finalResponse);
                 })
                 .create();
+
+        dialog.setOnDismissListener(d -> {
+            if (!decided[0]) {
+                SuggestionFeedbackEngine.recordRejected(dataManager, finalResponse, "manual_preview");
+            }
+        });
+
+        return dialog;
     }
 
     private LinearLayout buildCommandCard(int index, AiCommand cmd) {

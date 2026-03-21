@@ -20,6 +20,7 @@ public class SimpleDataManager {
     private static final String KEY_LAST_BRAIN_PULSE_SUMMARY = "last_brain_pulse_summary";
     private static final String KEY_PENDING_BRAIN_GUIDANCE = "pending_brain_guidance";
     private static final String KEY_BEHAVIOR_MEMORY = "behavior_memory_profile";
+    private static final String KEY_SUGGESTION_FEEDBACK = "suggestion_feedback_profile";
     private final SharedPreferences prefs;
     private final Gson gson;
 
@@ -56,9 +57,7 @@ public class SimpleDataManager {
         return result;
     }
 
-    public void saveAiConfig(AiConfig config) {
-        prefs.edit().putString(KEY_AI_CONFIG, gson.toJson(config)).apply();
-    }
+    public void saveAiConfig(AiConfig config) { prefs.edit().putString(KEY_AI_CONFIG, gson.toJson(config)).apply(); }
 
     public AiConfig loadAiConfig() {
         try {
@@ -72,9 +71,7 @@ public class SimpleDataManager {
         }
     }
 
-    public void saveAutopilotSettings(BrainAutopilotSettings settings) {
-        prefs.edit().putString(KEY_AUTOPILOT_SETTINGS, gson.toJson(settings)).apply();
-    }
+    public void saveAutopilotSettings(BrainAutopilotSettings settings) { prefs.edit().putString(KEY_AUTOPILOT_SETTINGS, gson.toJson(settings)).apply(); }
 
     public BrainAutopilotSettings loadAutopilotSettings() {
         try {
@@ -89,24 +86,16 @@ public class SimpleDataManager {
     }
 
     public void saveLastBrainPulse(long timestamp, String summary) {
-        prefs.edit()
-                .putLong(KEY_LAST_BRAIN_PULSE_AT, timestamp)
-                .putString(KEY_LAST_BRAIN_PULSE_SUMMARY, summary == null ? "" : summary)
-                .apply();
+        prefs.edit().putLong(KEY_LAST_BRAIN_PULSE_AT, timestamp).putString(KEY_LAST_BRAIN_PULSE_SUMMARY, summary == null ? "" : summary).apply();
     }
 
-    public long loadLastBrainPulseAt() {
-        return prefs.getLong(KEY_LAST_BRAIN_PULSE_AT, 0L);
-    }
-
+    public long loadLastBrainPulseAt() { return prefs.getLong(KEY_LAST_BRAIN_PULSE_AT, 0L); }
     public String loadLastBrainPulseSummary() {
         String value = prefs.getString(KEY_LAST_BRAIN_PULSE_SUMMARY, "");
         return value == null ? "" : value;
     }
 
-    public void savePendingBrainGuidance(BrainPendingGuidance guidance) {
-        prefs.edit().putString(KEY_PENDING_BRAIN_GUIDANCE, gson.toJson(guidance)).apply();
-    }
+    public void savePendingBrainGuidance(BrainPendingGuidance guidance) { prefs.edit().putString(KEY_PENDING_BRAIN_GUIDANCE, gson.toJson(guidance)).apply(); }
 
     public BrainPendingGuidance loadPendingBrainGuidance() {
         try {
@@ -119,13 +108,9 @@ public class SimpleDataManager {
         }
     }
 
-    public void clearPendingBrainGuidance() {
-        prefs.edit().remove(KEY_PENDING_BRAIN_GUIDANCE).apply();
-    }
+    public void clearPendingBrainGuidance() { prefs.edit().remove(KEY_PENDING_BRAIN_GUIDANCE).apply(); }
 
-    public void saveBehaviorMemoryProfile(BehaviorMemoryProfile profile) {
-        prefs.edit().putString(KEY_BEHAVIOR_MEMORY, gson.toJson(profile)).apply();
-    }
+    public void saveBehaviorMemoryProfile(BehaviorMemoryProfile profile) { prefs.edit().putString(KEY_BEHAVIOR_MEMORY, gson.toJson(profile)).apply(); }
 
     public BehaviorMemoryProfile loadBehaviorMemoryProfile() {
         try {
@@ -139,12 +124,29 @@ public class SimpleDataManager {
         }
     }
 
+    public void saveSuggestionFeedbackProfile(SuggestionFeedbackProfile profile) {
+        prefs.edit().putString(KEY_SUGGESTION_FEEDBACK, gson.toJson(profile)).apply();
+    }
+
+    public SuggestionFeedbackProfile loadSuggestionFeedbackProfile() {
+        try {
+            String json = prefs.getString(KEY_SUGGESTION_FEEDBACK, "");
+            if (json == null || json.trim().isEmpty()) return new SuggestionFeedbackProfile();
+            SuggestionFeedbackProfile profile = gson.fromJson(json, SuggestionFeedbackProfile.class);
+            return profile == null ? new SuggestionFeedbackProfile() : profile;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new SuggestionFeedbackProfile();
+        }
+    }
+
     public void clearAll() {
         prefs.edit()
                 .remove(KEY_NODES)
                 .remove(KEY_CONNECTIONS)
                 .remove(KEY_PENDING_BRAIN_GUIDANCE)
                 .remove(KEY_BEHAVIOR_MEMORY)
+                .remove(KEY_SUGGESTION_FEEDBACK)
                 .apply();
     }
 }

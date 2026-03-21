@@ -72,6 +72,8 @@ public class BackgroundBrainWorker extends Worker {
                     report.autoApplied = true;
                     report.summary = (report.summary == null ? "" : report.summary)
                             + "（已自动执行低风险改动）";
+                    SuggestionFeedbackEngine.recordAutoApplied(dataManager, response, report.agentProfile);
+                    SuggestionFeedbackEngine.recordEffectiveness(dataManager, response);
                 }
 
                 WorkflowAuditEngine.AuditResult afterAudit = WorkflowAuditEngine.audit(nodes, connections);
@@ -85,8 +87,13 @@ public class BackgroundBrainWorker extends Worker {
                 }
 
                 LearningLoopEngine.LearningReport learningReport = LearningLoopEngine.analyze(nodes, connections);
+                LearningTransferEngine.TransferReport transferReport = LearningTransferEngine.analyze(nodes, connections);
+                NetworkEvolutionEngine.NetworkReport networkReport = NetworkEvolutionEngine.analyze(nodes, connections);
+
                 report.summary = (report.summary == null ? "" : report.summary)
-                        + "\n\n【学习闭环】\n" + learningReport.buildSummary();
+                        + "\n\n【学习闭环】\n" + learningReport.buildSummary()
+                        + "\n\n【学习迁移】\n" + transferReport.buildSummary()
+                        + "\n\n【网络进化】\n" + networkReport.buildSummary();
 
                 BehaviorMemoryEngine.PulseRecord record = new BehaviorMemoryEngine.PulseRecord();
                 record.agentProfile = report.agentProfile;
@@ -103,9 +110,11 @@ public class BackgroundBrainWorker extends Worker {
 
                 BehaviorMemoryProfile profile = dataManager.loadBehaviorMemoryProfile();
                 PrioritySchedulerEngine.PriorityBoard board = PrioritySchedulerEngine.build(nodes, connections, profile);
+                SuggestionFeedbackProfile feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
 
                 report.summary = (report.summary == null ? "" : report.summary)
                         + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile)
+                        + "\n\n【建议反馈】\n" + SuggestionFeedbackEngine.buildSummary(feedbackProfile)
                         + "\n\n【今日优先级】\n" + board.buildSummary();
             }
 

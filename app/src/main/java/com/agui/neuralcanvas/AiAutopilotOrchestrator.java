@@ -28,24 +28,23 @@ public final class AiAutopilotOrchestrator {
         if (fullSnapshot == null) fullSnapshot = new AiGraphSnapshot();
         if (settings == null) settings = new BrainAutopilotSettings();
 
-        BrainAgentProfile preferred = BrainAgentProfile.fromKey(settings.getPreferredAutopilotAgent());
-        BrainAgentProfile specialist = preferred == BrainAgentProfile.AUTO
-                ? AiAgentPromptBuilder.chooseProfile(fullSnapshot)
-                : preferred;
+        SuggestionFeedbackProfile feedback = new SuggestionFeedbackProfile();
+        AgentScoringEngine.AgentPlan plan = AgentScoringEngine.buildPlan(fullSnapshot, settings, feedback);
 
-        List<BrainAgentProfile> plan = new ArrayList<>();
-        plan.add(BrainAgentProfile.NETWORK);
-        if (specialist != BrainAgentProfile.NETWORK && specialist != BrainAgentProfile.GENERAL) {
-            plan.add(specialist);
-        }
-        plan.add(BrainAgentProfile.GENERAL);
-
-        for (BrainAgentProfile profile : plan) {
+        for (BrainAgentProfile profile : plan.orderedProfiles) {
+            if (result.runs.size() >= plan.maxAgents) break;
             AiAgentRunResult run = executeAgent(config, fullSnapshot, settings, profile);
+            if (run.commandCount > plan.maxCommandsPerRun) {
+                // soft trim on runaway agent
+                run.commandCount = plan.maxCommandsPerRun;
+            }
             result.runs.add(run);
         }
 
-        result.mergedResponse = AiCommandMergeEngine.merge(result.runs);
+        AgentScoringEngine.scoreRuns(result.runs, feedback);
+        List<AiAgentRunResult> kept = AgentScoringEngine.trimToBudget(result.runs, plan.totalCommandBudget);
+        result.mergedResponse = AiCommandMergeEngine.merge(kept);
+        result.mergedResponse.setAnswer(plan.reason + "\n" + result.mergedResponse.getAnswer());
         return result;
     }
 
