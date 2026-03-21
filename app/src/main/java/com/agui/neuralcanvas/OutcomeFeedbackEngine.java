@@ -3,7 +3,6 @@ package com.agui.neuralcanvas;
 import java.util.Map;
 
 public final class OutcomeFeedbackEngine {
-
     private static final long EFFECTIVE_WINDOW_MS = 7L * 24L * 60L * 60L * 1000L;
 
     private OutcomeFeedbackEngine() {}
@@ -60,14 +59,11 @@ public final class OutcomeFeedbackEngine {
         long now = System.currentTimeMillis();
 
         if (waiting && lastPatchAt > 0L && now - lastPatchAt <= EFFECTIVE_WINDOW_MS) {
-            GraphMetaHelper.putInt(node, "ai_patch_effective_count",
-                    GraphMetaHelper.getInt(node, "ai_patch_effective_count", 0) + 1);
+            GraphMetaHelper.putInt(node, "ai_patch_effective_count", GraphMetaHelper.getInt(node, "ai_patch_effective_count", 0) + 1);
             GraphMetaHelper.putString(node, "ai_patch_effective_channel", channel);
             GraphMetaHelper.putBoolean(node, "ai_patch_waiting_effectiveness", false);
         }
     }
 
-    private static String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
+    private static String safe(String value) { return value == null ? "" : value.trim(); }
 }

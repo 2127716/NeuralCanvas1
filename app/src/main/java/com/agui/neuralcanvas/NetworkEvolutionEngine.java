@@ -1,12 +1,6 @@
 package com.agui.neuralcanvas;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class NetworkEvolutionEngine {
 
@@ -43,12 +37,7 @@ public final class NetworkEvolutionEngine {
             if (node == null) continue;
             String key = normalize(node.getTitle());
             if (key.isEmpty()) continue;
-            List<Node> bucket = titleBuckets.get(key);
-            if (bucket == null) {
-                bucket = new ArrayList<>();
-                titleBuckets.put(key, bucket);
-            }
-            bucket.add(node);
+            titleBuckets.computeIfAbsent(key, k -> new ArrayList<>()).add(node);
         }
 
         for (Map.Entry<String, List<Node>> item : titleBuckets.entrySet()) {
@@ -67,9 +56,7 @@ public final class NetworkEvolutionEngine {
                 if (b == null) continue;
                 if (isSimilar(a, b)) {
                     report.similarNodeCount++;
-                    if (report.highlights.size() < 6) {
-                        maybeAdd(report, "语义相似可考虑桥接/合并：" + safeTitle(a) + " ↔ " + safeTitle(b));
-                    }
+                    maybeAdd(report, "语义相似可桥接/合并：" + safeTitle(a) + " ↔ " + safeTitle(b));
                 }
             }
         }
@@ -123,17 +110,14 @@ public final class NetworkEvolutionEngine {
         for (Connection c : connections.values()) {
             if (c == null || !node.getId().equals(c.getFromNodeId())) continue;
             Node other = nodes.get(c.getToNodeId());
-            if (other != null && (other.getType() == Node.NodeType.TASK || other.getType() == Node.NodeType.ACTION)) {
-                return true;
-            }
+            if (other != null && (other.getType() == Node.NodeType.TASK || other.getType() == Node.NodeType.ACTION)) return true;
         }
         return false;
     }
 
     private static boolean hasKnowledgeChain(Node node, Map<String, Node> nodes, Map<String, Connection> connections) {
         if (node == null || nodes == null || connections == null) return false;
-        boolean hasQuestion = false;
-        boolean hasSource = false;
+        boolean hasQuestion = false, hasSource = false;
         for (Connection c : connections.values()) {
             if (c == null) continue;
             String otherId = null;
@@ -158,20 +142,16 @@ public final class NetworkEvolutionEngine {
     }
 
     private static boolean isSimilar(Node a, Node b) {
-        String ta = normalize(a.getTitle());
-        String tb = normalize(b.getTitle());
+        String ta = normalize(a.getTitle()), tb = normalize(b.getTitle());
         if (ta.isEmpty() || tb.isEmpty() || ta.equals(tb)) return false;
         if (ta.contains(tb) || tb.contains(ta)) return true;
         return tokenOverlap(ta, tb) >= 0.67f;
     }
 
     private static float tokenOverlap(String a, String b) {
-        String[] aa = a.split("\\s+");
-        String[] bb = b.split("\\s+");
-        Set<String> sa = new HashSet<>();
-        Set<String> sb = new HashSet<>();
-        for (String s : aa) if (!s.trim().isEmpty()) sa.add(s);
-        for (String s : bb) if (!s.trim().isEmpty()) sb.add(s);
+        Set<String> sa = new HashSet<>(Arrays.asList(a.split("\\s+")));
+        Set<String> sb = new HashSet<>(Arrays.asList(b.split("\\s+")));
+        sa.remove(""); sb.remove("");
         if (sa.isEmpty() || sb.isEmpty()) return 0f;
         int hit = 0;
         for (String s : sa) if (sb.contains(s)) hit++;
@@ -185,14 +165,10 @@ public final class NetworkEvolutionEngine {
     private static String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
     }
-
     private static String safeTitle(Node node) {
         String title = node == null ? "" : node.getTitle();
         title = title == null ? "" : title.trim();
         return title.isEmpty() ? "未命名节点" : title;
     }
-
-    private static String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
+    private static String safe(String value) { return value == null ? "" : value.trim(); }
 }

@@ -36,8 +36,7 @@ public final class BackgroundBrainAnalyzer {
         }
 
         AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
-        AiAutopilotOrchestrator.OrchestratorResult orchestrated =
-                AiAutopilotOrchestrator.run(config, snapshot, settings, feedback);
+        AiAutopilotOrchestrator.OrchestratorResult orchestrated = AiAutopilotOrchestrator.run(config, snapshot, settings, feedback);
 
         report.orchestratorSummary = orchestrated.buildSummary();
         report.responseJson = AiJsonParser.toJson(orchestrated.mergedResponse);
@@ -46,8 +45,7 @@ public final class BackgroundBrainAnalyzer {
         AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(orchestrated.mergedResponse);
         report.riskLevel = safety.riskLevel.name();
         report.reason = safety.buildSummary();
-        report.severity = safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.HIGH ? 95
-                : safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.MEDIUM ? 78 : 64;
+        report.severity = safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.HIGH ? 95 : safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.MEDIUM ? 78 : 64;
         report.shouldNotify = true;
 
         if (!orchestrated.runs.isEmpty()) {
@@ -65,14 +63,8 @@ public final class BackgroundBrainAnalyzer {
             if (report.focusNodeId.isEmpty()) {
                 for (AiCommand cmd : orchestrated.mergedResponse.getCommands()) {
                     if (cmd == null) continue;
-                    if (!safe(cmd.getNodeId()).isEmpty()) {
-                        report.focusNodeId = safe(cmd.getNodeId());
-                        break;
-                    }
-                    if (!safe(cmd.getFromNodeId()).isEmpty()) {
-                        report.focusNodeId = safe(cmd.getFromNodeId());
-                        break;
-                    }
+                    if (!safe(cmd.getNodeId()).isEmpty()) { report.focusNodeId = safe(cmd.getNodeId()); break; }
+                    if (!safe(cmd.getFromNodeId()).isEmpty()) { report.focusNodeId = safe(cmd.getFromNodeId()); break; }
                 }
             }
         }
@@ -87,15 +79,12 @@ public final class BackgroundBrainAnalyzer {
         LearningActionPlanner.ActionPlan learningPlan = LearningActionPlanner.build(nodes, connections);
 
         StringBuilder sb = new StringBuilder();
-        if (!report.summary.isEmpty()) sb.append(report.summary);
-        else sb.append("AI 已完成一次多代理自动巡航");
-
+        if (!report.summary.isEmpty()) sb.append(report.summary); else sb.append("AI 已完成一次多代理自动巡航");
         sb.append("\n\n【结构体检】\n").append(health.buildSummary());
-        if (!audit.isHealthy()) sb.append("\n").append(audit.buildSummary());
-        else sb.append("\n结构闭环暂无明显缺口");
-
+        if (!audit.isHealthy()) sb.append("\n").append(audit.buildSummary()); else sb.append("\n结构闭环暂无明显缺口");
         sb.append("\n\n【网络重构建议】\n").append(refactorPlan.buildSummary());
         sb.append("\n\n【学习动作建议】\n").append(learningPlan.buildSummary());
+        sb.append("\n\n【代理编排】\n").append(orchestrated.buildSummary());
 
         report.summary = sb.toString();
         return report;
@@ -105,7 +94,6 @@ public final class BackgroundBrainAnalyzer {
         if ("learning".equalsIgnoreCase(agentProfile)) return "learning";
         if ("decision".equalsIgnoreCase(agentProfile)) return "decision";
         if ("execution".equalsIgnoreCase(agentProfile)) return "execution";
-
         if (focusNode != null) {
             if (focusNode.isLearningNode()) return "learning";
             if (focusNode.isDecisionNode()) return "decision";
@@ -116,7 +104,5 @@ public final class BackgroundBrainAnalyzer {
         return "execution";
     }
 
-    private static String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
+    private static String safe(String value) { return value == null ? "" : value.trim(); }
 }

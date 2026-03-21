@@ -69,10 +69,7 @@ public final class LearningTransferEngine {
         return report;
     }
 
-    private static boolean hasNeighborOfType(Node center,
-                                             Map<String, Node> nodes,
-                                             Map<String, Connection> connections,
-                                             Node.NodeType targetType) {
+    private static boolean hasNeighborOfType(Node center, Map<String, Node> nodes, Map<String, Connection> connections, Node.NodeType targetType) {
         if (center == null || nodes == null || connections == null) return false;
         for (Connection c : connections.values()) {
             if (c == null) continue;
@@ -96,7 +93,5 @@ public final class LearningTransferEngine {
         return title.isEmpty() ? "未命名节点" : title;
     }
 
-    private static String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
+    private static String safe(String value) { return value == null ? "" : value.trim(); }
 }

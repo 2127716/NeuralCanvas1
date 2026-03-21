@@ -50,12 +50,12 @@ public final class SuggestionFeedbackEngine {
     public static float getAgentWeight(SuggestionFeedbackProfile profile, String agentKey) {
         if (profile == null) return 1.0f;
         String key = safeLower(agentKey);
-        int accepted = get(profile.agentAcceptedCount, key);
+        int accepted = get(profile.agentAcceptedCount, key) + get(profile.acceptedActionTypeCount, key);
         int rejected = get(profile.agentRejectedCount, key);
         int total = accepted + rejected;
         if (total <= 0) return 1.0f;
         float rate = (float) accepted / Math.max(1, total);
-        return 0.75f + rate; // 0.75 ~ 1.75
+        return 0.75f + rate;
     }
 
     public static String buildSummary(SuggestionFeedbackProfile profile) {

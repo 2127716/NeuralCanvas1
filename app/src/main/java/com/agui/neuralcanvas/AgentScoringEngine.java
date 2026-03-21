@@ -1,11 +1,6 @@
 package com.agui.neuralcanvas;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public final class AgentScoringEngine {
 
@@ -19,16 +14,11 @@ public final class AgentScoringEngine {
 
     private AgentScoringEngine() {}
 
-    public static AgentPlan buildPlan(AiGraphSnapshot snapshot,
-                                      BrainAutopilotSettings settings,
-                                      SuggestionFeedbackProfile feedback) {
+    public static AgentPlan buildPlan(AiGraphSnapshot snapshot, BrainAutopilotSettings settings, SuggestionFeedbackProfile feedback) {
         AgentPlan plan = new AgentPlan();
         if (settings == null) settings = new BrainAutopilotSettings();
 
-        int executionSignals = 0;
-        int decisionSignals = 0;
-        int learningSignals = 0;
-        int networkSignals = 0;
+        int executionSignals = 0, decisionSignals = 0, learningSignals = 0, networkSignals = 0;
 
         if (snapshot != null && snapshot.nodes != null) {
             for (AiGraphSnapshot.SnapshotNode node : snapshot.nodes) {
@@ -37,10 +27,7 @@ public final class AgentScoringEngine {
                 if (containsAny(type, "decision", "option", "criterion", "risk", "assumption", "evidence")) decisionSignals += 2;
                 if (containsAny(type, "concept", "question", "source", "note", "insight", "experiment")) learningSignals += 2;
             }
-
-            if (snapshot.connections == null || snapshot.connections.size() < Math.max(4, snapshot.nodes.size() / 3)) {
-                networkSignals += 4;
-            }
+            if (snapshot.connections == null || snapshot.connections.size() < Math.max(4, snapshot.nodes.size() / 3)) networkSignals += 4;
         }
 
         BrainAgentProfile preferred = BrainAgentProfile.fromKey(settings.getPreferredAutopilotAgent());
@@ -48,18 +35,11 @@ public final class AgentScoringEngine {
                 ? chooseSpecialist(executionSignals, decisionSignals, learningSignals, networkSignals)
                 : preferred;
 
-        // always keep network if graph sparse / broken
-        if (networkSignals >= 4 || specialist == BrainAgentProfile.NETWORK) {
-            plan.orderedProfiles.add(BrainAgentProfile.NETWORK);
-        }
-        if (!plan.orderedProfiles.contains(specialist)) {
-            plan.orderedProfiles.add(specialist);
-        }
+        if (networkSignals >= 4 || specialist == BrainAgentProfile.NETWORK) plan.orderedProfiles.add(BrainAgentProfile.NETWORK);
+        if (!plan.orderedProfiles.contains(specialist)) plan.orderedProfiles.add(specialist);
 
         float generalWeight = SuggestionFeedbackEngine.getAgentWeight(feedback, BrainAgentProfile.GENERAL.key);
-        if (generalWeight >= 0.9f || plan.orderedProfiles.size() < 2) {
-            plan.orderedProfiles.add(BrainAgentProfile.GENERAL);
-        }
+        if (generalWeight >= 0.9f || plan.orderedProfiles.size() < 2) plan.orderedProfiles.add(BrainAgentProfile.GENERAL);
 
         plan.maxAgents = Math.min(3, plan.orderedProfiles.size());
         plan.totalCommandBudget = specialist == BrainAgentProfile.NETWORK ? 12 : 16;
@@ -73,10 +53,10 @@ public final class AgentScoringEngine {
             if (run == null) continue;
             float score = 0f;
             score += SuggestionFeedbackEngine.getAgentWeight(feedback, run.profile == null ? "" : run.profile.key) * 20f;
-            score += Math.max(0, 8 - run.commandCount) * 1.8f; // fewer commands slightly better
+            score += Math.max(0, 8 - run.commandCount) * 1.8f;
             if (run.summary != null && !run.summary.trim().isEmpty()) score += 8f;
             if (run.durationMs > 0 && run.durationMs < 45000L) score += 4f;
-            if (run.commandCount > 0 && run.commandCount <= 6) score += 6f;
+                        if (run.commandCount > 0 && run.commandCount <= 6) score += 6f;
             if (run.commandCount > 10) score -= 8f;
             run.summary = "[score=" + String.format(Locale.US, "%.1f", score) + "] " + safe(run.summary);
         }
@@ -104,9 +84,7 @@ public final class AgentScoringEngine {
     }
 
     private static BrainAgentProfile chooseSpecialist(int executionSignals, int decisionSignals, int learningSignals, int networkSignals) {
-        if (networkSignals >= executionSignals && networkSignals >= decisionSignals && networkSignals >= learningSignals && networkSignals >= 4) {
-            return BrainAgentProfile.NETWORK;
-        }
+        if (networkSignals >= executionSignals && networkSignals >= decisionSignals && networkSignals >= learningSignals && networkSignals >= 4) return BrainAgentProfile.NETWORK;
         if (decisionSignals >= executionSignals && decisionSignals >= learningSignals) return BrainAgentProfile.DECISION;
         if (learningSignals >= executionSignals) return BrainAgentProfile.LEARNING;
         return BrainAgentProfile.EXECUTION;
@@ -120,8 +98,7 @@ public final class AgentScoringEngine {
 
     private static float extractScore(String summary) {
         String s = safe(summary);
-        int start = s.indexOf("[score=");
-        int end = s.indexOf("]", start);
+        int start = s.indexOf("[score="), end = s.indexOf("]", start);
         if (start >= 0 && end > start) {
             try { return Float.parseFloat(s.substring(start + 7, end)); } catch (Exception ignored) {}
         }

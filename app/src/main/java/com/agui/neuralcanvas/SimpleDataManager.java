@@ -30,10 +30,7 @@ public class SimpleDataManager {
     }
 
     public void saveMindMap(Map<String, Node> nodes, Map<String, Connection> connections) {
-        prefs.edit()
-                .putString(KEY_NODES, gson.toJson(nodes))
-                .putString(KEY_CONNECTIONS, gson.toJson(connections))
-                .apply();
+        prefs.edit().putString(KEY_NODES, gson.toJson(nodes)).putString(KEY_CONNECTIONS, gson.toJson(connections)).apply();
     }
 
     public Map<String, Object> loadMindMap() {
@@ -90,6 +87,7 @@ public class SimpleDataManager {
     }
 
     public long loadLastBrainPulseAt() { return prefs.getLong(KEY_LAST_BRAIN_PULSE_AT, 0L); }
+
     public String loadLastBrainPulseSummary() {
         String value = prefs.getString(KEY_LAST_BRAIN_PULSE_SUMMARY, "");
         return value == null ? "" : value;
@@ -124,9 +122,7 @@ public class SimpleDataManager {
         }
     }
 
-    public void saveSuggestionFeedbackProfile(SuggestionFeedbackProfile profile) {
-        prefs.edit().putString(KEY_SUGGESTION_FEEDBACK, gson.toJson(profile)).apply();
-    }
+    public void saveSuggestionFeedbackProfile(SuggestionFeedbackProfile profile) { prefs.edit().putString(KEY_SUGGESTION_FEEDBACK, gson.toJson(profile)).apply(); }
 
     public SuggestionFeedbackProfile loadSuggestionFeedbackProfile() {
         try {
@@ -141,12 +137,6 @@ public class SimpleDataManager {
     }
 
     public void clearAll() {
-        prefs.edit()
-                .remove(KEY_NODES)
-                .remove(KEY_CONNECTIONS)
-                .remove(KEY_PENDING_BRAIN_GUIDANCE)
-                .remove(KEY_BEHAVIOR_MEMORY)
-                .remove(KEY_SUGGESTION_FEEDBACK)
-                .apply();
+        prefs.edit().remove(KEY_NODES).remove(KEY_CONNECTIONS).remove(KEY_PENDING_BRAIN_GUIDANCE).remove(KEY_BEHAVIOR_MEMORY).remove(KEY_SUGGESTION_FEEDBACK).apply();
     }
 }

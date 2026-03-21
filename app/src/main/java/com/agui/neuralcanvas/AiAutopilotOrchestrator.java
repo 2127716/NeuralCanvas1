@@ -13,22 +13,15 @@ public final class AiAutopilotOrchestrator {
         public String buildSummary() {
             StringBuilder sb = new StringBuilder();
             sb.append("已运行 ").append(runs.size()).append(" 个代理");
-            if (planSummary != null && !planSummary.trim().isEmpty()) {
-                sb.append("\n").append(planSummary.trim());
-            }
-            for (AiAgentRunResult run : runs) {
-                sb.append("\n- ").append(run.buildLabel()).append("：").append(run.commandCount).append(" 条命令");
-            }
+            if (planSummary != null && !planSummary.trim().isEmpty()) sb.append("\n").append(planSummary.trim());
+            for (AiAgentRunResult run : runs) sb.append("\n- ").append(run.buildLabel()).append("：").append(run.commandCount).append(" 条命令");
             return sb.toString();
         }
     }
 
     private AiAutopilotOrchestrator() {}
 
-    public static OrchestratorResult run(AiConfig config,
-                                         AiGraphSnapshot fullSnapshot,
-                                         BrainAutopilotSettings settings,
-                                         SuggestionFeedbackProfile feedback) throws Exception {
+    public static OrchestratorResult run(AiConfig config, AiGraphSnapshot fullSnapshot, BrainAutopilotSettings settings, SuggestionFeedbackProfile feedback) throws Exception {
         OrchestratorResult result = new OrchestratorResult();
         if (fullSnapshot == null) fullSnapshot = new AiGraphSnapshot();
         if (settings == null) settings = new BrainAutopilotSettings();
@@ -40,9 +33,7 @@ public final class AiAutopilotOrchestrator {
         for (BrainAgentProfile profile : plan.orderedProfiles) {
             if (result.runs.size() >= plan.maxAgents) break;
             AiAgentRunResult run = executeAgent(config, fullSnapshot, settings, profile);
-
-            if (run.response != null && run.response.getCommands() != null
-                    && run.response.getCommands().size() > plan.maxCommandsPerRun) {
+            if (run.response != null && run.response.getCommands() != null && run.response.getCommands().size() > plan.maxCommandsPerRun) {
                 run.response.setCommands(new ArrayList<>(run.response.getCommands().subList(0, plan.maxCommandsPerRun)));
                 run.commandCount = run.response.getCommands().size();
             }
@@ -52,15 +43,11 @@ public final class AiAutopilotOrchestrator {
         AgentScoringEngine.scoreRuns(result.runs, feedback);
         List<AiAgentRunResult> kept = AgentScoringEngine.trimToBudget(result.runs, plan.totalCommandBudget);
         result.mergedResponse = AiCommandMergeEngine.merge(kept);
-        String mergedAnswer = result.mergedResponse.getAnswer();
-        result.mergedResponse.setAnswer((plan.reason == null ? "" : plan.reason) + "\n" + (mergedAnswer == null ? "" : mergedAnswer));
+        result.mergedResponse.setAnswer((plan.reason == null ? "" : plan.reason) + "\n" + result.mergedResponse.getAnswer());
         return result;
     }
 
-    private static AiAgentRunResult executeAgent(AiConfig config,
-                                                 AiGraphSnapshot fullSnapshot,
-                                                 BrainAutopilotSettings settings,
-                                                 BrainAgentProfile profile) throws Exception {
+    private static AiAgentRunResult executeAgent(AiConfig config, AiGraphSnapshot fullSnapshot, BrainAutopilotSettings settings, BrainAgentProfile profile) throws Exception {
         long start = System.currentTimeMillis();
         AiAgentRunResult run = new AiAgentRunResult();
         run.profile = profile;

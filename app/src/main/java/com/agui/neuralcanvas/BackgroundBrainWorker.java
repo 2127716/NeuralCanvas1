@@ -21,9 +21,7 @@ public class BackgroundBrainWorker extends Worker {
         BrainAutopilotSettings settings = dataManager.loadAutopilotSettings();
         AiConfig config = dataManager.loadAiConfig();
 
-        if (settings == null || !settings.isEnabled() || !settings.isApiAutopilotEnabled()) {
-            return Result.success();
-        }
+        if (settings == null || !settings.isEnabled() || !settings.isApiAutopilotEnabled()) return Result.success();
 
         try {
             Map<?, ?> saved = dataManager.loadMindMap();
@@ -31,8 +29,7 @@ public class BackgroundBrainWorker extends Worker {
             Map<String, Connection> connections = (Map<String, Connection>) saved.get("connections");
             SuggestionFeedbackProfile feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
 
-            BackgroundBrainAnalyzer.BrainPulseReport report =
-                    BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings, feedbackProfile);
+            BackgroundBrainAnalyzer.BrainPulseReport report = BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings, feedbackProfile);
 
             AiResponse response = null;
             AiSelfReviewEngine.ReviewResult reviewResult = null;
@@ -41,16 +38,13 @@ public class BackgroundBrainWorker extends Worker {
                 response = AiJsonParser.parseResponse(report.responseJson);
 
                 try {
-                    AiModelSelfReviewEngine.ReviewOutcome modelReview =
-                            new AiModelSelfReviewEngine().review(config, AiGraphSnapshot.from(nodes, connections), response);
+                    AiModelSelfReviewEngine.ReviewOutcome modelReview = new AiModelSelfReviewEngine().review(config, AiGraphSnapshot.from(nodes, connections), response);
                     if (modelReview != null) {
                         response = modelReview.response == null ? response : modelReview.response;
-                        report.summary = (report.summary == null ? "" : report.summary)
-                                + "\n\n【模型复审】\n" + modelReview.summary;
+                        report.summary = safe(report.summary) + "\n\n【模型复审】\n" + modelReview.summary;
                     }
                 } catch (Exception ignored) {
-                    report.summary = (report.summary == null ? "" : report.summary)
-                            + "\n\n【模型复审】\n模型复审跳过，已回退到规则复审";
+                    report.summary = safe(report.summary) + "\n\n【模型复审】\n模型复审跳过，已回退到规则复审";
                 }
 
                 reviewResult = AiSelfReviewEngine.review(response, nodes, connections);
@@ -58,29 +52,23 @@ public class BackgroundBrainWorker extends Worker {
                 report.responseJson = AiJsonParser.toJson(response);
 
                 if (reviewResult != null && (reviewResult.removedCount > 0 || !reviewResult.issues.isEmpty())) {
-                    report.summary = (report.summary == null ? "" : report.summary)
-                            + "\n\n【AI自我复审】\n" + reviewResult.buildSummary();
+                    report.summary = safe(report.summary) + "\n\n【AI自我复审】\n" + reviewResult.buildSummary();
                 }
 
                 AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(response);
-                if (settings.isAutoApplyLowRiskChanges()
-                        && safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.LOW
-                        && response.getCommands() != null
-                        && !response.getCommands().isEmpty()) {
+                if (settings.isAutoApplyLowRiskChanges() && safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.LOW && response.getCommands() != null && !response.getCommands().isEmpty()) {
                     new AiHeadlessExecutor(nodes, connections).execute(response.getCommands());
                     OutcomeFeedbackEngine.backfillFromCommands(nodes, response);
                     dataManager.saveMindMap(nodes, connections);
                     report.autoApplied = true;
-                    report.summary = (report.summary == null ? "" : report.summary)
-                            + "（已自动执行低风险改动）";
+                    report.summary = safe(report.summary) + "（已自动执行低风险改动）";
                     SuggestionFeedbackEngine.recordAutoApplied(dataManager, response, report.agentProfile);
                     SuggestionFeedbackEngine.recordEffectiveness(dataManager, response);
                 }
 
                 WorkflowAuditEngine.AuditResult afterAudit = WorkflowAuditEngine.audit(nodes, connections);
                 if (!afterAudit.isHealthy()) {
-                    report.summary = (report.summary == null ? "" : report.summary)
-                            + "\n\n【执行后二次审查】\n" + afterAudit.buildSummary();
+                    report.summary = safe(report.summary) + "\n\n【执行后二次审查】\n" + afterAudit.buildSummary();
                     for (String issue : afterAudit.issues) {
                         Node target = findFirstMentionedNode(nodes, issue);
                         if (target != null) NodeIntelligenceEngine.markIssue(target);
@@ -90,11 +78,13 @@ public class BackgroundBrainWorker extends Worker {
                 LearningLoopEngine.LearningReport learningReport = LearningLoopEngine.analyze(nodes, connections);
                 LearningTransferEngine.TransferReport transferReport = LearningTransferEngine.analyze(nodes, connections);
                 NetworkEvolutionEngine.NetworkReport networkReport = NetworkEvolutionEngine.analyze(nodes, connections);
+                BrainMaturityEngine.MaturityReport maturity = BrainMaturityEngine.analyze(nodes, connections, dataManager.loadBehaviorMemoryProfile(), dataManager.loadSuggestionFeedbackProfile());
 
-                report.summary = (report.summary == null ? "" : report.summary)
+                report.summary = safe(report.summary)
                         + "\n\n【学习闭环】\n" + learningReport.buildSummary()
                         + "\n\n【学习迁移】\n" + transferReport.buildSummary()
-                        + "\n\n【网络进化】\n" + networkReport.buildSummary();
+                        + "\n\n【网络进化】\n" + networkReport.buildSummary()
+                        + "\n\n【成熟度】\n" + maturity.buildSummary();
 
                 BehaviorMemoryEngine.PulseRecord record = new BehaviorMemoryEngine.PulseRecord();
                 record.agentProfile = report.agentProfile;
@@ -116,7 +106,7 @@ public class BackgroundBrainWorker extends Worker {
                 PrioritySchedulerEngine.PriorityBoard board = PrioritySchedulerEngine.build(nodes, connections, profile);
                 feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
 
-                report.summary = (report.summary == null ? "" : report.summary)
+                report.summary = safe(report.summary)
                         + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile)
                         + "\n\n【建议反馈】\n" + SuggestionFeedbackEngine.buildSummary(feedbackProfile)
                         + "\n\n【今日优先级】\n" + board.buildSummary();
@@ -153,4 +143,6 @@ public class BackgroundBrainWorker extends Worker {
         }
         return null;
     }
+
+    private String safe(String value) { return value == null ? "" : value.trim(); }
 }
