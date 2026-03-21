@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -68,8 +69,7 @@ public class NodeEditDialog extends DialogFragment {
         tv.setTextColor(ThemeManager.getSectionTitleColor());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
         tv.setTypeface(tv.getTypeface(), Typeface.BOLD);
-        tv.setLetterSpacing(0.08f);
-        tv.setAllCaps(true);
+        tv.setLetterSpacing(0.04f);
         return tv;
     }
 
@@ -101,6 +101,7 @@ public class NodeEditDialog extends DialogFragment {
                 tv.setPadding(dp(12), dp(10), dp(12), dp(10));
                 return tv;
             }
+
             @Override
             public View getDropDownView(int pos, View cv, ViewGroup parent) {
                 TextView tv = new TextView(requireContext());
@@ -160,47 +161,58 @@ public class NodeEditDialog extends DialogFragment {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
         tv.setTextColor(ThemeManager.getTextPrimary());
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
         tv.setGravity(Gravity.CENTER);
-        tv.setPadding(dp(8), dp(9), dp(8), dp(9));
+        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setColor(ThemeManager.getChipBg());
         bg.setStroke(dp(1), ThemeManager.getChipStroke());
-        bg.setCornerRadius(dp(14));
+        bg.setCornerRadius(dp(16));
         tv.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        lp.leftMargin = dp(3); lp.rightMargin = dp(3);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
         tv.setLayoutParams(lp);
         return tv;
+    }
+
+    private void showActionOverflow(MainActivity activity, Node node) {
+        String[] moreActions = {
+                "执行模式", "学习模式", "决策模式",
+                "快捷动作", "智能补强", "WOOP", "If-Then", "周复盘",
+                "检索练习", "Premortem", "决策实验室", "记忆复习", "Focus",
+                "WRAP", "Bayes", "DSRP", "参考类预测", "全量推进",
+                "AI缺口", "AI红队", "AI执行", "AI学习", "AI决策",
+                "执行回填", "决策落地", "AI建议", "AI自动流"
+        };
+        new AlertDialog.Builder(requireContext())
+                .setTitle("更多科学动作")
+                .setItems(moreActions, (dialog, which) -> handleActionChip(moreActions[which], activity, node))
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private View buildActionBar(MainActivity activity, Node node) {
         LinearLayout wrap = new LinearLayout(requireContext());
         wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.addView(buildSectionTitle("科学动作"));
-        String[][] rows = {
-                {"推荐", "一键修复", "体检", "执行模式", "学习模式"},
-                {"决策模式", "快捷动作", "智能补强", "WOOP", "If-Then"},
-                {"周复盘", "检索练习", "Premortem"},
-                {"决策实验室", "记忆复习", "Focus"},
-                {"WRAP", "Bayes", "DSRP"},
-                {"参考类预测", "全量推进", "AI缺口"},
-                {"AI红队", "AI执行", "AI学习", "连线", "AI决策"},
-                {"执行回填", "决策落地", "AI建议", "AI自动流"}
-        };
-        for (String[] rowItems : rows) {
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            rowLp.topMargin = dp(6);
-            row.setLayoutParams(rowLp);
-            for (String label : rowItems) {
-                TextView chip = buildActionChip(label);
-                chip.setOnClickListener(v -> handleActionChip(label, activity, node));
-                row.addView(chip);
-            }
-            wrap.addView(row);
+
+        HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
+        hsv.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(10), 0, 0);
+
+        String[] quick = {"推荐", "一键修复", "体检", "连线", "AI建议", "更多"};
+        for (String label : quick) {
+            TextView chip = buildActionChip(label);
+            chip.setOnClickListener(v -> {
+                if ("更多".equals(label)) showActionOverflow(activity, node);
+                else handleActionChip(label, activity, node);
+            });
+            row.addView(chip);
         }
+        hsv.addView(row);
+        wrap.addView(hsv);
         return wrap;
     }
 
@@ -213,6 +225,7 @@ public class NodeEditDialog extends DialogFragment {
                 android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
                 break;
             }
+            case "体检": activity.openScientificTriage(); break;
             case "执行模式": WorkflowModeDialog.show(activity, node, "execution"); break;
             case "决策模式": WorkflowModeDialog.show(activity, node, "decision"); break;
             case "学习模式": WorkflowModeDialog.show(activity, node, "learning"); break;
@@ -244,13 +257,14 @@ public class NodeEditDialog extends DialogFragment {
         }
     }
 
-    private TextView buildFooterBtn(String text, int color) {
+    private TextView buildFooterBtn(String text, int color, boolean bold) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
         tv.setTextColor(color);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-        tv.setPadding(dp(14), dp(12), dp(14), dp(12));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+        tv.setPadding(dp(12), dp(14), dp(12), dp(14));
         tv.setGravity(Gravity.CENTER);
+        if (bold) tv.setTypeface(tv.getTypeface(), Typeface.BOLD);
         return tv;
     }
 
@@ -259,17 +273,25 @@ public class NodeEditDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         if (getActivity() == null || currentNode == null || currentMindMapView == null) return super.onCreateDialog(savedInstanceState);
 
+        MainActivity activity = (MainActivity) getActivity();
+
+        LinearLayout shell = new LinearLayout(requireContext());
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(ThemeManager.getDialogBg());
+
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
         scrollView.setBackgroundColor(ThemeManager.getDialogBg());
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(10));
+        root.setPadding(dp(18), dp(18), dp(18), dp(8));
         root.setBackgroundColor(ThemeManager.getDialogBg());
         scrollView.addView(root);
 
-        MainActivity activity = (MainActivity) getActivity();
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        shell.addView(scrollView, scrollLp);
+
         LinearLayout actionCard = (LinearLayout) buildCard();
         if (activity != null) actionCard.addView(buildActionBar(activity, currentNode));
         root.addView(actionCard);
@@ -326,10 +348,11 @@ public class NodeEditDialog extends DialogFragment {
         LinearLayout footer = new LinearLayout(requireContext());
         footer.setOrientation(LinearLayout.HORIZONTAL);
         footer.setGravity(Gravity.CENTER_VERTICAL);
-        addWithTopMargin(root, footer, 16);
+        footer.setPadding(dp(18), dp(6), dp(18), dp(10));
+        footer.setBackgroundColor(ThemeManager.getDialogBg());
         final AlertDialog[] dialogRef = {null};
 
-        TextView btnDelete = buildFooterBtn("删除", ThemeManager.getDanger());
+        TextView btnDelete = buildFooterBtn("删除", ThemeManager.getDanger(), false);
         btnDelete.setOnClickListener(v -> {
             currentMindMapView.removeNode(currentNode.getId());
             if (getActivity() instanceof NodeEditListener) ((NodeEditListener) getActivity()).onNodeDeleted(currentNode);
@@ -338,7 +361,7 @@ public class NodeEditDialog extends DialogFragment {
         });
         footer.addView(btnDelete);
 
-        TextView btnConnect = buildFooterBtn("连线", ThemeManager.getLinkColor());
+        TextView btnConnect = buildFooterBtn("连线", ThemeManager.getLinkColor(), false);
         btnConnect.setOnClickListener(v -> {
             currentMindMapView.startConnectionMode(currentNode);
             if (dialogRef[0] != null) dialogRef[0].dismiss();
@@ -349,12 +372,11 @@ public class NodeEditDialog extends DialogFragment {
         View spacer = new View(requireContext());
         footer.addView(spacer, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView btnCancel = buildFooterBtn("取消", ThemeManager.getTextSecondary());
+        TextView btnCancel = buildFooterBtn("取消", ThemeManager.getTextSecondary(), false);
         btnCancel.setOnClickListener(v -> { if (dialogRef[0] != null) dialogRef[0].dismiss(); dismiss(); });
         footer.addView(btnCancel);
 
-        TextView btnSave = buildFooterBtn("保存", ThemeManager.getAccent());
-        btnSave.setTypeface(btnSave.getTypeface(), Typeface.BOLD);
+        TextView btnSave = buildFooterBtn("保存", ThemeManager.getAccent(), true);
         btnSave.setOnClickListener(v -> {
             currentNode.setTitle(titleInput.getText().toString().trim());
             currentNode.setContent(contentInput.getText().toString().trim());
@@ -385,9 +407,11 @@ public class NodeEditDialog extends DialogFragment {
         });
         footer.addView(btnSave);
 
+        shell.addView(footer, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), androidx.appcompat.R.style.Theme_AppCompat_Dialog))
                 .setTitle("编辑节点")
-                .setView(scrollView)
+                .setView(shell)
                 .create();
         dialogRef[0] = dialog;
         dialog.setOnShowListener(d -> {
