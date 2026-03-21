@@ -1,7 +1,6 @@
 package com.agui.neuralcanvas;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
@@ -57,40 +56,67 @@ public class ThemeManager {
         return Color.argb(Math.max(0, Math.min(255, alpha)), Color.red(color), Color.green(color), Color.blue(color));
     }
 
+    public static int blend(int from, int to, float ratio) {
+        float r = Math.max(0f, Math.min(1f, ratio));
+        int a = (int) (Color.alpha(from) + (Color.alpha(to) - Color.alpha(from)) * r);
+        int red = (int) (Color.red(from) + (Color.red(to) - Color.red(from)) * r);
+        int green = (int) (Color.green(from) + (Color.green(to) - Color.green(from)) * r);
+        int blue = (int) (Color.blue(from) + (Color.blue(to) - Color.blue(from)) * r);
+        return Color.argb(a, red, green, blue);
+    }
+
     public static int getBg() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#000000");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#FFFFFF");
-        return getColorByName("system_neutral1_900", Color.parseColor("#10151E"));
+        return getColorByName("system_neutral1_900", Color.parseColor("#0D1118"));
     }
 
     public static int getDialogBg() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#0A0A0A");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#FFFFFF");
-        return getColorByName("system_neutral1_800", Color.parseColor("#151C28"));
+        return blend(getBg(), getColorByName("system_neutral1_800", Color.parseColor("#151C28")), 0.70f);
     }
 
     public static int getSurface() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#101010");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#F8F9FB");
-        return getColorByName("system_neutral2_800", Color.parseColor("#1B2431"));
+        return blend(getDialogBg(), getColorByName("system_neutral2_800", Color.parseColor("#1C2430")), 0.72f);
+    }
+
+    public static int getSurfaceHigh() {
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#141414");
+        if (current == AppTheme.PURE_WHITE) return Color.parseColor("#FFFFFF");
+        return blend(getSurface(), Color.WHITE, 0.08f);
     }
 
     public static int getAccent() {
-        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#5E9BFF");
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#7BB1FF");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#295EA8");
-        return getColorByName("system_accent1_400", Color.parseColor("#7BA7BC"));
+        return getColorByName("system_accent1_400", Color.parseColor("#87A7F9"));
     }
 
     public static int getAccent2() {
-        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#7DD3FC");
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#82D8FF");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#3B82F6");
-        return getColorByName("system_accent2_400", Color.parseColor("#8FAF7E"));
+        return getColorByName("system_accent2_400", Color.parseColor("#82C7C1"));
+    }
+
+    public static int getAccentSoft() {
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#1B2434");
+        if (current == AppTheme.PURE_WHITE) return Color.parseColor("#EAF1FF");
+        return withAlpha(getAccent(), 34);
+    }
+
+    public static int getAccentStroke() {
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#355589");
+        if (current == AppTheme.PURE_WHITE) return Color.parseColor("#A9C1E8");
+        return withAlpha(getAccent(), 92);
     }
 
     public static int getTextPrimary() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#F5F5F5");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#111827");
-        return getColorByName("system_neutral1_50", Color.parseColor("#E6EDF6"));
+        return getColorByName("system_neutral1_50", Color.parseColor("#EAF0F9"));
     }
 
     public static int getTextSecondary() {
@@ -100,9 +126,9 @@ public class ThemeManager {
     }
 
     public static int getStroke() {
-        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#222831");
+        if (current == AppTheme.PURE_BLACK) return Color.parseColor("#23252A");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#D7DCE4");
-        return getColorByName("system_neutral2_600", Color.parseColor("#2B4060"));
+        return withAlpha(blend(getAccent(), getSurface(), 0.60f), 146);
     }
 
     public static int getChipBg() {
@@ -120,13 +146,13 @@ public class ThemeManager {
     public static int getEditTextBg() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#121212");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#FAFBFD");
-        return getColorByName("system_neutral1_800", Color.parseColor("#141D29"));
+        return blend(getSurface(), getBg(), 0.35f);
     }
 
     public static int getEditTextStroke() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#282828");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#D6DCE6");
-        return withAlpha(getAccent(), 72);
+        return withAlpha(getAccent(), 78);
     }
 
     public static int getSpinnerBg() { return getEditTextBg(); }
@@ -134,13 +160,21 @@ public class ThemeManager {
     public static int getToolbarBg() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#DD0A0A0A");
         if (current == AppTheme.PURE_WHITE) return Color.parseColor("#ECFFFFFF");
-        return withAlpha(getSurface(), 228);
+        return withAlpha(getSurfaceHigh(), 228);
     }
 
     public static int getPopupBg() { return getDialogBg(); }
-    public static int getDanger() { return current == AppTheme.PURE_WHITE ? Color.parseColor("#D62839") : Color.parseColor("#FF5C75"); }
+    public static int getDanger() { return current == AppTheme.PURE_WHITE ? Color.parseColor("#D62839") : Color.parseColor("#FF6A82"); }
+    public static int getDangerSoft() { return current == AppTheme.PURE_WHITE ? Color.parseColor("#FCEDEE") : Color.parseColor("#31171D"); }
+    public static int getSuccess() { return current == AppTheme.PURE_WHITE ? Color.parseColor("#1E8E5A") : Color.parseColor("#5BE0A8"); }
+    public static int getSuccessSoft() { return current == AppTheme.PURE_WHITE ? Color.parseColor("#E9F8F0") : Color.parseColor("#173025"); }
     public static int getLinkColor() { return getAccent2(); }
     public static int getSectionTitleColor() { return getAccent(); }
+
+    public static int getInfoSoft() {
+        if (current == AppTheme.PURE_WHITE) return Color.parseColor("#EEF4FF");
+        return withAlpha(getAccent2(), 26);
+    }
 
     public static int getGridColor() {
         if (current == AppTheme.PURE_BLACK) return Color.parseColor("#141414");

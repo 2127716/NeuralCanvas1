@@ -10,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -19,7 +18,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.DialogFragment;
 
 import java.util.ArrayList;
@@ -42,52 +40,14 @@ public class NodeEditDialog extends DialogFragment {
         return new NodeEditDialog();
     }
 
-    private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
-                requireContext().getResources().getDisplayMetrics());
-    }
-
     private String safe(String v) { return v == null ? "" : v.trim(); }
-    private float parseFloatSafe(String text, float def) { try { return (text == null || text.trim().isEmpty()) ? def : Float.parseFloat(text.trim()); } catch (Exception e) { return def; } }
-    private int parseIntSafe(String text, int def) { try { return (text == null || text.trim().isEmpty()) ? def : Integer.parseInt(text.trim()); } catch (Exception e) { return def; } }
-
-    private View buildCard() {
-        LinearLayout card = new LinearLayout(requireContext());
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(ThemeManager.getSurface());
-        bg.setCornerRadius(dp(20));
-        bg.setStroke(dp(1), ThemeManager.getStroke());
-        card.setBackground(bg);
-        return card;
+    private float parseFloatSafe(String text, float def) {
+        try { return (text == null || text.trim().isEmpty()) ? def : Float.parseFloat(text.trim()); }
+        catch (Exception e) { return def; }
     }
-
-    private TextView buildSectionTitle(String text) {
-        TextView tv = new TextView(requireContext());
-        tv.setText(text);
-        tv.setTextColor(ThemeManager.getSectionTitleColor());
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        tv.setTypeface(tv.getTypeface(), Typeface.BOLD);
-        tv.setLetterSpacing(0.04f);
-        return tv;
-    }
-
-    private EditText buildEditText(String hint, String value, int inputType) {
-        EditText et = new EditText(requireContext());
-        et.setHint(hint);
-        et.setText(value == null ? "" : value);
-        et.setInputType(inputType);
-        et.setTextColor(ThemeManager.getTextPrimary());
-        et.setHintTextColor(ThemeManager.getTextSecondary());
-        et.setPadding(dp(14), dp(12), dp(14), dp(12));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(ThemeManager.getEditTextBg());
-        bg.setCornerRadius(dp(14));
-        bg.setStroke(dp(1), ThemeManager.getEditTextStroke());
-        et.setBackground(bg);
-        et.setBackgroundTintList(null);
-        return et;
+    private int parseIntSafe(String text, int def) {
+        try { return (text == null || text.trim().isEmpty()) ? def : Integer.parseInt(text.trim()); }
+        catch (Exception e) { return def; }
     }
 
     private Spinner buildSpinner(String[] items, int selectedIndex) {
@@ -98,7 +58,7 @@ public class NodeEditDialog extends DialogFragment {
                 TextView tv = (TextView) super.getView(pos, cv, parent);
                 tv.setTextColor(ThemeManager.getTextPrimary());
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-                tv.setPadding(dp(12), dp(10), dp(12), dp(10));
+                tv.setPadding(DialogUi.dp(NodeEditDialog.this, 12), DialogUi.dp(NodeEditDialog.this, 10), DialogUi.dp(NodeEditDialog.this, 12), DialogUi.dp(NodeEditDialog.this, 10));
                 return tv;
             }
 
@@ -108,26 +68,16 @@ public class NodeEditDialog extends DialogFragment {
                 tv.setText(getItem(pos));
                 tv.setTextColor(ThemeManager.getTextPrimary());
                 tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-                tv.setPadding(dp(16), dp(14), dp(16), dp(14));
+                tv.setPadding(DialogUi.dp(NodeEditDialog.this, 16), DialogUi.dp(NodeEditDialog.this, 14), DialogUi.dp(NodeEditDialog.this, 16), DialogUi.dp(NodeEditDialog.this, 14));
                 tv.setBackgroundColor(ThemeManager.getSpinnerBg());
                 return tv;
             }
         };
         spinner.setAdapter(adapter);
         spinner.setSelection(selectedIndex);
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(ThemeManager.getSpinnerBg());
-        bg.setCornerRadius(dp(14));
-        bg.setStroke(dp(1), ThemeManager.getEditTextStroke());
-        spinner.setBackground(bg);
-        spinner.setPadding(dp(4), dp(4), dp(4), dp(4));
+        spinner.setBackground(DialogUi.createFieldBackground(this));
+        spinner.setPadding(DialogUi.dp(this, 4), DialogUi.dp(this, 4), DialogUi.dp(this, 4), DialogUi.dp(this, 4));
         return spinner;
-    }
-
-    private void addWithTopMargin(LinearLayout root, View view, int topDp) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(topDp);
-        root.addView(view, lp);
     }
 
     private static class ProjectOption {
@@ -146,7 +96,7 @@ public class NodeEditDialog extends DialogFragment {
             if (node == null || node.getType() != Node.NodeType.PROJECT) continue;
             String title = safe(node.getTitle());
             if (title.isEmpty()) title = "未命名项目";
-            list.add(new ProjectOption(node.getId(), title + "  (" + node.getId() + ")"));
+            list.add(new ProjectOption(node.getId(), title));
         }
         return list;
     }
@@ -157,22 +107,8 @@ public class NodeEditDialog extends DialogFragment {
         return 0;
     }
 
-    private TextView buildActionChip(String text) {
-        TextView tv = new TextView(requireContext());
-        tv.setText(text);
-        tv.setTextColor(ThemeManager.getTextPrimary());
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        tv.setGravity(Gravity.CENTER);
-        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(ThemeManager.getChipBg());
-        bg.setStroke(dp(1), ThemeManager.getChipStroke());
-        bg.setCornerRadius(dp(16));
-        tv.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.rightMargin = dp(8);
-        tv.setLayoutParams(lp);
-        return tv;
+    private TextView buildActionChip(String text, boolean accent) {
+        return DialogUi.createChip(this, text, accent);
     }
 
     private void showActionOverflow(MainActivity activity, Node node) {
@@ -194,24 +130,24 @@ public class NodeEditDialog extends DialogFragment {
     private View buildActionBar(MainActivity activity, Node node) {
         LinearLayout wrap = new LinearLayout(requireContext());
         wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.addView(buildSectionTitle("科学动作"));
+        wrap.addView(DialogUi.createSectionTitle(this, "快捷科学动作"));
+        DialogUi.addWithTopMargin(this, wrap, DialogUi.createHelper(this, "常用动作直接点，更多动作收进菜单，避免编辑页又挤又乱。"), 8);
 
-        HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
-        hsv.setHorizontalScrollBarEnabled(false);
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(0, dp(10), 0, 0);
+        row.setPadding(0, DialogUi.dp(this, 10), 0, 0);
 
         String[] quick = {"推荐", "一键修复", "方法体检", "连线", "AI建议", "更多"};
-        for (String label : quick) {
-            TextView chip = buildActionChip(label);
+        for (int i = 0; i < quick.length; i++) {
+            final String label = quick[i];
+            TextView chip = buildActionChip(label, i == 0 || "AI建议".equals(label));
             chip.setOnClickListener(v -> {
                 if ("更多".equals(label)) showActionOverflow(activity, node);
                 else handleActionChip(label, activity, node);
             });
             row.addView(chip);
         }
-        hsv.addView(row);
+        HorizontalScrollView hsv = DialogUi.wrapChipRow(this, row);
         wrap.addView(hsv);
         return wrap;
     }
@@ -257,126 +193,156 @@ public class NodeEditDialog extends DialogFragment {
         }
     }
 
-    private TextView buildFooterBtn(String text, int color, boolean bold) {
-        TextView tv = new TextView(requireContext());
-        tv.setText(text);
-        tv.setTextColor(color);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-        tv.setPadding(dp(12), dp(14), dp(12), dp(14));
-        tv.setGravity(Gravity.CENTER);
-        if (bold) tv.setTypeface(tv.getTypeface(), Typeface.BOLD);
-        return tv;
-    }
-
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        if (getActivity() == null || currentNode == null || currentMindMapView == null) return super.onCreateDialog(savedInstanceState);
+        if (getActivity() == null || currentNode == null || currentMindMapView == null) {
+            return super.onCreateDialog(savedInstanceState);
+        }
 
         MainActivity activity = (MainActivity) getActivity();
 
-        LinearLayout shell = new LinearLayout(requireContext());
-        shell.setOrientation(LinearLayout.VERTICAL);
-        shell.setBackgroundColor(ThemeManager.getDialogBg());
+        LinearLayout shell = DialogUi.createRoot(this);
+        LinearLayout content = DialogUi.createContentColumn(this);
+        ScrollView scrollView = DialogUi.createScroll(this, content);
+        shell.addView(scrollView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        ScrollView scrollView = new ScrollView(requireContext());
-        scrollView.setFillViewport(true);
-        scrollView.setBackgroundColor(ThemeManager.getDialogBg());
+        LinearLayout hero = DialogUi.createHero(
+                this,
+                currentNode.getType().label,
+                safe(currentNode.getTitle()).isEmpty() ? "编辑节点" : safe(currentNode.getTitle()),
+                "把基础信息、执行字段、追踪字段和证据字段一次性改全，避免很多设置被隐藏。"
+        );
+        content.addView(hero);
 
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(8));
-        root.setBackgroundColor(ThemeManager.getDialogBg());
-        scrollView.addView(root);
+        LinearLayout actionCard = DialogUi.createCard(this);
+        DialogUi.addWithTopMargin(this, content, actionCard, 12);
+        actionCard.addView(buildActionBar(activity, currentNode));
 
-        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        shell.addView(scrollView, scrollLp);
+        LinearLayout baseCard = DialogUi.createCard(this);
+        DialogUi.addWithTopMargin(this, content, baseCard, 12);
+        baseCard.addView(DialogUi.createSectionTitle(this, "基础信息"));
+        DialogUi.addWithTopMargin(this, baseCard, DialogUi.createHelper(this, "标题、正文、节点类型、形状和当前状态都会在这里显示完整。"), 8);
+        android.widget.EditText titleInput = DialogUi.createInput(this, "节点标题", currentNode.getTitle(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, baseCard, titleInput, 12);
+        android.widget.EditText contentInput = DialogUi.createInput(this, "节点内容", currentNode.getContent(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 5);
+        DialogUi.addWithTopMargin(this, baseCard, contentInput, 12);
 
-        LinearLayout actionCard = (LinearLayout) buildCard();
-        if (activity != null) actionCard.addView(buildActionBar(activity, currentNode));
-        root.addView(actionCard);
+        String[] typeLabels = new String[Node.NodeType.values().length];
+        for (int i = 0; i < Node.NodeType.values().length; i++) typeLabels[i] = Node.NodeType.values()[i].label;
+        Spinner typeSpinner = buildSpinner(typeLabels, currentNode.getType().ordinal());
+        DialogUi.addWithTopMargin(this, baseCard, typeSpinner, 12);
 
-        LinearLayout baseCard = (LinearLayout) buildCard();
-        addWithTopMargin(root, baseCard, 12);
-        baseCard.addView(buildSectionTitle("基础信息"));
-        EditText titleInput = buildEditText("新节点", currentNode.getTitle(), InputType.TYPE_CLASS_TEXT);
-        addWithTopMargin(baseCard, titleInput, 10);
-        EditText contentInput = buildEditText("输入内容", currentNode.getContent(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        contentInput.setMinLines(4);
-        addWithTopMargin(baseCard, contentInput, 12);
-        String[] typeLabels = new String[Node.NodeType.values().length]; for (int i = 0; i < Node.NodeType.values().length; i++) typeLabels[i] = Node.NodeType.values()[i].label;
-        Spinner typeSpinner = buildSpinner(typeLabels, currentNode.getType().ordinal()); addWithTopMargin(baseCard, typeSpinner, 12);
-        String[] shapeLabels = new String[Node.NodeShape.values().length]; for (int i = 0; i < Node.NodeShape.values().length; i++) shapeLabels[i] = Node.NodeShape.values()[i].label;
-        Spinner shapeSpinner = buildSpinner(shapeLabels, currentNode.getShape().ordinal()); addWithTopMargin(baseCard, shapeSpinner, 12);
-        String[] statusLabels = new String[Node.NodeStatus.values().length]; for (int i = 0; i < Node.NodeStatus.values().length; i++) statusLabels[i] = Node.NodeStatus.values()[i].label;
-        Spinner statusSpinner = buildSpinner(statusLabels, currentNode.getStatus().ordinal()); addWithTopMargin(baseCard, statusSpinner, 12);
+        String[] shapeLabels = new String[Node.NodeShape.values().length];
+        for (int i = 0; i < Node.NodeShape.values().length; i++) shapeLabels[i] = Node.NodeShape.values()[i].label;
+        Spinner shapeSpinner = buildSpinner(shapeLabels, currentNode.getShape().ordinal());
+        DialogUi.addWithTopMargin(this, baseCard, shapeSpinner, 12);
 
-        LinearLayout workflowCard = (LinearLayout) buildCard();
-        addWithTopMargin(root, workflowCard, 12);
-        workflowCard.addView(buildSectionTitle("工作流字段"));
-        EditText tagsInput = buildEditText("标签，多个用逗号分隔", currentNode.getTagsAsString(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(workflowCard, tagsInput, 10);
-        EditText priorityInput = buildEditText("优先级（1-5）", String.valueOf(currentNode.getPriority()), InputType.TYPE_CLASS_NUMBER); addWithTopMargin(workflowCard, priorityInput, 12);
-        EditText dueAtInput = buildEditText("截止时间，如：2026-03-20 20:00", currentNode.getDueAt(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(workflowCard, dueAtInput, 12);
-        EditText reviewAtInput = buildEditText("复习/回顾时间，如：2026-03-18", currentNode.getReviewAt(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(workflowCard, reviewAtInput, 12);
-        EditText effortEstimateInput = buildEditText("预计耗时（小时）", String.valueOf(currentNode.getEffortEstimate()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(workflowCard, effortEstimateInput, 12);
-        EditText actualEffortInput = buildEditText("实际耗时（小时）", String.valueOf(currentNode.getActualEffort()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(workflowCard, actualEffortInput, 12);
-        EditText confidenceInput = buildEditText("置信度（0~1）", String.valueOf(currentNode.getConfidence()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(workflowCard, confidenceInput, 12);
-        EditText triggerInput = buildEditText("触发条件 If，例如：如果晚上7点坐到书桌前", currentNode.getTriggerCondition(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE); addWithTopMargin(workflowCard, triggerInput, 12);
+        String[] statusLabels = new String[Node.NodeStatus.values().length];
+        for (int i = 0; i < Node.NodeStatus.values().length; i++) statusLabels[i] = Node.NodeStatus.values()[i].label;
+        Spinner statusSpinner = buildSpinner(statusLabels, currentNode.getStatus().ordinal());
+        DialogUi.addWithTopMargin(this, baseCard, statusSpinner, 12);
 
-        LinearLayout trackingCard = (LinearLayout) buildCard();
-        addWithTopMargin(root, trackingCard, 12);
-        trackingCard.addView(buildSectionTitle("归属与追踪"));
+        LinearLayout workflowCard = DialogUi.createCard(this);
+        DialogUi.addWithTopMargin(this, content, workflowCard, 12);
+        workflowCard.addView(DialogUi.createSectionTitle(this, "执行与工作流"));
+        DialogUi.addWithTopMargin(this, workflowCard, DialogUi.createHelper(this, "这里集中展示标签、优先级、截止、回顾、耗时、置信度和触发条件。"), 8);
+        android.widget.EditText tagsInput = DialogUi.createInput(this, "标签，多个用逗号分隔", currentNode.getTagsAsString(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, tagsInput, 12);
+        android.widget.EditText priorityInput = DialogUi.createInput(this, "优先级（1-5）", String.valueOf(currentNode.getPriority()), InputType.TYPE_CLASS_NUMBER, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, priorityInput, 12);
+        android.widget.EditText dueAtInput = DialogUi.createInput(this, "截止时间，如：2026-03-20 20:00", currentNode.getDueAt(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, dueAtInput, 12);
+        android.widget.EditText reviewAtInput = DialogUi.createInput(this, "复盘 / 复习时间，如：2026-03-18", currentNode.getReviewAt(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, reviewAtInput, 12);
+        android.widget.EditText effortEstimateInput = DialogUi.createInput(this, "预计耗时（小时）", String.valueOf(currentNode.getEffortEstimate()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, effortEstimateInput, 12);
+        android.widget.EditText actualEffortInput = DialogUi.createInput(this, "实际耗时（小时）", String.valueOf(currentNode.getActualEffort()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, actualEffortInput, 12);
+        android.widget.EditText confidenceInput = DialogUi.createInput(this, "置信度（0~1）", String.valueOf(currentNode.getConfidence()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, workflowCard, confidenceInput, 12);
+        android.widget.EditText triggerInput = DialogUi.createInput(this, "触发条件 If，例如：如果晚上 7 点坐到书桌前", currentNode.getTriggerCondition(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 3);
+        DialogUi.addWithTopMargin(this, workflowCard, triggerInput, 12);
+
+        LinearLayout trackingCard = DialogUi.createCard(this);
+        DialogUi.addWithTopMargin(this, content, trackingCard, 12);
+        trackingCard.addView(DialogUi.createSectionTitle(this, "归属与追踪"));
+        DialogUi.addWithTopMargin(this, trackingCard, DialogUi.createHelper(this, "项目归属、领域、KR 目标值和当前值都放在这里。"), 8);
         List<ProjectOption> projectOptions = buildProjectOptions();
-        String[] projectLabels = new String[projectOptions.size()]; for (int i = 0; i < projectOptions.size(); i++) projectLabels[i] = projectOptions.get(i).toString();
-        Spinner projectSpinner = buildSpinner(projectLabels, findProjectSelectionIndex(projectOptions, currentNode.getProjectId())); addWithTopMargin(trackingCard, projectSpinner, 10);
-        EditText projectIdInput = buildEditText("所属项目ID（高级备用项）", currentNode.getProjectId(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(trackingCard, projectIdInput, 12);
+        String[] projectLabels = new String[projectOptions.size()];
+        for (int i = 0; i < projectOptions.size(); i++) projectLabels[i] = projectOptions.get(i).toString();
+        Spinner projectSpinner = buildSpinner(projectLabels, findProjectSelectionIndex(projectOptions, currentNode.getProjectId()));
+        DialogUi.addWithTopMargin(this, trackingCard, projectSpinner, 12);
+        android.widget.EditText projectIdInput = DialogUi.createInput(this, "所属项目 ID（高级备用项）", currentNode.getProjectId(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, trackingCard, projectIdInput, 12);
         projectSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { projectIdInput.setText(projectOptions.get(pos).id); }
-            @Override public void onNothingSelected(AdapterView<?> p) {}
+            @Override public void onNothingSelected(AdapterView<?> p) { }
         });
-        EditText areaIdInput = buildEditText("所属领域ID", currentNode.getAreaId(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(trackingCard, areaIdInput, 12);
-        EditText krTargetInput = buildEditText("KR目标值", currentNode.getKrTarget() == 0f ? "" : String.valueOf(currentNode.getKrTarget()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(trackingCard, krTargetInput, 12);
-        EditText krCurrentInput = buildEditText("KR当前值", currentNode.getKrCurrent() == 0f ? "" : String.valueOf(currentNode.getKrCurrent()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(trackingCard, krCurrentInput, 12);
+        android.widget.EditText areaIdInput = DialogUi.createInput(this, "所属领域 ID", currentNode.getAreaId(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, trackingCard, areaIdInput, 12);
+        android.widget.EditText krTargetInput = DialogUi.createInput(this, "KR 目标值", currentNode.getKrTarget() == 0f ? "" : String.valueOf(currentNode.getKrTarget()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, trackingCard, krTargetInput, 12);
+        android.widget.EditText krCurrentInput = DialogUi.createInput(this, "KR 当前值", currentNode.getKrCurrent() == 0f ? "" : String.valueOf(currentNode.getKrCurrent()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, trackingCard, krCurrentInput, 12);
 
-        LinearLayout evidenceCard = (LinearLayout) buildCard();
-        addWithTopMargin(root, evidenceCard, 12);
-        evidenceCard.addView(buildSectionTitle("证据 / 来源 / 扩展"));
-        EditText evidenceStrengthInput = buildEditText("证据强度（0~1）", String.valueOf(currentNode.getEvidenceStrength()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); addWithTopMargin(evidenceCard, evidenceStrengthInput, 10);
-        EditText noteSourceInput = buildEditText("来源/出处", currentNode.getNoteSource(), InputType.TYPE_CLASS_TEXT); addWithTopMargin(evidenceCard, noteSourceInput, 12);
-        EditText metaJsonInput = buildEditText("扩展元数据（以后给 AI/模板用）", currentNode.getMetaJson(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE); metaJsonInput.setMinLines(3); addWithTopMargin(evidenceCard, metaJsonInput, 12);
+        LinearLayout evidenceCard = DialogUi.createCard(this);
+        DialogUi.addWithTopMargin(this, content, evidenceCard, 12);
+        evidenceCard.addView(DialogUi.createSectionTitle(this, "证据 / 来源 / 扩展元数据"));
+        DialogUi.addWithTopMargin(this, evidenceCard, DialogUi.createHelper(this, "证据强度、来源和 AI/模板扩展字段全部完整展示。"), 8);
+        android.widget.EditText evidenceStrengthInput = DialogUi.createInput(this, "证据强度（0~1）", String.valueOf(currentNode.getEvidenceStrength()), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL, 1);
+        DialogUi.addWithTopMargin(this, evidenceCard, evidenceStrengthInput, 12);
+        android.widget.EditText noteSourceInput = DialogUi.createInput(this, "来源 / 出处", currentNode.getNoteSource(), InputType.TYPE_CLASS_TEXT, 1);
+        DialogUi.addWithTopMargin(this, evidenceCard, noteSourceInput, 12);
+        android.widget.EditText metaJsonInput = DialogUi.createInput(this, "扩展元数据（给 AI / 模板 / 决策记录使用）", currentNode.getMetaJson(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 4);
+        DialogUi.addWithTopMargin(this, evidenceCard, metaJsonInput, 12);
 
         LinearLayout footer = new LinearLayout(requireContext());
         footer.setOrientation(LinearLayout.HORIZONTAL);
         footer.setGravity(Gravity.CENTER_VERTICAL);
-        footer.setPadding(dp(18), dp(6), dp(18), dp(10));
-        footer.setBackgroundColor(ThemeManager.getDialogBg());
-        final AlertDialog[] dialogRef = {null};
+        footer.setPadding(0, DialogUi.dp(this, 12), 0, DialogUi.dp(this, 2));
 
-        TextView btnDelete = buildFooterBtn("删除", ThemeManager.getDanger(), false);
+        TextView btnDelete = DialogUi.createFooterButton(this, "删除", ThemeManager.getDanger(), ThemeManager.getDangerSoft(), false);
+        TextView btnConnect = DialogUi.createFooterButton(this, "连线", ThemeManager.getAccent2(), ThemeManager.getAccentSoft(), false);
+        TextView btnCancel = DialogUi.createFooterButton(this, "取消", ThemeManager.getTextSecondary(), ThemeManager.getSurface(), false);
+        TextView btnSave = DialogUi.createFooterButton(this, "保存", ThemeManager.getTextPrimary(), ThemeManager.getAccentSoft(), true);
+
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        btnLp.rightMargin = DialogUi.dp(this, 8);
+        footer.addView(btnDelete, btnLp);
+
+        LinearLayout.LayoutParams btnLp2 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        btnLp2.rightMargin = DialogUi.dp(this, 8);
+        footer.addView(btnConnect, btnLp2);
+
+        LinearLayout.LayoutParams btnLp3 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        btnLp3.rightMargin = DialogUi.dp(this, 8);
+        footer.addView(btnCancel, btnLp3);
+        footer.addView(btnSave, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        shell.addView(footer, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(shell)
+                .create();
+
         btnDelete.setOnClickListener(v -> {
             currentMindMapView.removeNode(currentNode.getId());
             if (getActivity() instanceof NodeEditListener) ((NodeEditListener) getActivity()).onNodeDeleted(currentNode);
-            if (dialogRef[0] != null) dialogRef[0].dismiss();
+            dialog.dismiss();
             dismiss();
         });
-        footer.addView(btnDelete);
 
-        TextView btnConnect = buildFooterBtn("连线", ThemeManager.getLinkColor(), false);
         btnConnect.setOnClickListener(v -> {
             currentMindMapView.startConnectionMode(currentNode);
-            if (dialogRef[0] != null) dialogRef[0].dismiss();
+            dialog.dismiss();
             dismiss();
         });
-        footer.addView(btnConnect);
 
-        View spacer = new View(requireContext());
-        footer.addView(spacer, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        btnCancel.setOnClickListener(v -> {
+            dialog.dismiss();
+            dismiss();
+        });
 
-        TextView btnCancel = buildFooterBtn("取消", ThemeManager.getTextSecondary(), false);
-        btnCancel.setOnClickListener(v -> { if (dialogRef[0] != null) dialogRef[0].dismiss(); dismiss(); });
-        footer.addView(btnCancel);
-
-        TextView btnSave = buildFooterBtn("保存", ThemeManager.getAccent(), true);
         btnSave.setOnClickListener(v -> {
             currentNode.setTitle(titleInput.getText().toString().trim());
             currentNode.setContent(contentInput.getText().toString().trim());
@@ -392,7 +358,9 @@ public class NodeEditDialog extends DialogFragment {
             currentNode.setConfidence(parseFloatSafe(confidenceInput.getText().toString(), 0.5f));
             currentNode.setTriggerCondition(triggerInput.getText().toString().trim());
             String selectedProjectId = projectIdInput.getText().toString().trim();
-            if (projectSpinner.getSelectedItemPosition() > 0) selectedProjectId = projectOptions.get(projectSpinner.getSelectedItemPosition()).id;
+            if (projectSpinner.getSelectedItemPosition() > 0) {
+                selectedProjectId = projectOptions.get(projectSpinner.getSelectedItemPosition()).id;
+            }
             currentNode.setProjectId(selectedProjectId);
             currentNode.setAreaId(areaIdInput.getText().toString().trim());
             currentNode.setKrTarget(parseFloatSafe(krTargetInput.getText().toString(), 0f));
@@ -402,27 +370,11 @@ public class NodeEditDialog extends DialogFragment {
             currentNode.setMetaJson(metaJsonInput.getText().toString().trim());
             WorkflowEngine.normalizeNodeForWorkflow(currentNode);
             if (getActivity() instanceof NodeEditListener) ((NodeEditListener) getActivity()).onNodeUpdated(currentNode);
-            if (dialogRef[0] != null) dialogRef[0].dismiss();
+            dialog.dismiss();
             dismiss();
         });
-        footer.addView(btnSave);
 
-        shell.addView(footer, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), androidx.appcompat.R.style.Theme_AppCompat_Dialog))
-                .setTitle("编辑节点")
-                .setView(shell)
-                .create();
-        dialogRef[0] = dialog;
-        dialog.setOnShowListener(d -> {
-            if (dialog.getWindow() != null) {
-                android.graphics.drawable.GradientDrawable winBg = new android.graphics.drawable.GradientDrawable();
-                winBg.setColor(ThemeManager.getDialogBg());
-                winBg.setCornerRadius(56f);
-                winBg.setStroke(2, ThemeManager.getStroke());
-                dialog.getWindow().setBackgroundDrawable(winBg);
-            }
-        });
+        dialog.setOnShowListener(d -> DialogUi.styleWindow(this, dialog));
         return dialog;
     }
 }
