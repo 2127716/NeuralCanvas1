@@ -23,7 +23,8 @@ public final class BackgroundBrainAnalyzer {
     public static BrainPulseReport analyze(Map<String, Node> nodes,
                                            Map<String, Connection> connections,
                                            AiConfig config,
-                                           BrainAutopilotSettings settings) throws Exception {
+                                           BrainAutopilotSettings settings,
+                                           SuggestionFeedbackProfile feedback) throws Exception {
         BrainPulseReport report = new BrainPulseReport();
         if (settings == null || !settings.isEnabled() || !settings.isApiAutopilotEnabled()) {
             report.summary = "AI自动巡航已关闭";
@@ -36,7 +37,7 @@ public final class BackgroundBrainAnalyzer {
 
         AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
         AiAutopilotOrchestrator.OrchestratorResult orchestrated =
-                AiAutopilotOrchestrator.run(config, snapshot, settings);
+                AiAutopilotOrchestrator.run(config, snapshot, settings, feedback);
 
         report.orchestratorSummary = orchestrated.buildSummary();
         report.responseJson = AiJsonParser.toJson(orchestrated.mergedResponse);
@@ -82,17 +83,19 @@ public final class BackgroundBrainAnalyzer {
 
         WorkflowAuditEngine.AuditResult audit = WorkflowAuditEngine.audit(nodes, connections);
         GraphHealthEngine.HealthReport health = GraphHealthEngine.analyze(nodes, connections);
+        NetworkRefactorPlanner.RefactorPlan refactorPlan = NetworkRefactorPlanner.build(nodes, connections);
+        LearningActionPlanner.ActionPlan learningPlan = LearningActionPlanner.build(nodes, connections);
 
         StringBuilder sb = new StringBuilder();
         if (!report.summary.isEmpty()) sb.append(report.summary);
         else sb.append("AI 已完成一次多代理自动巡航");
 
         sb.append("\n\n【结构体检】\n").append(health.buildSummary());
-        if (!audit.isHealthy()) {
-            sb.append("\n").append(audit.buildSummary());
-        } else {
-            sb.append("\n结构闭环暂无明显缺口");
-        }
+        if (!audit.isHealthy()) sb.append("\n").append(audit.buildSummary());
+        else sb.append("\n结构闭环暂无明显缺口");
+
+        sb.append("\n\n【网络重构建议】\n").append(refactorPlan.buildSummary());
+        sb.append("\n\n【学习动作建议】\n").append(learningPlan.buildSummary());
 
         report.summary = sb.toString();
         return report;

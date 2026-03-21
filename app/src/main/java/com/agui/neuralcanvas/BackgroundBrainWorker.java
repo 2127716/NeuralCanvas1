@@ -29,9 +29,10 @@ public class BackgroundBrainWorker extends Worker {
             Map<?, ?> saved = dataManager.loadMindMap();
             Map<String, Node> nodes = (Map<String, Node>) saved.get("nodes");
             Map<String, Connection> connections = (Map<String, Connection>) saved.get("connections");
+            SuggestionFeedbackProfile feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
 
             BackgroundBrainAnalyzer.BrainPulseReport report =
-                    BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings);
+                    BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings, feedbackProfile);
 
             AiResponse response = null;
             AiSelfReviewEngine.ReviewResult reviewResult = null;
@@ -106,11 +107,14 @@ public class BackgroundBrainWorker extends Worker {
                 BehaviorMemoryEngine.record(dataManager, record);
 
                 Node focusNode = nodes == null ? null : nodes.get(report.focusNodeId);
-                if (focusNode != null) NodeIntelligenceEngine.markFocus(focusNode);
+                if (focusNode != null) {
+                    NodeIntelligenceEngine.markFocus(focusNode);
+                    OutcomeFeedbackEngine.markFocused(focusNode);
+                }
 
                 BehaviorMemoryProfile profile = dataManager.loadBehaviorMemoryProfile();
                 PrioritySchedulerEngine.PriorityBoard board = PrioritySchedulerEngine.build(nodes, connections, profile);
-                SuggestionFeedbackProfile feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
+                feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
 
                 report.summary = (report.summary == null ? "" : report.summary)
                         + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile)
