@@ -22,6 +22,8 @@ public class SimpleDataManager {
     private static final String KEY_BEHAVIOR_MEMORY = "behavior_memory_profile";
     private static final String KEY_SUGGESTION_FEEDBACK = "suggestion_feedback_profile";
     private static final String KEY_AGENT_RUN_HISTORY = "agent_run_history_profile";
+    private static final String KEY_PENDING_OPERATION_BUNDLE = "pending_operation_bundle";
+
     private final SharedPreferences prefs;
     private final Gson gson;
 
@@ -31,7 +33,10 @@ public class SimpleDataManager {
     }
 
     public void saveMindMap(Map<String, Node> nodes, Map<String, Connection> connections) {
-        prefs.edit().putString(KEY_NODES, gson.toJson(nodes)).putString(KEY_CONNECTIONS, gson.toJson(connections)).apply();
+        prefs.edit()
+                .putString(KEY_NODES, gson.toJson(nodes))
+                .putString(KEY_CONNECTIONS, gson.toJson(connections))
+                .apply();
     }
 
     public Map<String, Object> loadMindMap() {
@@ -55,7 +60,9 @@ public class SimpleDataManager {
         return result;
     }
 
-    public void saveAiConfig(AiConfig config) { prefs.edit().putString(KEY_AI_CONFIG, gson.toJson(config)).apply(); }
+    public void saveAiConfig(AiConfig config) {
+        prefs.edit().putString(KEY_AI_CONFIG, gson.toJson(config)).apply();
+    }
 
     public AiConfig loadAiConfig() {
         try {
@@ -69,7 +76,9 @@ public class SimpleDataManager {
         }
     }
 
-    public void saveAutopilotSettings(BrainAutopilotSettings settings) { prefs.edit().putString(KEY_AUTOPILOT_SETTINGS, gson.toJson(settings)).apply(); }
+    public void saveAutopilotSettings(BrainAutopilotSettings settings) {
+        prefs.edit().putString(KEY_AUTOPILOT_SETTINGS, gson.toJson(settings)).apply();
+    }
 
     public BrainAutopilotSettings loadAutopilotSettings() {
         try {
@@ -84,17 +93,24 @@ public class SimpleDataManager {
     }
 
     public void saveLastBrainPulse(long timestamp, String summary) {
-        prefs.edit().putLong(KEY_LAST_BRAIN_PULSE_AT, timestamp).putString(KEY_LAST_BRAIN_PULSE_SUMMARY, summary == null ? "" : summary).apply();
+        prefs.edit()
+                .putLong(KEY_LAST_BRAIN_PULSE_AT, timestamp)
+                .putString(KEY_LAST_BRAIN_PULSE_SUMMARY, summary == null ? "" : summary)
+                .apply();
     }
 
-    public long loadLastBrainPulseAt() { return prefs.getLong(KEY_LAST_BRAIN_PULSE_AT, 0L); }
+    public long loadLastBrainPulseAt() {
+        return prefs.getLong(KEY_LAST_BRAIN_PULSE_AT, 0L);
+    }
 
     public String loadLastBrainPulseSummary() {
         String value = prefs.getString(KEY_LAST_BRAIN_PULSE_SUMMARY, "");
         return value == null ? "" : value;
     }
 
-    public void savePendingBrainGuidance(BrainPendingGuidance guidance) { prefs.edit().putString(KEY_PENDING_BRAIN_GUIDANCE, gson.toJson(guidance)).apply(); }
+    public void savePendingBrainGuidance(BrainPendingGuidance guidance) {
+        prefs.edit().putString(KEY_PENDING_BRAIN_GUIDANCE, gson.toJson(guidance)).apply();
+    }
 
     public BrainPendingGuidance loadPendingBrainGuidance() {
         try {
@@ -107,9 +123,13 @@ public class SimpleDataManager {
         }
     }
 
-    public void clearPendingBrainGuidance() { prefs.edit().remove(KEY_PENDING_BRAIN_GUIDANCE).apply(); }
+    public void clearPendingBrainGuidance() {
+        prefs.edit().remove(KEY_PENDING_BRAIN_GUIDANCE).apply();
+    }
 
-    public void saveBehaviorMemoryProfile(BehaviorMemoryProfile profile) { prefs.edit().putString(KEY_BEHAVIOR_MEMORY, gson.toJson(profile)).apply(); }
+    public void saveBehaviorMemoryProfile(BehaviorMemoryProfile profile) {
+        prefs.edit().putString(KEY_BEHAVIOR_MEMORY, gson.toJson(profile)).apply();
+    }
 
     public BehaviorMemoryProfile loadBehaviorMemoryProfile() {
         try {
@@ -123,7 +143,9 @@ public class SimpleDataManager {
         }
     }
 
-    public void saveSuggestionFeedbackProfile(SuggestionFeedbackProfile profile) { prefs.edit().putString(KEY_SUGGESTION_FEEDBACK, gson.toJson(profile)).apply(); }
+    public void saveSuggestionFeedbackProfile(SuggestionFeedbackProfile profile) {
+        prefs.edit().putString(KEY_SUGGESTION_FEEDBACK, gson.toJson(profile)).apply();
+    }
 
     public SuggestionFeedbackProfile loadSuggestionFeedbackProfile() {
         try {
@@ -137,7 +159,9 @@ public class SimpleDataManager {
         }
     }
 
-    public void saveAgentRunHistoryProfile(AgentRunHistoryProfile profile) { prefs.edit().putString(KEY_AGENT_RUN_HISTORY, gson.toJson(profile)).apply(); }
+    public void saveAgentRunHistoryProfile(AgentRunHistoryProfile profile) {
+        prefs.edit().putString(KEY_AGENT_RUN_HISTORY, gson.toJson(profile)).apply();
+    }
 
     public AgentRunHistoryProfile loadAgentRunHistoryProfile() {
         try {
@@ -151,7 +175,34 @@ public class SimpleDataManager {
         }
     }
 
+    public void savePendingOperationBundle(PendingOperationBundle bundle) {
+        prefs.edit().putString(KEY_PENDING_OPERATION_BUNDLE, gson.toJson(bundle)).apply();
+    }
+
+    public PendingOperationBundle loadPendingOperationBundle() {
+        try {
+            String json = prefs.getString(KEY_PENDING_OPERATION_BUNDLE, "");
+            if (json == null || json.trim().isEmpty()) return null;
+            return gson.fromJson(json, PendingOperationBundle.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void clearPendingOperationBundle() {
+        prefs.edit().remove(KEY_PENDING_OPERATION_BUNDLE).apply();
+    }
+
     public void clearAll() {
-        prefs.edit().remove(KEY_NODES).remove(KEY_CONNECTIONS).remove(KEY_PENDING_BRAIN_GUIDANCE).remove(KEY_BEHAVIOR_MEMORY).remove(KEY_SUGGESTION_FEEDBACK).remove(KEY_AGENT_RUN_HISTORY).apply();
+        prefs.edit()
+                .remove(KEY_NODES)
+                .remove(KEY_CONNECTIONS)
+                .remove(KEY_PENDING_BRAIN_GUIDANCE)
+                .remove(KEY_BEHAVIOR_MEMORY)
+                .remove(KEY_SUGGESTION_FEEDBACK)
+                .remove(KEY_AGENT_RUN_HISTORY)
+                .remove(KEY_PENDING_OPERATION_BUNDLE)
+                .apply();
     }
 }
