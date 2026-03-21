@@ -1398,4 +1398,38 @@ public class MindMapView extends View {
         if (from == null || to == null) return;
         showEditConnectionDialog(from, to);
     }
+
+    // ── Box selection (框选) ───────────────────────────────────────────────────
+    // These are called by MainMenuActionHandler; kept as no-ops if not yet
+    // fully implemented so the project at least compiles.
+
+    private boolean isBoxSelectionMode = false;
+    private RectF boxSelectionRect = null;
+    private float boxStartX = 0f;
+    private float boxStartY = 0f;
+
+    public void startBoxSelectionMode() {
+        isBoxSelectionMode = true;
+        boxSelectionRect = null;
+        clearSelections();
+        requestRender();
+    }
+
+    public void cancelBoxSelectionMode() {
+        isBoxSelectionMode = false;
+        boxSelectionRect = null;
+        requestRender();
+    }
+
+    /**
+     * Delete all currently selected nodes (and their connected edges).
+     * @return number of nodes deleted
+     */
+    public int deleteSelectedNodes() {
+        List<String> toDelete = getSelectedNodeIds();
+        for (String id : toDelete) {
+            removeNode(id);
+        }
+        return toDelete.size();
+    }
 }
