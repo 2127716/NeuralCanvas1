@@ -7,6 +7,7 @@ public final class AiAutopilotOrchestrator {
 
     public static final class OrchestratorResult {
         public final List<AiAgentRunResult> runs = new ArrayList<>();
+        public final List<AiAgentRunResult> keptRuns = new ArrayList<>();
         public AiResponse mergedResponse = new AiResponse();
         public String planSummary = "";
 
@@ -21,13 +22,18 @@ public final class AiAutopilotOrchestrator {
 
     private AiAutopilotOrchestrator() {}
 
-    public static OrchestratorResult run(AiConfig config, AiGraphSnapshot fullSnapshot, BrainAutopilotSettings settings, SuggestionFeedbackProfile feedback) throws Exception {
+    public static OrchestratorResult run(AiConfig config,
+                                         AiGraphSnapshot fullSnapshot,
+                                         BrainAutopilotSettings settings,
+                                         SuggestionFeedbackProfile feedback,
+                                         AgentRunHistoryProfile history) throws Exception {
         OrchestratorResult result = new OrchestratorResult();
         if (fullSnapshot == null) fullSnapshot = new AiGraphSnapshot();
         if (settings == null) settings = new BrainAutopilotSettings();
         if (feedback == null) feedback = new SuggestionFeedbackProfile();
+        if (history == null) history = new AgentRunHistoryProfile();
 
-        AgentScoringEngine.AgentPlan plan = AgentScoringEngine.buildPlan(fullSnapshot, settings, feedback);
+        AgentScoringEngine.AgentPlan plan = AgentScoringEngine.buildPlan(fullSnapshot, settings, feedback, history);
         result.planSummary = plan.reason;
 
         for (BrainAgentProfile profile : plan.orderedProfiles) {
@@ -40,9 +46,9 @@ public final class AiAutopilotOrchestrator {
             result.runs.add(run);
         }
 
-        AgentScoringEngine.scoreRuns(result.runs, feedback);
-        List<AiAgentRunResult> kept = AgentScoringEngine.trimToBudget(result.runs, plan.totalCommandBudget);
-        result.mergedResponse = AiCommandMergeEngine.merge(kept);
+        AgentScoringEngine.scoreRuns(result.runs, feedback, history);
+        result.keptRuns.addAll(AgentScoringEngine.trimToBudget(result.runs, plan.totalCommandBudget));
+        result.mergedResponse = AiCommandMergeEngine.merge(result.keptRuns);
         result.mergedResponse.setAnswer((plan.reason == null ? "" : plan.reason) + "\n" + result.mergedResponse.getAnswer());
         return result;
     }

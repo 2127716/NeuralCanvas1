@@ -28,8 +28,10 @@ public class BackgroundBrainWorker extends Worker {
             Map<String, Node> nodes = (Map<String, Node>) saved.get("nodes");
             Map<String, Connection> connections = (Map<String, Connection>) saved.get("connections");
             SuggestionFeedbackProfile feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
+            AgentRunHistoryProfile historyProfile = dataManager.loadAgentRunHistoryProfile();
 
-            BackgroundBrainAnalyzer.BrainPulseReport report = BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings, feedbackProfile);
+            BackgroundBrainAnalyzer.BrainPulseReport report =
+                    BackgroundBrainAnalyzer.analyze(nodes, connections, config, settings, feedbackProfile, historyProfile);
 
             AiResponse response = null;
             AiSelfReviewEngine.ReviewResult reviewResult = null;
@@ -38,7 +40,8 @@ public class BackgroundBrainWorker extends Worker {
                 response = AiJsonParser.parseResponse(report.responseJson);
 
                 try {
-                    AiModelSelfReviewEngine.ReviewOutcome modelReview = new AiModelSelfReviewEngine().review(config, AiGraphSnapshot.from(nodes, connections), response);
+                    AiModelSelfReviewEngine.ReviewOutcome modelReview =
+                            new AiModelSelfReviewEngine().review(config, AiGraphSnapshot.from(nodes, connections), response);
                     if (modelReview != null) {
                         response = modelReview.response == null ? response : modelReview.response;
                         report.summary = safe(report.summary) + "\n\n【模型复审】\n" + modelReview.summary;
@@ -56,11 +59,16 @@ public class BackgroundBrainWorker extends Worker {
                 }
 
                 AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(response);
-                if (settings.isAutoApplyLowRiskChanges() && safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.LOW && response.getCommands() != null && !response.getCommands().isEmpty()) {
+                boolean effective = false;
+                if (settings.isAutoApplyLowRiskChanges()
+                        && safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.LOW
+                        && response.getCommands() != null
+                        && !response.getCommands().isEmpty()) {
                     new AiHeadlessExecutor(nodes, connections).execute(response.getCommands());
                     OutcomeFeedbackEngine.backfillFromCommands(nodes, response);
                     dataManager.saveMindMap(nodes, connections);
                     report.autoApplied = true;
+                    effective = true;
                     report.summary = safe(report.summary) + "（已自动执行低风险改动）";
                     SuggestionFeedbackEngine.recordAutoApplied(dataManager, response, report.agentProfile);
                     SuggestionFeedbackEngine.recordEffectiveness(dataManager, response);
@@ -84,7 +92,8 @@ public class BackgroundBrainWorker extends Worker {
                         + "\n\n【学习闭环】\n" + learningReport.buildSummary()
                         + "\n\n【学习迁移】\n" + transferReport.buildSummary()
                         + "\n\n【网络进化】\n" + networkReport.buildSummary()
-                        + "\n\n【成熟度】\n" + maturity.buildSummary();
+                        + "\n\n【成熟度】\n" + maturity.buildSummary()
+                        + "\n\n【补丁成效】\n" + SuggestionEffectivenessTracker.buildSummary(nodes);
 
                 BehaviorMemoryEngine.PulseRecord record = new BehaviorMemoryEngine.PulseRecord();
                 record.agentProfile = report.agentProfile;
@@ -96,6 +105,10 @@ public class BackgroundBrainWorker extends Worker {
                 record.commands = response == null ? null : response.getCommands();
                 BehaviorMemoryEngine.record(dataManager, record);
 
+                if (report.orchestratorResult != null) {
+                    AgentRunHistoryEngine.record(dataManager, report.orchestratorResult.runs, report.orchestratorResult.keptRuns, effective);
+                }
+
                 Node focusNode = nodes == null ? null : nodes.get(report.focusNodeId);
                 if (focusNode != null) {
                     NodeIntelligenceEngine.markFocus(focusNode);
@@ -105,10 +118,12 @@ public class BackgroundBrainWorker extends Worker {
                 BehaviorMemoryProfile profile = dataManager.loadBehaviorMemoryProfile();
                 PrioritySchedulerEngine.PriorityBoard board = PrioritySchedulerEngine.build(nodes, connections, profile);
                 feedbackProfile = dataManager.loadSuggestionFeedbackProfile();
+                historyProfile = dataManager.loadAgentRunHistoryProfile();
 
                 report.summary = safe(report.summary)
                         + "\n\n【长期记忆】\n" + BehaviorMemoryEngine.buildSummary(profile)
                         + "\n\n【建议反馈】\n" + SuggestionFeedbackEngine.buildSummary(feedbackProfile)
+                        + "\n\n【代理历史】\n" + AgentRunHistoryEngine.buildSummary(historyProfile)
                         + "\n\n【今日优先级】\n" + board.buildSummary();
             }
 

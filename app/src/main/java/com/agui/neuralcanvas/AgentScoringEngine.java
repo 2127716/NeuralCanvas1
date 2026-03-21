@@ -14,12 +14,14 @@ public final class AgentScoringEngine {
 
     private AgentScoringEngine() {}
 
-    public static AgentPlan buildPlan(AiGraphSnapshot snapshot, BrainAutopilotSettings settings, SuggestionFeedbackProfile feedback) {
+    public static AgentPlan buildPlan(AiGraphSnapshot snapshot,
+                                      BrainAutopilotSettings settings,
+                                      SuggestionFeedbackProfile feedback,
+                                      AgentRunHistoryProfile history) {
         AgentPlan plan = new AgentPlan();
         if (settings == null) settings = new BrainAutopilotSettings();
 
         int executionSignals = 0, decisionSignals = 0, learningSignals = 0, networkSignals = 0;
-
         if (snapshot != null && snapshot.nodes != null) {
             for (AiGraphSnapshot.SnapshotNode node : snapshot.nodes) {
                 String type = safeLower(node.type);
@@ -38,25 +40,31 @@ public final class AgentScoringEngine {
         if (networkSignals >= 4 || specialist == BrainAgentProfile.NETWORK) plan.orderedProfiles.add(BrainAgentProfile.NETWORK);
         if (!plan.orderedProfiles.contains(specialist)) plan.orderedProfiles.add(specialist);
 
-        float generalWeight = SuggestionFeedbackEngine.getAgentWeight(feedback, BrainAgentProfile.GENERAL.key);
+        float generalWeight = SuggestionFeedbackEngine.getAgentWeight(feedback, BrainAgentProfile.GENERAL.key)
+                * AgentRunHistoryEngine.getAgentHistoryWeight(history, BrainAgentProfile.GENERAL.key);
         if (generalWeight >= 0.9f || plan.orderedProfiles.size() < 2) plan.orderedProfiles.add(BrainAgentProfile.GENERAL);
 
         plan.maxAgents = Math.min(3, plan.orderedProfiles.size());
         plan.totalCommandBudget = specialist == BrainAgentProfile.NETWORK ? 12 : 16;
-        plan.reason = "动态编排：" + specialist.label + " 优先，GENERAL 权重=" + String.format(Locale.US, "%.2f", generalWeight);
+        plan.reason = "动态编排：" + specialist.label + " 优先，GENERAL 综合权重=" + String.format(Locale.US, "%.2f", generalWeight);
         return plan;
     }
 
-    public static void scoreRuns(List<AiAgentRunResult> runs, SuggestionFeedbackProfile feedback) {
+    public static void scoreRuns(List<AiAgentRunResult> runs,
+                                 SuggestionFeedbackProfile feedback,
+                                 AgentRunHistoryProfile history) {
         if (runs == null) return;
         for (AiAgentRunResult run : runs) {
             if (run == null) continue;
             float score = 0f;
-            score += SuggestionFeedbackEngine.getAgentWeight(feedback, run.profile == null ? "" : run.profile.key) * 20f;
+            float feedbackWeight = SuggestionFeedbackEngine.getAgentWeight(feedback, run.profile == null ? "" : run.profile.key);
+            float historyWeight = AgentRunHistoryEngine.getAgentHistoryWeight(history, run.profile == null ? "" : run.profile.key);
+            score += feedbackWeight * 14f;
+            score += historyWeight * 12f;
             score += Math.max(0, 8 - run.commandCount) * 1.8f;
             if (run.summary != null && !run.summary.trim().isEmpty()) score += 8f;
             if (run.durationMs > 0 && run.durationMs < 45000L) score += 4f;
-                        if (run.commandCount > 0 && run.commandCount <= 6) score += 6f;
+            if (run.commandCount > 0 && run.commandCount <= 6) score += 6f;
             if (run.commandCount > 10) score -= 8f;
             run.summary = "[score=" + String.format(Locale.US, "%.1f", score) + "] " + safe(run.summary);
         }

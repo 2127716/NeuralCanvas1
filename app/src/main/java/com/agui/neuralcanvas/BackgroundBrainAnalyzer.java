@@ -16,6 +16,7 @@ public final class BackgroundBrainAnalyzer {
         public String riskLevel = "LOW";
         public String agentProfile = "auto";
         public String orchestratorSummary = "";
+        public AiAutopilotOrchestrator.OrchestratorResult orchestratorResult;
     }
 
     private BackgroundBrainAnalyzer() {}
@@ -24,7 +25,8 @@ public final class BackgroundBrainAnalyzer {
                                            Map<String, Connection> connections,
                                            AiConfig config,
                                            BrainAutopilotSettings settings,
-                                           SuggestionFeedbackProfile feedback) throws Exception {
+                                           SuggestionFeedbackProfile feedback,
+                                           AgentRunHistoryProfile history) throws Exception {
         BrainPulseReport report = new BrainPulseReport();
         if (settings == null || !settings.isEnabled() || !settings.isApiAutopilotEnabled()) {
             report.summary = "AI自动巡航已关闭";
@@ -36,8 +38,9 @@ public final class BackgroundBrainAnalyzer {
         }
 
         AiGraphSnapshot snapshot = AiGraphSnapshot.from(nodes, connections);
-        AiAutopilotOrchestrator.OrchestratorResult orchestrated = AiAutopilotOrchestrator.run(config, snapshot, settings, feedback);
-
+        AiAutopilotOrchestrator.OrchestratorResult orchestrated =
+                AiAutopilotOrchestrator.run(config, snapshot, settings, feedback, history);
+        report.orchestratorResult = orchestrated;
         report.orchestratorSummary = orchestrated.buildSummary();
         report.responseJson = AiJsonParser.toJson(orchestrated.mergedResponse);
         report.summary = orchestrated.mergedResponse == null ? "AI没有返回结果" : safe(orchestrated.mergedResponse.getAnswer());
@@ -45,11 +48,12 @@ public final class BackgroundBrainAnalyzer {
         AiAutopilotSafetyEngine.SafetyReport safety = AiAutopilotSafetyEngine.analyze(orchestrated.mergedResponse);
         report.riskLevel = safety.riskLevel.name();
         report.reason = safety.buildSummary();
-        report.severity = safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.HIGH ? 95 : safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.MEDIUM ? 78 : 64;
+        report.severity = safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.HIGH ? 95
+                : safety.riskLevel == AiAutopilotSafetyEngine.RiskLevel.MEDIUM ? 78 : 64;
         report.shouldNotify = true;
 
-        if (!orchestrated.runs.isEmpty()) {
-            AiAgentRunResult last = orchestrated.runs.get(orchestrated.runs.size() - 1);
+        if (!orchestrated.keptRuns.isEmpty()) {
+            AiAgentRunResult last = orchestrated.keptRuns.get(orchestrated.keptRuns.size() - 1);
             report.agentProfile = last.profile == null ? "auto" : last.profile.key;
         }
 
@@ -76,6 +80,7 @@ public final class BackgroundBrainAnalyzer {
         WorkflowAuditEngine.AuditResult audit = WorkflowAuditEngine.audit(nodes, connections);
         GraphHealthEngine.HealthReport health = GraphHealthEngine.analyze(nodes, connections);
         NetworkRefactorPlanner.RefactorPlan refactorPlan = NetworkRefactorPlanner.build(nodes, connections);
+        NetworkBridgePlanner.BridgeReport bridgeReport = NetworkBridgePlanner.analyze(nodes, connections);
         LearningActionPlanner.ActionPlan learningPlan = LearningActionPlanner.build(nodes, connections);
 
         StringBuilder sb = new StringBuilder();
@@ -83,6 +88,7 @@ public final class BackgroundBrainAnalyzer {
         sb.append("\n\n【结构体检】\n").append(health.buildSummary());
         if (!audit.isHealthy()) sb.append("\n").append(audit.buildSummary()); else sb.append("\n结构闭环暂无明显缺口");
         sb.append("\n\n【网络重构建议】\n").append(refactorPlan.buildSummary());
+        sb.append("\n\n【网络桥接建议】\n").append(bridgeReport.buildSummary());
         sb.append("\n\n【学习动作建议】\n").append(learningPlan.buildSummary());
         sb.append("\n\n【代理编排】\n").append(orchestrated.buildSummary());
 

@@ -21,6 +21,7 @@ public class SimpleDataManager {
     private static final String KEY_PENDING_BRAIN_GUIDANCE = "pending_brain_guidance";
     private static final String KEY_BEHAVIOR_MEMORY = "behavior_memory_profile";
     private static final String KEY_SUGGESTION_FEEDBACK = "suggestion_feedback_profile";
+    private static final String KEY_AGENT_RUN_HISTORY = "agent_run_history_profile";
     private final SharedPreferences prefs;
     private final Gson gson;
 
@@ -136,7 +137,21 @@ public class SimpleDataManager {
         }
     }
 
+    public void saveAgentRunHistoryProfile(AgentRunHistoryProfile profile) { prefs.edit().putString(KEY_AGENT_RUN_HISTORY, gson.toJson(profile)).apply(); }
+
+    public AgentRunHistoryProfile loadAgentRunHistoryProfile() {
+        try {
+            String json = prefs.getString(KEY_AGENT_RUN_HISTORY, "");
+            if (json == null || json.trim().isEmpty()) return new AgentRunHistoryProfile();
+            AgentRunHistoryProfile profile = gson.fromJson(json, AgentRunHistoryProfile.class);
+            return profile == null ? new AgentRunHistoryProfile() : profile;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new AgentRunHistoryProfile();
+        }
+    }
+
     public void clearAll() {
-        prefs.edit().remove(KEY_NODES).remove(KEY_CONNECTIONS).remove(KEY_PENDING_BRAIN_GUIDANCE).remove(KEY_BEHAVIOR_MEMORY).remove(KEY_SUGGESTION_FEEDBACK).apply();
+        prefs.edit().remove(KEY_NODES).remove(KEY_CONNECTIONS).remove(KEY_PENDING_BRAIN_GUIDANCE).remove(KEY_BEHAVIOR_MEMORY).remove(KEY_SUGGESTION_FEEDBACK).remove(KEY_AGENT_RUN_HISTORY).apply();
     }
 }
