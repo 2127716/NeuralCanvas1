@@ -429,20 +429,38 @@ public class MindMapView extends View {
             activePointerId = MotionEvent.INVALID_POINTER_ID;
         }
 
-        if (action == MotionEvent.ACTION_POINTER_DOWN || event.getPointerCount() > 1) {
-            isScaling = true;
-            suppressLongPressUntilUp = true;
-            isDraggingCanvas = false;
-            isDraggingNode = false;
-            draggingNode = null;
-            movedEnough = true;
-            singleTapCandidate = false;
-            cancelLongPressCandidate();
-            int anchorIndex = activePointerId == MotionEvent.INVALID_POINTER_ID ? 0 : event.findPointerIndex(activePointerId);
-            if (anchorIndex < 0) anchorIndex = 0;
-            lastTouchX = event.getX(anchorIndex);
-            lastTouchY = event.getY(anchorIndex);
-            return true;
+        if (event.getPointerCount() > 1) {
+            if (action == MotionEvent.ACTION_POINTER_UP && event.getPointerCount() - 1 <= 1) {
+                isScaling = false;
+                lastScaleEndTime = SystemClock.uptimeMillis();
+                int remainingIndex = actionIndex == 0 ? 1 : 0;
+                if (remainingIndex >= event.getPointerCount()) remainingIndex = 0;
+                if (remainingIndex != actionIndex && remainingIndex < event.getPointerCount()) {
+                    activePointerId = event.getPointerId(remainingIndex);
+                    lastTouchX = event.getX(remainingIndex);
+                    lastTouchY = event.getY(remainingIndex);
+                    downX = lastTouchX;
+                    downY = lastTouchY;
+                } else {
+                    lastTouchX = Float.NaN;
+                    lastTouchY = Float.NaN;
+                }
+            } else {
+                isScaling = true;
+                suppressLongPressUntilUp = true;
+                isDraggingCanvas = false;
+                isDraggingNode = false;
+                draggingNode = null;
+                movedEnough = true;
+                singleTapCandidate = false;
+                cancelLongPressCandidate();
+                int anchorIndex = activePointerId == MotionEvent.INVALID_POINTER_ID ? 0 : event.findPointerIndex(activePointerId);
+                if (anchorIndex < 0 || anchorIndex == actionIndex) anchorIndex = 0;
+                if (anchorIndex == actionIndex && event.getPointerCount() > 1) anchorIndex = 1;
+                lastTouchX = event.getX(anchorIndex);
+                lastTouchY = event.getY(anchorIndex);
+                return true;
+            }
         }
 
         int activeIndex = activePointerId == MotionEvent.INVALID_POINTER_ID ? 0 : event.findPointerIndex(activePointerId);
@@ -561,8 +579,6 @@ public class MindMapView extends View {
                 return true;
             }
             case MotionEvent.ACTION_POINTER_UP:
-                lastScaleEndTime = SystemClock.uptimeMillis();
-                isScaling = event.getPointerCount() - 1 > 1;
                 return true;
         }
         return true;
