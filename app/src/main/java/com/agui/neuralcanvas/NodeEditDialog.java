@@ -182,7 +182,7 @@ public class NodeEditDialog extends DialogFragment {
                 "检索练习", "Premortem", "决策实验室", "记忆复习", "Focus",
                 "WRAP", "Bayes", "DSRP", "参考类预测", "全量推进",
                 "AI缺口", "AI红队", "AI执行", "AI学习", "AI决策",
-                "执行回填", "决策落地", "AI建议", "AI自动流"
+                "执行回填", "决策落地", "AI建议", "AI自动流", "方法体检"
         };
         new AlertDialog.Builder(requireContext())
                 .setTitle("更多科学动作")
@@ -202,7 +202,7 @@ public class NodeEditDialog extends DialogFragment {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, dp(10), 0, 0);
 
-        String[] quick = {"推荐", "一键修复", "体检", "连线", "AI建议", "更多"};
+        String[] quick = {"推荐", "一键修复", "方法体检", "连线", "AI建议", "更多"};
         for (String label : quick) {
             TextView chip = buildActionChip(label);
             chip.setOnClickListener(v -> {
@@ -225,7 +225,7 @@ public class NodeEditDialog extends DialogFragment {
                 android.widget.Toast.makeText(activity, fixResult.buildSummary(), android.widget.Toast.LENGTH_LONG).show();
                 break;
             }
-            case "体检": activity.openScientificTriage(); break;
+            case "方法体检": WorkflowHealthDialog.show(activity, node); break;
             case "执行模式": WorkflowModeDialog.show(activity, node, "execution"); break;
             case "决策模式": WorkflowModeDialog.show(activity, node, "decision"); break;
             case "学习模式": WorkflowModeDialog.show(activity, node, "learning"); break;
