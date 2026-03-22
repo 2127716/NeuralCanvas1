@@ -141,7 +141,7 @@ public class MoreMenuDialog extends DialogFragment {
 
     private String getTitleText() {
         switch (currentLevel) {
-            case "workspace": return "工作区";
+            case "workspace": return "智能工作台";
             case "templates": return "模板库";
             case "ai": return "AI 工具";
             case "import": return "导入与批量";
@@ -152,12 +152,12 @@ public class MoreMenuDialog extends DialogFragment {
 
     private String getSubtitleText() {
         switch (currentLevel) {
-            case "workspace": return "高频工作流集中到一层，减少主界面按钮污染";
+            case "workspace": return "减少按钮，把分析、修复、引导合成一条自动链";
             case "templates": return "模板统一收纳，不把菜单拉成超长列表";
             case "ai": return "把 AI 相关动作压成一个分类";
             case "import": return "知识导入、矩形框选、多选删除都放这里";
             case "system": return "低频系统项单独放底层";
-            default: return "三级结构：分类 → 子功能 → 执行，入口更干净";
+            default: return "分类清晰，统一深色卡片样式";
         }
     }
 
@@ -229,7 +229,7 @@ public class MoreMenuDialog extends DialogFragment {
 
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setColor(ThemeManager.getChipBg());
-        bg.setCornerRadius(dp(18));
+        bg.setCornerRadius(dp(20));
         bg.setStroke(dp(1), ThemeManager.getChipStroke());
         card.setBackground(bg);
 
