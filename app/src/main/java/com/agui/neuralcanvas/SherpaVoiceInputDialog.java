@@ -11,10 +11,10 @@ import android.text.InputType;
 import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,12 +36,12 @@ public class SherpaVoiceInputDialog extends DialogFragment {
     private TextView statusView;
     private TextView partialView;
     private EditText finalEdit;
-    private TextView hintView;
+    private TextView modelStateView;
 
     private SherpaOnnxStreamingEngine engine;
-    private String lastPartialText = "";
     private String lastFinalText = "";
     private boolean started = false;
+    private boolean downloading = false;
 
     public static SherpaVoiceInputDialog newInstance(Callback cb) {
         callback = cb;
@@ -85,19 +85,27 @@ public class SherpaVoiceInputDialog extends DialogFragment {
         root.addView(title);
 
         TextView sub = new TextView(requireContext());
-        sub.setText("Sherpa-ONNX 本地离线识别｜实时草稿 + 可编辑最终文本");
+        sub.setText("模型按需下载｜实时草稿 + 可编辑最终文本");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         subLp.topMargin = dp(6);
         root.addView(sub, subLp);
         MonetDialogStyler.styleHeader(title, sub);
 
+        modelStateView = MonetDialogStyler.body(requireContext(), "");
+        modelStateView.setPadding(dp(14), dp(12), dp(14), dp(12));
+        modelStateView.setBackground(MonetDialogStyler.cardBg());
+        LinearLayout.LayoutParams modelLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        modelLp.topMargin = dp(14);
+        root.addView(modelStateView, modelLp);
+
         statusView = MonetDialogStyler.body(requireContext(), "点击“开始录音”后进行实时识别");
         statusView.setPadding(dp(14), dp(12), dp(14), dp(12));
         statusView.setBackground(MonetDialogStyler.cardBg());
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        statusLp.topMargin = dp(14);
+        statusLp.topMargin = dp(10);
         root.addView(statusView, statusLp);
 
         TextView partialTitle = new TextView(requireContext());
@@ -144,15 +152,6 @@ public class SherpaVoiceInputDialog extends DialogFragment {
         finalLp.topMargin = dp(8);
         root.addView(finalEdit, finalLp);
 
-        hintView = MonetDialogStyler.body(requireContext(),
-                "建议：录音时看“实时草稿”，停下后以“最终文本”为准。可以复制、清空、追加插入或替换插入。");
-        hintView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
-        hintView.setTextColor(ThemeManager.getTextSecondary());
-        LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        hintLp.topMargin = dp(10);
-        root.addView(hintView, hintLp);
-
         HorizontalScrollView actionScroll = new HorizontalScrollView(requireContext());
         actionScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout actionRow = new LinearLayout(requireContext());
@@ -161,7 +160,6 @@ public class SherpaVoiceInputDialog extends DialogFragment {
         actionRow.addView(actionButton("清空", () -> {
             finalEdit.setText("");
             partialView.setText("（实时识别结果会显示在这里）");
-            lastPartialText = "";
             lastFinalText = "";
         }));
         actionRow.addView(actionButton("追加到导入框", () -> {
@@ -182,6 +180,11 @@ public class SherpaVoiceInputDialog extends DialogFragment {
             if (callback != null) callback.onReplaceTranscript(text);
             Toast.makeText(requireContext(), "已替换知识导入文本框", Toast.LENGTH_SHORT).show();
         }));
+        actionRow.addView(actionButton("删除已下载模型", () -> {
+            SherpaModelManager.deleteDownloadedModel(requireContext());
+            refreshModelState();
+            Toast.makeText(requireContext(), "已删除下载模型。若 assets 还在，会自动回退到内置模型。", Toast.LENGTH_LONG).show();
+        }));
         actionScroll.addView(actionRow);
         LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -197,11 +200,12 @@ public class SherpaVoiceInputDialog extends DialogFragment {
 
         dialog.setOnShowListener(d -> {
             MonetDialogStyler.apply(dialog, requireContext());
+            refreshModelState();
 
             Button startBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             Button stopBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
 
-            startBtn.setOnClickListener(v -> ensurePermissionAndStart());
+            startBtn.setOnClickListener(v -> ensureModelThenStart());
             stopBtn.setOnClickListener(v -> {
                 stopEngine();
                 String text = getFinalEditableText();
@@ -212,6 +216,15 @@ public class SherpaVoiceInputDialog extends DialogFragment {
         });
 
         return dialog;
+    }
+
+    private void refreshModelState() {
+        boolean downloaded = SherpaModelManager.isDownloadedModelInstalled(requireContext());
+        if (downloaded) {
+            modelStateView.setText("模型状态：已下载到应用私有目录。当前优先使用按需下载模型。");
+        } else {
+            modelStateView.setText("模型状态：未发现下载模型。点击“开始录音”时会先自动下载并安装中文 streaming 模型。");
+        }
     }
 
     private void copyFinalText() {
@@ -229,6 +242,45 @@ public class SherpaVoiceInputDialog extends DialogFragment {
 
     private String getFinalEditableText() {
         return finalEdit == null || finalEdit.getText() == null ? "" : finalEdit.getText().toString().trim();
+    }
+
+    private void ensureModelThenStart() {
+        if (downloading) return;
+        if (SherpaModelManager.isDownloadedModelInstalled(requireContext())) {
+            ensurePermissionAndStart();
+            return;
+        }
+
+        downloading = true;
+        statusView.setText("准备下载模型…");
+        SherpaModelManager.downloadAndInstall(requireContext(), new SherpaModelManager.DownloadListener() {
+            @Override
+            public void onProgress(String text) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> statusView.setText(text));
+            }
+
+            @Override
+            public void onSuccess() {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    downloading = false;
+                    refreshModelState();
+                    Toast.makeText(requireContext(), "模型下载并安装完成", Toast.LENGTH_SHORT).show();
+                    ensurePermissionAndStart();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    downloading = false;
+                    statusView.setText("模型下载失败");
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void ensurePermissionAndStart() {
@@ -262,8 +314,7 @@ public class SherpaVoiceInputDialog extends DialogFragment {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     if (text != null && !text.trim().isEmpty()) {
-                        lastPartialText = text.trim();
-                        partialView.setText(lastPartialText);
+                        partialView.setText(text.trim());
                     }
                 });
             }

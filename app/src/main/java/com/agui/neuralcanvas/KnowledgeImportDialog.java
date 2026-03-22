@@ -80,7 +80,7 @@ public class KnowledgeImportDialog extends DialogFragment {
         root.addView(header);
 
         TextView desc = new TextView(requireContext());
-        desc.setText("文本、图片 OCR、PDF、DOCX、实时语音统一入口。后台处理默认生成待确认改动。");
+        desc.setText("文本、图片 OCR、PDF、DOCX、实时语音统一入口。语音模型现在支持按需下载，不必继续打进 APK。");
         LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         descLp.topMargin = dp(6);
         root.addView(desc, descLp);
@@ -153,7 +153,7 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
 
         TextView ext = MonetDialogStyler.body(requireContext(),
-                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。现在语音结果支持多行编辑、复制、追加插入、替换插入。");
+                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。语音模型会在首次使用时按需下载并安装。");
         root.addView(card("文档 / OCR / 语音", "现在可以直接口述成文字，再并入知识导入", docBtn, imageBtn, voiceBtn, clearBtn, selectedFilesView, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())

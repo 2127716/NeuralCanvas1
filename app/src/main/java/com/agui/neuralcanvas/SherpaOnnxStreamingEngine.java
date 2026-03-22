@@ -26,7 +26,6 @@ public class SherpaOnnxStreamingEngine {
     }
 
     private static final int SAMPLE_RATE = 16000;
-    private static final String MODEL_DIR = "sherpa-onnx/streaming-zh-14m";
 
     private final Context context;
     private final Listener listener;
@@ -47,7 +46,7 @@ public class SherpaOnnxStreamingEngine {
 
         try {
             recognizer = createRecognizer(context.getAssets());
-            stream = recognizer.createStream(""); // 1.12.32 需要传入 hotwords 参数，空字符串即可
+            stream = recognizer.createStream("");
 
             int minBuffer = AudioRecord.getMinBufferSize(
                     SAMPLE_RATE,
@@ -171,15 +170,18 @@ public class SherpaOnnxStreamingEngine {
     }
 
     private OnlineRecognizer createRecognizer(AssetManager assetManager) {
+        String encoder = SherpaModelManager.resolveModelPath(context, "encoder-epoch-99-avg-1.int8.onnx");
+        String decoder = SherpaModelManager.resolveModelPath(context, "decoder-epoch-99-avg-1.int8.onnx");
+        String joiner = SherpaModelManager.resolveModelPath(context, "joiner-epoch-99-avg-1.int8.onnx");
+        String tokens = SherpaModelManager.resolveModelPath(context, "tokens.txt");
+
         OnlineTransducerModelConfig transducer = new OnlineTransducerModelConfig(
-                MODEL_DIR + "/encoder-epoch-99-avg-1.int8.onnx",
-                MODEL_DIR + "/decoder-epoch-99-avg-1.int8.onnx",
-                MODEL_DIR + "/joiner-epoch-99-avg-1.int8.onnx"
+                encoder, decoder, joiner
         );
 
         OnlineModelConfig modelConfig = new OnlineModelConfig();
         modelConfig.setTransducer(transducer);
-        modelConfig.setTokens(MODEL_DIR + "/tokens.txt");
+        modelConfig.setTokens(tokens);
         modelConfig.setModelType("zipformer");
         modelConfig.setNumThreads(2);
         modelConfig.setProvider("cpu");
