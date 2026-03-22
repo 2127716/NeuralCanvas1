@@ -128,8 +128,17 @@ public class KnowledgeImportDialog extends DialogFragment {
 
         Button voiceBtn = smallButton("实时语音");
         voiceBtn.setOnClickListener(v ->
-                SherpaVoiceInputDialog.newInstance(text -> appendTranscript(text))
-                        .show(activity.getSupportFragmentManager(), "sherpa_voice_input_dialog"));
+                SherpaVoiceInputDialog.newInstance(new SherpaVoiceInputDialog.Callback() {
+                    @Override
+                    public void onAppendTranscript(String text) {
+                        appendTranscript(text);
+                    }
+
+                    @Override
+                    public void onReplaceTranscript(String text) {
+                        replaceTranscript(text);
+                    }
+                }).show(activity.getSupportFragmentManager(), "sherpa_voice_input_dialog"));
 
         Button clearBtn = smallButton("清空已选");
         clearBtn.setOnClickListener(v -> {
@@ -144,7 +153,7 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
 
         TextView ext = MonetDialogStyler.body(requireContext(),
-                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。Sherpa-ONNX 走本地离线识别。");
+                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。现在语音结果支持多行编辑、复制、追加插入、替换插入。");
         root.addView(card("文档 / OCR / 语音", "现在可以直接口述成文字，再并入知识导入", docBtn, imageBtn, voiceBtn, clearBtn, selectedFilesView, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -256,6 +265,13 @@ public class KnowledgeImportDialog extends DialogFragment {
         String merged = old.isEmpty() ? incoming : (old + "\n" + incoming);
         textInput.setText(merged);
         textInput.setSelection(merged.length());
+    }
+
+    private void replaceTranscript(String text) {
+        String incoming = safe(text);
+        if (textInput == null) return;
+        textInput.setText(incoming);
+        textInput.setSelection(incoming.length());
     }
 
     private void pickDocuments() {
