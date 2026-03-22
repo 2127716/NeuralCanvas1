@@ -7,7 +7,6 @@ import android.graphics.Path;
 import android.graphics.RectF;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +59,7 @@ public class Node {
         HEXAGON("六边形");
 
         public final String label;
-
-        NodeShape(String label) {
-            this.label = label;
-        }
+        NodeShape(String label) { this.label = label; }
     }
 
     public enum NodeStatus {
@@ -76,10 +72,7 @@ public class Node {
         DONE("已完成");
 
         public final String label;
-
-        NodeStatus(String label) {
-            this.label = label;
-        }
+        NodeStatus(String label) { this.label = label; }
     }
 
     private String id;
@@ -96,20 +89,19 @@ public class Node {
     private boolean dragging;
     private List<String> connectionIds;
 
-    // ===== 科学工作流字段 =====
     private List<String> tags;
-    private int priority;                 // 1-5
-    private String dueAt;                 // 文本先存，后续再升级成真正时间
-    private String reviewAt;              // 文本先存
-    private float effortEstimate;         // 预计耗时（小时）
-    private float actualEffort;           // 实际耗时（小时）
-    private float confidence;             // 0~1
-    private String triggerCondition;      // If-Then 中的 If
+    private int priority;
+    private String dueAt;
+    private String reviewAt;
+    private float effortEstimate;
+    private float actualEffort;
+    private float confidence;
+    private String triggerCondition;
     private String projectId;
     private String areaId;
     private float krTarget;
     private float krCurrent;
-    private float evidenceStrength;       // 0~1
+    private float evidenceStrength;
     private String noteSource;
     private String metaJson;
 
@@ -126,14 +118,9 @@ public class Node {
     private transient RectF reusableDrawBounds;
     private transient RectF reusableShapeBounds;
     private transient Path reusablePath;
-    private transient int cachedScaleBucket = Integer.MIN_VALUE;
-    private transient String cachedTitleText;
-    private transient String cachedContentText;
-    private transient String cachedTypeText;
 
     private static final int COLOR_CONTENT = Color.parseColor("#E6EEF8");
     private static final int COLOR_TYPE = Color.parseColor("#C7D2FE");
-    private static final int COLOR_SELECTED = Color.argb(200, 255, 255, 255);
     private static final Map<NodeType, Integer> TYPE_COLOR_CACHE = new EnumMap<>(NodeType.class);
     private static final Map<NodeStatus, Integer> STATUS_COLOR_CACHE = new EnumMap<>(NodeStatus.class);
 
@@ -201,44 +188,37 @@ public class Node {
             fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             fillPaint.setStyle(Paint.Style.FILL);
         }
-
         if (strokePaint == null) {
             strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             strokePaint.setStyle(Paint.Style.STROKE);
             strokePaint.setStrokeWidth(3f);
         }
-
         if (titlePaint == null) {
             titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             titlePaint.setColor(Color.parseColor("#F8FAFC"));
             titlePaint.setTextSize(28f);
             titlePaint.setFakeBoldText(true);
         }
-
         if (contentPaint == null) {
             contentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             contentPaint.setColor(COLOR_CONTENT);
             contentPaint.setTextSize(20f);
         }
-
         if (typePaint == null) {
             typePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             typePaint.setColor(COLOR_TYPE);
             typePaint.setTextSize(18f);
         }
-
         if (selectedPaint == null) {
             selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             selectedPaint.setStyle(Paint.Style.STROKE);
             selectedPaint.setColor(Color.parseColor("#E9D5FF"));
             selectedPaint.setStrokeWidth(5f);
         }
-
         if (badgePaint == null) {
             badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             badgePaint.setStyle(Paint.Style.FILL);
         }
-
         if (badgeTextPaint == null) {
             badgeTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             badgeTextPaint.setColor(Color.parseColor("#F8FAFC"));
@@ -246,7 +226,6 @@ public class Node {
             badgeTextPaint.setFakeBoldText(true);
             badgeTextPaint.setTextAlign(Paint.Align.CENTER);
         }
-
         if (reusableOutlinePaint == null) {
             reusableOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             reusableOutlinePaint.setStyle(Paint.Style.STROKE);
@@ -258,13 +237,11 @@ public class Node {
         if (reusableDrawBounds == null) reusableDrawBounds = new RectF();
         if (reusableShapeBounds == null) reusableShapeBounds = new RectF();
         if (reusablePath == null) reusablePath = new Path();
-
         applyTypeStyle();
     }
 
     private void applyTypeStyle() {
         int baseColor = TYPE_COLOR_CACHE.containsKey(type) ? TYPE_COLOR_CACHE.get(type) : Color.parseColor("#4FC3F7");
-
         fillPaint.setColor(baseColor);
         strokePaint.setColor(adjustColorBrightness(baseColor, 0.72f));
     }
@@ -291,9 +268,7 @@ public class Node {
         shadowPaint.setColor(dragging ? Color.argb(96, 37, 99, 235) : Color.argb(52, 15, 23, 42));
         drawShapeShadow(canvas, shapeBounds, shadowPaint, scale, dragging || selected);
 
-        if (selected) {
-            drawShapeOutline(canvas, shapeBounds, selectedPaint, scale);
-        }
+        if (selected) drawShapeOutline(canvas, shapeBounds, selectedPaint, scale);
 
         drawShape(canvas, shapeBounds, fillPaint, scale);
         drawShapeOutline(canvas, shapeBounds, strokePaint, scale);
@@ -312,11 +287,9 @@ public class Node {
         float textTop = bounds.top + 34f * scale;
 
         canvas.drawText(truncateText(safeTitle, 10), textLeft, textTop, titlePaint);
-
         if (scale >= 0.55f) {
             canvas.drawText(truncateText(safeContent, 8), textLeft, bounds.top + 58f * scale, contentPaint);
         }
-
         canvas.drawText(safeType, textLeft, bounds.bottom - 14f * scale, typePaint);
 
         drawStatusBadge(canvas, bounds, scale);
@@ -335,21 +308,14 @@ public class Node {
         float badgeHeight = 18f * scale + badgePaddingY;
 
         float right = bounds.right - 10f * scale;
-        float top = bounds.top + 10f * scale;
+        float bottom = bounds.bottom - 10f * scale;
         float left = right - badgeWidth;
-        float bottom = top + badgeHeight;
+        float top = bottom - badgeHeight;
 
         canvas.drawRoundRect(left, top, right, bottom, 12f * scale, 12f * scale, badgePaint);
         canvas.drawText(badgeText, (left + right) / 2f, bottom - 6f * scale, badgeTextPaint);
     }
 
-
-    private void invalidateTextCache() {
-        cachedScaleBucket = Integer.MIN_VALUE;
-        cachedTitleText = null;
-        cachedContentText = null;
-        cachedTypeText = null;
-    }
     private int resolveStatusColor() {
         NodeStatus s = status == null ? NodeStatus.ACTIVE : status;
         Integer color = STATUS_COLOR_CACHE.get(s);
@@ -367,12 +333,7 @@ public class Node {
                 float size = Math.min(bounds.width(), bounds.height());
                 float cx = bounds.centerX();
                 float cy = bounds.centerY();
-                reusableShapeBounds.set(
-                        cx - size / 2f,
-                        cy - size / 2f,
-                        cx + size / 2f,
-                        cy + size / 2f
-                );
+                reusableShapeBounds.set(cx - size / 2f, cy - size / 2f, cx + size / 2f, cy + size / 2f);
                 return reusableShapeBounds;
             }
             case OVAL:
@@ -493,11 +454,9 @@ public class Node {
             double angle = Math.toRadians(startAngleDeg + i * 360f / sides);
             float px = cx + (float) (Math.cos(angle) * radius);
             float py = cy + (float) (Math.sin(angle) * radius);
-
             if (i == 0) path.moveTo(px, py);
             else path.lineTo(px, py);
         }
-
         path.close();
         return path;
     }
@@ -512,27 +471,18 @@ public class Node {
         float drawY = (y + offsetY) * scale;
         float drawW = width * scale;
         float drawH = height * scale;
-
-        return touchX >= drawX && touchX <= drawX + drawW &&
-                touchY >= drawY && touchY <= drawY + drawH;
+        return touchX >= drawX && touchX <= drawX + drawW && touchY >= drawY && touchY <= drawY + drawH;
     }
 
-    public void move(float dx, float dy) {
-        this.x += dx;
-        this.y += dy;
-    }
+    public void move(float dx, float dy) { this.x += dx; this.y += dy; }
 
     public void addConnection(String connectionId) {
         if (connectionIds == null) connectionIds = new ArrayList<>();
-        if (!connectionIds.contains(connectionId)) {
-            connectionIds.add(connectionId);
-        }
+        if (!connectionIds.contains(connectionId)) connectionIds.add(connectionId);
     }
 
     public void removeConnection(String connectionId) {
-        if (connectionIds != null) {
-            connectionIds.remove(connectionId);
-        }
+        if (connectionIds != null) connectionIds.remove(connectionId);
     }
 
     public String getTagsAsString() {
@@ -563,9 +513,7 @@ public class Node {
         if (tag == null || tag.trim().isEmpty()) return false;
         String target = tag.trim();
         for (String t : getTags()) {
-            if (target.equalsIgnoreCase(t == null ? "" : t.trim())) {
-                return true;
-            }
+            if (target.equalsIgnoreCase(t == null ? "" : t.trim())) return true;
         }
         return false;
     }
@@ -574,16 +522,12 @@ public class Node {
         if (tag == null) return;
         String value = tag.trim();
         if (value.isEmpty()) return;
-        if (!hasTag(value)) {
-            getTags().add(value);
-        }
+        if (!hasTag(value)) getTags().add(value);
     }
 
     public void addTags(String... values) {
         if (values == null) return;
-        for (String v : values) {
-            addTag(v);
-        }
+        for (String v : values) addTag(v);
     }
 
     public boolean belongsToProject(String targetProjectId) {
@@ -592,32 +536,15 @@ public class Node {
     }
 
     public boolean isLearningNode() {
-        return type == NodeType.CONCEPT
-                || type == NodeType.NOTE
-                || type == NodeType.QUESTION
-                || type == NodeType.SOURCE
-                || type == NodeType.INSIGHT
-                || type == NodeType.EVIDENCE;
+        return type == NodeType.CONCEPT || type == NodeType.NOTE || type == NodeType.QUESTION || type == NodeType.SOURCE || type == NodeType.INSIGHT || type == NodeType.EVIDENCE;
     }
 
     public boolean isDecisionNode() {
-        return type == NodeType.DECISION
-                || type == NodeType.OPTION
-                || type == NodeType.CRITERION
-                || type == NodeType.ASSUMPTION
-                || type == NodeType.RISK
-                || type == NodeType.EVIDENCE;
+        return type == NodeType.DECISION || type == NodeType.OPTION || type == NodeType.CRITERION || type == NodeType.ASSUMPTION || type == NodeType.RISK || type == NodeType.EVIDENCE;
     }
 
     public boolean isExecutionNode() {
-        return type == NodeType.TASK
-                || type == NodeType.ACTION
-                || type == NodeType.GOAL
-                || type == NodeType.PROJECT
-                || type == NodeType.KEY_RESULT
-                || type == NodeType.ROUTINE
-                || type == NodeType.TRIGGER
-                || type == NodeType.OBSTACLE;
+        return type == NodeType.TASK || type == NodeType.ACTION || type == NodeType.GOAL || type == NodeType.PROJECT || type == NodeType.KEY_RESULT || type == NodeType.ROUTINE || type == NodeType.TRIGGER || type == NodeType.OBSTACLE;
     }
 
     public String getId() { return id; }
@@ -632,17 +559,8 @@ public class Node {
     public NodeStatus getStatus() { return status == null ? NodeStatus.ACTIVE : status; }
     public boolean isSelected() { return selected; }
     public boolean isDragging() { return dragging; }
-
-    public List<String> getConnectionIds() {
-        if (connectionIds == null) connectionIds = new ArrayList<>();
-        return connectionIds;
-    }
-
-    public List<String> getTags() {
-        if (tags == null) tags = new ArrayList<>();
-        return tags;
-    }
-
+    public List<String> getConnectionIds() { if (connectionIds == null) connectionIds = new ArrayList<>(); return connectionIds; }
+    public List<String> getTags() { if (tags == null) tags = new ArrayList<>(); return tags; }
     public int getPriority() { return priority; }
     public String getDueAt() { return dueAt == null ? "" : dueAt; }
     public String getReviewAt() { return reviewAt == null ? "" : reviewAt; }
@@ -658,8 +576,8 @@ public class Node {
     public String getNoteSource() { return noteSource == null ? "" : noteSource; }
     public String getMetaJson() { return metaJson == null ? "" : metaJson; }
 
-    public void setTitle(String title) { this.title = title == null ? "" : title; invalidateTextCache(); }
-    public void setContent(String content) { this.content = content == null ? "" : content; invalidateTextCache(); }
+    public void setTitle(String title) { this.title = title == null ? "" : title; }
+    public void setContent(String content) { this.content = content == null ? "" : content; }
     public void setX(float x) { this.x = x; }
     public void setY(float y) { this.y = y; }
     public void setWidth(float width) { this.width = width; }
@@ -669,85 +587,28 @@ public class Node {
 
     public void setType(NodeType type) {
         this.type = type == null ? NodeType.CONCEPT : type;
-        invalidateTextCache();
         ensurePaints();
         applyTypeStyle();
     }
 
-    public void setShape(NodeShape shape) {
-        this.shape = shape == null ? NodeShape.RECT : shape;
-        ensurePaints();
-    }
+    public void setShape(NodeShape shape) { this.shape = shape == null ? NodeShape.RECT : shape; ensurePaints(); }
+    public void setStatus(NodeStatus status) { this.status = status == null ? NodeStatus.ACTIVE : status; }
+    public void setConnectionIds(List<String> connectionIds) { this.connectionIds = connectionIds == null ? new ArrayList<String>() : connectionIds; }
+    public void setTags(List<String> tags) { this.tags = tags == null ? new ArrayList<String>() : tags; }
+    public void setPriority(int priority) { this.priority = Math.max(1, Math.min(5, priority)); }
+    public void setDueAt(String dueAt) { this.dueAt = dueAt == null ? "" : dueAt; }
+    public void setReviewAt(String reviewAt) { this.reviewAt = reviewAt == null ? "" : reviewAt; }
+    public void setEffortEstimate(float effortEstimate) { this.effortEstimate = Math.max(0f, effortEstimate); }
+    public void setActualEffort(float actualEffort) { this.actualEffort = Math.max(0f, actualEffort); }
+    public void setConfidence(float confidence) { this.confidence = clamp01(confidence); }
+    public void setTriggerCondition(String triggerCondition) { this.triggerCondition = triggerCondition == null ? "" : triggerCondition; }
+    public void setProjectId(String projectId) { this.projectId = projectId == null ? "" : projectId; }
+    public void setAreaId(String areaId) { this.areaId = areaId == null ? "" : areaId; }
+    public void setKrTarget(float krTarget) { this.krTarget = Math.max(0f, krTarget); }
+    public void setKrCurrent(float krCurrent) { this.krCurrent = Math.max(0f, krCurrent); }
+    public void setEvidenceStrength(float evidenceStrength) { this.evidenceStrength = clamp01(evidenceStrength); }
+    public void setNoteSource(String noteSource) { this.noteSource = noteSource == null ? "" : noteSource; }
+    public void setMetaJson(String metaJson) { this.metaJson = metaJson == null ? "" : metaJson; }
 
-    public void setStatus(NodeStatus status) {
-        this.status = status == null ? NodeStatus.ACTIVE : status;
-    }
-
-    public void setConnectionIds(List<String> connectionIds) {
-        this.connectionIds = connectionIds == null ? new ArrayList<String>() : connectionIds;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags == null ? new ArrayList<String>() : tags;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = Math.max(1, Math.min(5, priority));
-    }
-
-    public void setDueAt(String dueAt) {
-        this.dueAt = dueAt == null ? "" : dueAt;
-    }
-
-    public void setReviewAt(String reviewAt) {
-        this.reviewAt = reviewAt == null ? "" : reviewAt;
-    }
-
-    public void setEffortEstimate(float effortEstimate) {
-        this.effortEstimate = Math.max(0f, effortEstimate);
-    }
-
-    public void setActualEffort(float actualEffort) {
-        this.actualEffort = Math.max(0f, actualEffort);
-    }
-
-    public void setConfidence(float confidence) {
-        this.confidence = clamp01(confidence);
-    }
-
-    public void setTriggerCondition(String triggerCondition) {
-        this.triggerCondition = triggerCondition == null ? "" : triggerCondition;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId == null ? "" : projectId;
-    }
-
-    public void setAreaId(String areaId) {
-        this.areaId = areaId == null ? "" : areaId;
-    }
-
-    public void setKrTarget(float krTarget) {
-        this.krTarget = Math.max(0f, krTarget);
-    }
-
-    public void setKrCurrent(float krCurrent) {
-        this.krCurrent = Math.max(0f, krCurrent);
-    }
-
-    public void setEvidenceStrength(float evidenceStrength) {
-        this.evidenceStrength = clamp01(evidenceStrength);
-    }
-
-    public void setNoteSource(String noteSource) {
-        this.noteSource = noteSource == null ? "" : noteSource;
-    }
-
-    public void setMetaJson(String metaJson) {
-        this.metaJson = metaJson == null ? "" : metaJson;
-    }
-
-    private float clamp01(float v) {
-        return Math.max(0f, Math.min(1f, v));
-    }
+    private float clamp01(float v) { return Math.max(0f, Math.min(1f, v)); }
 }

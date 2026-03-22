@@ -157,7 +157,7 @@ public class MoreMenuDialog extends DialogFragment {
             case "ai": return "把 AI 相关动作压成一个分类";
             case "import": return "知识导入、矩形框选、多选删除都放这里";
             case "system": return "低频系统项单独放底层";
-            default: return "分类清晰，统一深色卡片样式";
+            default: return "分类清晰，统一莫奈卡片风格";
         }
     }
 
