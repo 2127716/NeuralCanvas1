@@ -28,9 +28,17 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
+    }
 }
 
 dependencies {
+    implementation(name: 'sherpa-onnx-1.12.32', ext: 'aar')
+
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -40,11 +48,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'androidx.work:work-runtime:2.8.1'
 
-    // OCR：ML Kit 文本识别（Latin + Chinese）
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
-
-    // PDF 文本提取
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
 
     testImplementation 'junit:junit:4.13.2'
