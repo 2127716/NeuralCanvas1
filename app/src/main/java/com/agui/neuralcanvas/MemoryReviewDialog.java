@@ -1,7 +1,6 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.widget.LinearLayout;
@@ -24,27 +23,39 @@ public class MemoryReviewDialog extends DialogFragment {
         return new MemoryReviewDialog();
     }
 
-    private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics());
-    }
-
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        LearningLoopEngine.LearningReport learningReport =
-                LearningLoopEngine.analyze(currentNodes, null);
+        LearningLoopEngine.LearningReport learningReport = LearningLoopEngine.analyze(currentNodes, null);
         MemoryEngine.MemorySnapshot snapshot = MemoryEngine.build(currentNodes);
 
         ScrollView scroll = new ScrollView(requireContext());
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        int p = dp(18);
-        root.setPadding(p, p, p, p);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(ThemeManager.getDialogBg());
+        LinearLayout root = MonetDialogStyler.buildRoot(requireContext());
         scroll.addView(root);
 
-        TextView tv = new TextView(requireContext());
-        tv.setTextColor(Color.parseColor("#0F172A"));
-        root.addView(tv);
+        TextView title = new TextView(requireContext());
+        title.setText("间隔复习队列");
+        root.addView(title);
+
+        TextView sub = new TextView(requireContext());
+        sub.setText("学习闭环、到期复习、记忆强度统一收口");
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = MonetDialogStyler.dp(requireContext(), 6);
+        root.addView(sub, subLp);
+        MonetDialogStyler.styleHeader(title, sub);
+
+        TextView body = MonetDialogStyler.body(requireContext(), "");
+        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        body.setPadding(MonetDialogStyler.dp(requireContext(), 16), MonetDialogStyler.dp(requireContext(), 14),
+                MonetDialogStyler.dp(requireContext(), 16), MonetDialogStyler.dp(requireContext(), 14));
+        body.setBackground(MonetDialogStyler.cardBg());
+        LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        bodyLp.topMargin = MonetDialogStyler.dp(requireContext(), 14);
+        root.addView(body, bodyLp);
 
         StringBuilder head = new StringBuilder();
         head.append(learningReport.buildSummary()).append("\n\n");
@@ -52,12 +63,13 @@ public class MemoryReviewDialog extends DialogFragment {
         if (snapshot.dueNodes.isEmpty()) {
             head.append("当前没有到期复习节点。")
                     .append("\n未来待复习：").append(snapshot.upcomingNodes.size()).append(" 个");
-            tv.setText(head.toString());
-            return new AlertDialog.Builder(requireContext())
-                    .setTitle("间隔复习队列")
+            body.setText(head.toString());
+            AlertDialog dialog = new AlertDialog.Builder(requireContext())
                     .setView(scroll)
                     .setPositiveButton("关闭", null)
                     .create();
+            dialog.setOnShowListener(d -> MonetDialogStyler.apply(dialog, requireContext()));
+            return dialog;
         }
 
         final Node node = snapshot.dueNodes.get(0);
@@ -67,15 +79,16 @@ public class MemoryReviewDialog extends DialogFragment {
         head.append("当前复习：").append(safeTitle(node))
                 .append("\n\n").append(content)
                 .append("\n\n").append(MemoryEngine.getStatsText(node));
-        tv.setText(head.toString());
+        body.setText(head.toString());
 
-        return new AlertDialog.Builder(requireContext())
-                .setTitle("间隔复习队列")
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scroll)
                 .setPositiveButton("Again", (d, w) -> apply(node, MemoryEngine.Grade.AGAIN))
                 .setNeutralButton("Good", (d, w) -> apply(node, MemoryEngine.Grade.GOOD))
                 .setNegativeButton("Easy", (d, w) -> apply(node, MemoryEngine.Grade.EASY))
                 .create();
+        dialog.setOnShowListener(d -> MonetDialogStyler.apply(dialog, requireContext()));
+        return dialog;
     }
 
     private void apply(Node node, MemoryEngine.Grade grade) {

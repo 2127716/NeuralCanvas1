@@ -1,10 +1,7 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.util.TypedValue;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -22,57 +19,24 @@ public class ProjectsHubDialog extends DialogFragment {
         return new ProjectsHubDialog();
     }
 
-    private int dp(int value) {
-        return (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                value,
-                requireContext().getResources().getDisplayMetrics()
-        );
-    }
-
-    private TextView makeText(String text, int sp, boolean bold, String color) {
+    private TextView makeText(String text, float sp, boolean bold) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        tv.setTextColor(Color.parseColor(color));
-        if (bold) {
-            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-        }
+        tv.setTextSize(sp);
+        tv.setTextColor(bold ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary());
+        if (bold) tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
         return tv;
     }
 
-    private View spacer(int hDp) {
-        View v = new View(requireContext());
-        v.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(hDp)
-        ));
-        return v;
-    }
-
-    private android.graphics.drawable.GradientDrawable bg(String color) {
-        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-        gd.setColor(Color.parseColor(color));
-        gd.setCornerRadius(dp(16));
-        gd.setStroke(dp(1), Color.parseColor("#24324A"));
-        return gd;
-    }
-
     private TextView buildNodeChip(Node node, MainActivity activity) {
-        TextView tv = makeText(
-                ProjectsHubBuilder.buildNodeChipText(node),
-                13,
-                false,
-                "#E2E8F0"
-        );
-        tv.setPadding(dp(12), dp(10), dp(12), dp(10));
-        tv.setBackground(bg("#111827"));
+        TextView tv = makeText(ProjectsHubBuilder.buildNodeChipText(node), 13, false);
+        tv.setPadding(MonetDialogStyler.dp(requireContext(), 12), MonetDialogStyler.dp(requireContext(), 10),
+                MonetDialogStyler.dp(requireContext(), 12), MonetDialogStyler.dp(requireContext(), 10));
+        tv.setBackground(MonetDialogStyler.cardBg());
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        lp.topMargin = dp(8);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = MonetDialogStyler.dp(requireContext(), 8);
         tv.setLayoutParams(lp);
 
         tv.setOnClickListener(v -> {
@@ -82,105 +46,47 @@ public class ProjectsHubDialog extends DialogFragment {
                 dismiss();
             }
         });
-
         return tv;
     }
 
     private void addSection(LinearLayout root, String title, List<Node> nodes, MainActivity activity) {
-        TextView titleView = makeText(title, 14, true, "#F8FAFC");
+        TextView titleView = makeText(title, 14, true);
         root.addView(titleView);
-
         if (nodes.isEmpty()) {
-            TextView empty = makeText("暂无", 12, false, "#64748B");
+            TextView empty = makeText("暂无", 12, false);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            lp.topMargin = dp(6);
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = MonetDialogStyler.dp(requireContext(), 6);
             empty.setLayoutParams(lp);
             root.addView(empty);
-            root.addView(spacer(10));
             return;
         }
-
         int limit = Math.min(5, nodes.size());
-        for (int i = 0; i < limit; i++) {
-            root.addView(buildNodeChip(nodes.get(i), activity));
-        }
-
-        if (nodes.size() > limit) {
-            TextView more = makeText("还有 " + (nodes.size() - limit) + " 个", 12, false, "#64748B");
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            lp.topMargin = dp(6);
-            more.setLayoutParams(lp);
-            root.addView(more);
-        }
-
-        root.addView(spacer(12));
+        for (int i = 0; i < limit; i++) root.addView(buildNodeChip(nodes.get(i), activity));
     }
 
     private LinearLayout buildProjectCard(ProjectsHubBuilder.ProjectGroup group, MainActivity activity) {
-        Node projectNode = group.projectNode;
+        LinearLayout card = MonetDialogStyler.card(requireContext(),
+                "项目｜" + (ProjectsHubBuilder.safe(group.projectNode.getTitle()).isEmpty() ? "未命名项目" : ProjectsHubBuilder.safe(group.projectNode.getTitle())),
+                "目标 " + group.goals.size() + " ｜ 动作 " + group.actions.size() + " ｜ KR " + group.krs.size()
+                        + " ｜ 风险 " + group.risks.size() + " ｜ 复盘 " + group.reviews.size());
 
-        LinearLayout card = new LinearLayout(requireContext());
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
-        card.setBackground(bg("#0F172A"));
-
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        cardLp.topMargin = dp(12);
-        card.setLayoutParams(cardLp);
-
-        String projectTitle = ProjectsHubBuilder.safe(projectNode.getTitle());
-        if (projectTitle.isEmpty()) {
-            projectTitle = "未命名项目";
-        }
-
-        TextView title = makeText("项目｜" + projectTitle, 16, true, "#F8FAFC");
-        title.setOnClickListener(v -> {
-            if (activity != null && activity.getMindMapView() != null) {
-                activity.getMindMapView().focusNodeById(projectNode.getId());
-                activity.getMindMapView().selectNodeById(projectNode.getId());
-                dismiss();
-            }
-        });
-        card.addView(title);
-
-        String summary = "目标 " + group.goals.size()
-                + " ｜ 动作 " + group.actions.size()
-                + " ｜ KR " + group.krs.size()
-                + " ｜ 风险 " + group.risks.size()
-                + " ｜ 复盘 " + group.reviews.size();
-
-        TextView sub = makeText(summary, 12, false, "#93C5FD");
-        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        subLp.topMargin = dp(6);
-        sub.setLayoutParams(subLp);
-        card.addView(sub);
-
-        String content = ProjectsHubBuilder.safe(projectNode.getContent());
+        String content = ProjectsHubBuilder.safe(group.projectNode.getContent());
         if (!content.isEmpty()) {
-            TextView contentView = makeText(content, 13, false, "#CBD5E1");
-            LinearLayout.LayoutParams contentLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            contentLp.topMargin = dp(8);
-            contentView.setLayoutParams(contentLp);
-            card.addView(contentView);
+            TextView contentView = makeText(content, 13, false);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = MonetDialogStyler.dp(requireContext(), 8);
+            card.addView(contentView, lp);
         }
 
-        card.addView(spacer(10));
+        LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gap.topMargin = MonetDialogStyler.dp(requireContext(), 12);
 
+        TextView sec = makeText("项目工作流", 14, true);
+        sec.setLayoutParams(gap);
+        card.addView(sec);
         addSection(card, "目标", group.goals, activity);
         addSection(card, "关键结果 KR", group.krs, activity);
         addSection(card, "执行动作", group.actions, activity);
@@ -190,40 +96,17 @@ public class ProjectsHubDialog extends DialogFragment {
         return card;
     }
 
-    /**
-     * 新增方法：构建顶部工作流概览卡片
-     */
     private LinearLayout buildWorkflowOverview(MainActivity activity) {
         WorkflowSnapshot snapshot = WorkflowSnapshot.from(
                 activity.getMindMapView().getNodesInternal(),
                 activity.getMindMapView().getConnectionsInternal()
         );
 
-        LinearLayout card = new LinearLayout(requireContext());
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
-        card.setBackground(bg("#111827"));
-
-        TextView title = makeText("项目工作流概览", 15, true, "#F8FAFC");
-        card.addView(title);
-
-        TextView body = makeText(
+        LinearLayout card = MonetDialogStyler.card(requireContext(), "项目工作流概览",
                 "项目数：" + snapshot.projectCount
                         + "\n下一步动作：" + snapshot.nextActionCount
                         + "\n待复盘：" + snapshot.reviewDueCount
-                        + "\n卡住项目：" + snapshot.stuckProjectCount,
-                13,
-                false,
-                "#CBD5E1"
-        );
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        lp.topMargin = dp(8);
-        body.setLayoutParams(lp);
-        card.addView(body);
-
+                        + "\n卡住项目：" + snapshot.stuckProjectCount);
         return card;
     }
 
@@ -235,52 +118,53 @@ public class ProjectsHubDialog extends DialogFragment {
             return super.onCreateDialog(savedInstanceState);
         }
 
-        ProjectsHubBuilder.ProjectsHubData data =
-                ProjectsHubBuilder.build(activity.getMindMapView().getNodesInternal());
+        ProjectsHubBuilder.ProjectsHubData data = ProjectsHubBuilder.build(activity.getMindMapView().getNodesInternal());
 
         ScrollView scrollView = new ScrollView(requireContext());
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(ThemeManager.getDialogBg());
 
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(18));
-        root.setBackgroundColor(Color.parseColor("#0B1020"));
+        LinearLayout root = MonetDialogStyler.buildRoot(requireContext());
         scrollView.addView(root);
 
-        TextView title = makeText("项目中心", 20, true, "#F8FAFC");
+        TextView title = new TextView(requireContext());
+        title.setText("项目中心");
         root.addView(title);
 
-        TextView sub = makeText("项目归组与排序已拆到 ProjectsHubBuilder", 13, false, "#94A3B8");
+        TextView sub = new TextView(requireContext());
+        sub.setText("项目归组、下一步动作、复盘与阻塞统一查看");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        subLp.topMargin = dp(6);
-        sub.setLayoutParams(subLp);
-        root.addView(sub);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = MonetDialogStyler.dp(requireContext(), 6);
+        root.addView(sub, subLp);
+        MonetDialogStyler.styleHeader(title, sub);
 
-        root.addView(spacer(14));
-
-        // 插入工作流概览卡片（新增代码）
-        root.addView(buildWorkflowOverview(activity));
-        root.addView(spacer(14));
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.topMargin = MonetDialogStyler.dp(requireContext(), 14);
+        root.addView(buildWorkflowOverview(activity), cardLp);
 
         if (data.groups.isEmpty()) {
-            TextView empty = makeText(
-                    "当前没有 PROJECT 类型节点。先建项目节点，再把相关节点挂到这个项目下。",
-                    14,
-                    false,
-                    "#CBD5E1"
-            );
-            root.addView(empty);
+            TextView empty = MonetDialogStyler.body(requireContext(),
+                    "当前没有 PROJECT 类型节点。先建项目节点，再把相关节点挂到这个项目下。");
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = MonetDialogStyler.dp(requireContext(), 14);
+            root.addView(empty, lp);
         } else {
             for (ProjectsHubBuilder.ProjectGroup group : data.groups) {
-                root.addView(buildProjectCard(group, activity));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.topMargin = MonetDialogStyler.dp(requireContext(), 14);
+                root.addView(buildProjectCard(group, activity), lp);
             }
         }
 
-        return new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
                 .setPositiveButton("关闭", null)
                 .create();
+        dialog.setOnShowListener(d -> MonetDialogStyler.apply(dialog, requireContext()));
+        return dialog;
     }
 }

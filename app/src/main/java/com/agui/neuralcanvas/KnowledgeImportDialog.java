@@ -2,7 +2,6 @@ package com.agui.neuralcanvas;
 
 import android.app.Dialog;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
@@ -30,32 +29,10 @@ public class KnowledgeImportDialog extends DialogFragment {
     }
 
     private View card(String title, String subtitle, View... body) {
-        LinearLayout box = new LinearLayout(requireContext());
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(16), dp(16), dp(16), dp(16));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(ThemeManager.getChipBg());
-        bg.setCornerRadius(dp(20));
-        bg.setStroke(dp(1), ThemeManager.getChipStroke());
-        box.setBackground(bg);
-
-        TextView tvTitle = new TextView(requireContext());
-        tvTitle.setText(title);
-        tvTitle.setTextColor(ThemeManager.getTextPrimary());
-        tvTitle.setTextSize(16);
-        tvTitle.setTypeface(tvTitle.getTypeface(), android.graphics.Typeface.BOLD);
-        box.addView(tvTitle);
-
-        TextView tvSub = new TextView(requireContext());
-        tvSub.setText(subtitle);
-        tvSub.setTextColor(ThemeManager.getTextSecondary());
-        tvSub.setTextSize(13);
-        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        subLp.topMargin = dp(6);
-        box.addView(tvSub, subLp);
-
+        LinearLayout box = MonetDialogStyler.card(requireContext(), title, subtitle);
         for (View child : body) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.topMargin = dp(12);
             box.addView(child, lp);
         }
@@ -82,25 +59,19 @@ public class KnowledgeImportDialog extends DialogFragment {
         scrollView.setFillViewport(true);
         scrollView.setBackgroundColor(ThemeManager.getDialogBg());
 
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(18));
+        LinearLayout root = MonetDialogStyler.buildRoot(requireContext());
         scrollView.addView(root);
 
         TextView header = new TextView(requireContext());
         header.setText("知识导入中心");
-        header.setTextColor(ThemeManager.getTextPrimary());
-        header.setTextSize(20);
-        header.setTypeface(header.getTypeface(), android.graphics.Typeface.BOLD);
         root.addView(header);
 
         TextView desc = new TextView(requireContext());
-        desc.setText("把原来的单一文本导入，升级成统一入口。文本导入可直接使用；文档、OCR、语音入口已留好位置，方便你后续接 GitHub 开源能力。 ");
-        desc.setTextColor(ThemeManager.getTextSecondary());
-        desc.setTextSize(13);
+        desc.setText("统一入口。文本现在可前台或后台整理；文档和 OCR 入口已预留，但真正 OCR 引擎还需要你再接依赖。");
         LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         descLp.topMargin = dp(6);
         root.addView(desc, descLp);
+        MonetDialogStyler.styleHeader(header, desc);
 
         EditText textInput = new EditText(requireContext());
         textInput.setHint("粘贴文本、课堂笔记、项目需求、论文摘要……");
@@ -121,48 +92,44 @@ public class KnowledgeImportDialog extends DialogFragment {
         Button b2 = smallButton("按章节");
         Button b3 = smallButton("只提重点");
         Button b4 = smallButton("任务拆解");
-        Button b5 = smallButton("保守加线");
-        quickRow.addView(b1); quickRow.addView(b2); quickRow.addView(b3); quickRow.addView(b4); quickRow.addView(b5);
+        quickRow.addView(b1); quickRow.addView(b2); quickRow.addView(b3); quickRow.addView(b4);
         View.OnClickListener fillRule = v -> extraRuleInput.setText(((Button) v).getText().toString());
-        b1.setOnClickListener(fillRule); b2.setOnClickListener(fillRule); b3.setOnClickListener(fillRule); b4.setOnClickListener(fillRule); b5.setOnClickListener(fillRule);
+        b1.setOnClickListener(fillRule); b2.setOnClickListener(fillRule); b3.setOnClickListener(fillRule); b4.setOnClickListener(fillRule);
 
         TextView resultView = new TextView(requireContext());
         resultView.setText("整理结果会显示在这里");
         resultView.setTextColor(ThemeManager.getTextPrimary());
         resultView.setTextSize(14);
         resultView.setPadding(dp(12), dp(12), dp(12), dp(12));
-        resultView.setBackgroundColor(Color.parseColor("#162033"));
+        resultView.setBackground(MonetDialogStyler.cardBg());
 
-        root.addView(card("文本导入", "这是现在就能直接用的主入口", textInput, extraRuleInput, quickRow, resultView), descLp);
-
-        TextView ext = new TextView(requireContext());
-        ext.setText("建议接入的开源能力（未在本补丁里直接落依赖，原因是当前环境无法联网替你校验最新版兼容性）：\n• 语音转文字：Android SpeechRecognizer / Whisper.cpp Android 封装\n• OCR：ML Kit Text Recognition 或 Tesseract Android\n• 文档导入：SAF 文档选择器 + PDF/Docx 解析层\n• PDF 文本提取：PdfRenderer + 外部解析器\n这些入口已经在这个对话框里给你分类留位。 ");
-        ext.setTextColor(ThemeManager.getTextSecondary());
-        ext.setTextSize(13);
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.topMargin = dp(14);
+        root.addView(card("文本导入", "支持前台整理，也支持后台排队处理", textInput, extraRuleInput, quickRow, resultView), cardLp);
 
         Button docBtn = smallButton("文档导入入口");
-        docBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "这里建议接入系统文档选择器 + PDF/DOCX 解析层", Toast.LENGTH_SHORT).show());
+        docBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "文档导入解析层还没真正接入", Toast.LENGTH_SHORT).show());
         Button ocrBtn = smallButton("OCR 入口");
-        ocrBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "这里建议接入 OCR 模块，拍照或选图后抽文字", Toast.LENGTH_SHORT).show());
+        ocrBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "OCR 入口已预留，但当前补丁未内置真实 OCR 引擎", Toast.LENGTH_SHORT).show());
         Button voiceBtn = smallButton("语音转文字入口");
-        voiceBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "这里建议接入 SpeechRecognizer 或离线语音识别模块", Toast.LENGTH_SHORT).show());
-        root.addView(card("扩展导入", "先把入口分清，后续接能力时不会再把菜单做乱", docBtn, ocrBtn, voiceBtn, ext), descLp);
+        voiceBtn.setOnClickListener(v -> Toast.makeText(requireContext(), "语音入口已预留", Toast.LENGTH_SHORT).show());
+
+        TextView ext = MonetDialogStyler.body(requireContext(),
+                "说明：后台整理这次已直接接入。真正 OCR 引擎和多文档解析需要再引入外部依赖；当前环境无法联网校验并整合具体开源库版本，所以我不能诚实地说已经内置完成。");
+        root.addView(card("扩展导入", "入口统一，但真实 OCR / 多文档解析仍待依赖接入", docBtn, ocrBtn, voiceBtn, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
                 .setNegativeButton("关闭", null)
+                .setNeutralButton("后台整理", null)
                 .setPositiveButton("开始整理", null)
                 .create();
 
         dialog.setOnShowListener(d -> {
-            if (dialog.getWindow() != null) {
-                android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-                bg.setColor(ThemeManager.getDialogBg());
-                bg.setCornerRadius(dp(26));
-                bg.setStroke(dp(1), ThemeManager.getStroke());
-                dialog.getWindow().setBackgroundDrawable(bg);
-            }
+            MonetDialogStyler.apply(dialog, requireContext());
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+
             positive.setOnClickListener(v -> {
                 AiConfig config = dataManager.loadAiConfig();
                 if (!config.isEnabled()) {
@@ -210,6 +177,23 @@ public class KnowledgeImportDialog extends DialogFragment {
                         });
                     }
                 });
+            });
+
+            neutral.setOnClickListener(v -> {
+                AiConfig config = dataManager.loadAiConfig();
+                if (!config.isEnabled()) {
+                    Toast.makeText(requireContext(), "请先在 AI 助手中完成 API 配置", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String rawText = textInput.getText().toString().trim();
+                if (rawText.isEmpty()) {
+                    textInput.setError("请输入要导入的文本");
+                    return;
+                }
+                String extraRule = extraRuleInput.getText().toString().trim();
+                KnowledgeImportJobManager.enqueue(requireContext(), rawText, extraRule);
+                Toast.makeText(requireContext(), "已转入后台整理，你可以直接退出这个界面", Toast.LENGTH_LONG).show();
+                dismiss();
             });
         });
         return dialog;
