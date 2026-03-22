@@ -80,14 +80,14 @@ public class KnowledgeImportDialog extends DialogFragment {
         root.addView(header);
 
         TextView desc = new TextView(requireContext());
-        desc.setText("文本、图片 OCR、PDF、DOCX 统一入口。后台处理现在默认生成待确认改动，减少你等半天还没弹修改框。");
+        desc.setText("文本、图片 OCR、PDF、DOCX、实时语音统一入口。后台处理默认生成待确认改动。");
         LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         descLp.topMargin = dp(6);
         root.addView(desc, descLp);
         MonetDialogStyler.styleHeader(header, desc);
 
         textInput = new EditText(requireContext());
-        textInput.setHint("粘贴文本、课堂笔记、项目需求、论文摘要……");
+        textInput.setHint("粘贴文本、课堂笔记、项目需求、论文摘要，或把语音结果插进来……");
         textInput.setMinLines(8);
         textInput.setTextColor(ThemeManager.getTextPrimary());
         textInput.setHintTextColor(ThemeManager.getTextSecondary());
@@ -126,6 +126,11 @@ public class KnowledgeImportDialog extends DialogFragment {
         Button imageBtn = smallButton("选择图片 / OCR");
         imageBtn.setOnClickListener(v -> pickImages());
 
+        Button voiceBtn = smallButton("实时语音");
+        voiceBtn.setOnClickListener(v ->
+                SherpaVoiceInputDialog.newInstance(text -> appendTranscript(text))
+                        .show(activity.getSupportFragmentManager(), "sherpa_voice_input_dialog"));
+
         Button clearBtn = smallButton("清空已选");
         clearBtn.setOnClickListener(v -> {
             selectedUris.clear();
@@ -139,8 +144,8 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
 
         TextView ext = MonetDialogStyler.body(requireContext(),
-                "支持：TXT / MD / PDF / DOCX / 图片 OCR。后台处理完成后，回到 App 会更稳定地看到待确认改动。");
-        root.addView(card("文档与 OCR", "不同文档导入 + 图片 OCR 已合并到同一入口", docBtn, imageBtn, clearBtn, selectedFilesView, ext), cardLp);
+                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。Sherpa-ONNX 走本地离线识别。");
+        root.addView(card("文档 / OCR / 语音", "现在可以直接口述成文字，再并入知识导入", docBtn, imageBtn, voiceBtn, clearBtn, selectedFilesView, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
@@ -242,6 +247,15 @@ public class KnowledgeImportDialog extends DialogFragment {
             });
         });
         return dialog;
+    }
+
+    private void appendTranscript(String text) {
+        String incoming = safe(text);
+        if (incoming.isEmpty() || textInput == null) return;
+        String old = safe(textInput.getText() == null ? "" : textInput.getText().toString());
+        String merged = old.isEmpty() ? incoming : (old + "\n" + incoming);
+        textInput.setText(merged);
+        textInput.setSelection(merged.length());
     }
 
     private void pickDocuments() {
