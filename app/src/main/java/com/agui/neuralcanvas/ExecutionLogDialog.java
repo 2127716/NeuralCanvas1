@@ -2,13 +2,13 @@ package com.agui.neuralcanvas;
 
 import android.app.Dialog;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -57,58 +57,76 @@ public class ExecutionLogDialog extends DialogFragment {
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(ThemeManager.getDialogBg());
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
         int p = dp(18);
         root.setPadding(p, p, p, p);
+        root.setBackgroundColor(ThemeManager.getDialogBg());
         scrollView.addView(root);
 
+        TextView title = new TextView(requireContext());
+        title.setText("执行记录");
+        root.addView(title);
+
+        TextView sub = new TextView(requireContext());
+        sub.setText("记录结果、阻碍、偏差与复盘结论");
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = dp(6);
+        root.addView(sub, subLp);
+        MonetDialogStyler.styleHeader(title, sub);
+
         EditText noteInput = new EditText(requireContext());
-        noteInput.setHint("记录这次执行结果、偏差、阻碍或复盘结论");
+        noteInput.setHint("这次执行发生了什么？");
         noteInput.setMinLines(6);
-        noteInput.setTextColor(Color.parseColor("#0F172A"));
-        noteInput.setHintTextColor(Color.parseColor("#94A3B8"));
-        noteInput.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#60A5FA")));
-        root.addView(noteInput, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        noteInput.setTextColor(ThemeManager.getTextPrimary());
+        noteInput.setHintTextColor(ThemeManager.getTextSecondary());
+        noteInput.setBackgroundTintList(ColorStateList.valueOf(ThemeManager.getAccent()));
+        noteInput.setBackground(MonetDialogStyler.cardBg());
+        noteInput.setPadding(dp(14), dp(14), dp(14), dp(14));
+        LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        inputLp.topMargin = dp(16);
+        root.addView(noteInput, inputLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("执行记录")
                 .setView(scrollView)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("保存", null)
                 .create();
 
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            if (node == null) {
-                Toast.makeText(requireContext(), "找不到当前节点", Toast.LENGTH_SHORT).show();
+        dialog.setOnShowListener(d -> {
+            MonetDialogStyler.apply(dialog, requireContext());
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                if (node == null) {
+                    Toast.makeText(requireContext(), "找不到当前节点", Toast.LENGTH_SHORT).show();
+                    dismiss();
+                    return;
+                }
+
+                String note = safe(noteInput.getText().toString());
+                if (note.isEmpty()) {
+                    noteInput.setError("请输入记录内容");
+                    return;
+                }
+
+                String old = safe(node.getContent());
+                String merged = old.isEmpty() ? note : (old + "\n" + note);
+                node.setContent(merged);
+                OutcomeFeedbackEngine.markExecutionLogged(node);
+                NodeIntelligenceEngine.markFocus(node);
+
+                if (activity.getMindMapView() != null) {
+                    activity.getMindMapView().invalidate();
+                }
+                if (onSaved != null) onSaved.run();
+
+                Toast.makeText(requireContext(), "执行记录已保存", Toast.LENGTH_SHORT).show();
                 dismiss();
-                return;
-            }
-
-            String note = safe(noteInput.getText().toString());
-            if (note.isEmpty()) {
-                noteInput.setError("请输入记录内容");
-                return;
-            }
-
-            String old = safe(node.getContent());
-            String merged = old.isEmpty() ? note : (old + "\n" + note);
-            node.setContent(merged);
-            OutcomeFeedbackEngine.markExecutionLogged(node);
-            NodeIntelligenceEngine.markFocus(node);
-
-            if (activity.getMindMapView() != null) {
-                activity.getMindMapView().invalidate();
-            }
-            if (onSaved != null) onSaved.run();
-
-            Toast.makeText(requireContext(), "执行记录已保存", Toast.LENGTH_SHORT).show();
-            dismiss();
-        }));
+            });
+        });
 
         return dialog;
     }

@@ -1,7 +1,7 @@
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
-import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.ViewGroup;
@@ -36,7 +36,9 @@ public class AiCommandPreviewDialog extends DialogFragment {
     }
 
     private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics());
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics()
+        );
     }
 
     @NonNull
@@ -52,7 +54,13 @@ public class AiCommandPreviewDialog extends DialogFragment {
         try {
             response = AiJsonParser.parseResponse(getArguments().getString(ARG_JSON, "{}"));
         } catch (Exception e) {
-            return new AlertDialog.Builder(requireContext()).setTitle("AI命令预览").setMessage("命令解析失败：" + e.getMessage()).setPositiveButton("关闭", null).create();
+            AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                    .setTitle("AI命令预览")
+                    .setMessage("命令解析失败：" + e.getMessage())
+                    .setPositiveButton("关闭", null)
+                    .create();
+            dialog.setOnShowListener(d -> MonetDialogStyler.apply(dialog, requireContext()));
+            return dialog;
         }
 
         final AiResponse finalResponse = response;
@@ -60,43 +68,54 @@ public class AiCommandPreviewDialog extends DialogFragment {
 
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(ThemeManager.getDialogBg());
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
-        int p = dp(18);
-        root.setPadding(p, p, p, p);
+        root.setPadding(dp(18), dp(18), dp(18), dp(18));
+        root.setBackgroundColor(ThemeManager.getDialogBg());
         scrollView.addView(root);
 
-        TextView header = new TextView(requireContext());
-        header.setText("AI理解");
-        header.setTextSize(17);
-        header.setTextColor(Color.parseColor("#0F172A"));
-        header.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(header);
+        TextView title = new TextView(requireContext());
+        title.setText("AI 命令预览");
+        root.addView(title);
+
+        TextView sub = new TextView(requireContext());
+        sub.setText("先看摘要，再决定是否执行");
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = dp(6);
+        root.addView(sub, subLp);
+        MonetDialogStyler.styleHeader(title, sub);
 
         TextView answer = new TextView(requireContext());
         answer.setText(response.getAnswer().isEmpty() ? "AI未提供额外说明" : response.getAnswer());
-        answer.setTextSize(14);
-        answer.setTextColor(Color.parseColor("#334155"));
-        answer.setBackgroundColor(Color.parseColor("#EEF4FF"));
-        answer.setPadding(dp(14), dp(14), dp(14), dp(14));
-        LinearLayout.LayoutParams answerLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        answerLp.topMargin = dp(10);
+        answer.setTextColor(ThemeManager.getTextSecondary());
+        answer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        answer.setPadding(dp(16), dp(14), dp(16), dp(14));
+        answer.setBackground(MonetDialogStyler.cardBg());
+        LinearLayout.LayoutParams answerLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        answerLp.topMargin = dp(14);
         root.addView(answer, answerLp);
 
         List<AiCommand> commands = response.getCommands();
         TextView count = new TextView(requireContext());
         count.setText("待执行操作：" + (commands == null ? 0 : commands.size()) + " 条");
-        count.setTextSize(15);
-        count.setTextColor(Color.parseColor("#2563EB"));
-        LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        count.setTextColor(ThemeManager.getAccent());
+        count.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        LinearLayout.LayoutParams countLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         countLp.topMargin = dp(16);
         root.addView(count, countLp);
 
-        if (commands != null) for (int i = 0; i < commands.size(); i++) root.addView(buildCommandCard(i + 1, commands.get(i)));
+        if (commands != null) {
+            for (int i = 0; i < commands.size(); i++) {
+                root.addView(buildCommandCard(i + 1, commands.get(i)));
+            }
+        }
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("AI命令预览")
                 .setView(scrollView)
                 .setNegativeButton("取消", (d, which) -> {
                     decided[0] = true;
@@ -112,44 +131,52 @@ public class AiCommandPreviewDialog extends DialogFragment {
                 .create();
 
         dialog.setOnDismissListener(d -> {
-            if (!decided[0]) SuggestionFeedbackEngine.recordRejected(dataManager, finalResponse, "manual_preview");
+            if (!decided[0]) {
+                SuggestionFeedbackEngine.recordRejected(dataManager, finalResponse, "manual_preview");
+            }
         });
+        dialog.setOnShowListener(d -> MonetDialogStyler.apply(dialog, requireContext()));
         return dialog;
     }
 
     private LinearLayout buildCommandCard(int index, AiCommand cmd) {
         LinearLayout card = new LinearLayout(requireContext());
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(index % 2 == 0 ? Color.parseColor("#F8FAFC") : Color.parseColor("#F1F5F9"));
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        card.setBackground(MonetDialogStyler.cardBg());
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(12);
         card.setLayoutParams(lp);
 
         TextView title = new TextView(requireContext());
         title.setText(index + ". " + readableAction(cmd.getAction()));
-        title.setTextColor(Color.parseColor("#0F172A"));
-        title.setTextSize(15);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setTextColor(ThemeManager.getTextPrimary());
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
         card.addView(title);
 
         TextView detail = new TextView(requireContext());
         detail.setText(buildReadableDetail(cmd));
-        detail.setTextColor(Color.parseColor("#334155"));
-        detail.setTextSize(14);
-        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        detail.setTextColor(ThemeManager.getTextSecondary());
+        detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         detailLp.topMargin = dp(8);
         card.addView(detail, detailLp);
 
         if (!cmd.getReason().isEmpty()) {
             TextView reason = new TextView(requireContext());
             reason.setText("原因：" + cmd.getReason());
-            reason.setTextColor(Color.parseColor("#475569"));
-            reason.setTextSize(13);
-            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            reason.setTextColor(ThemeManager.getAccent());
+            reason.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             rlp.topMargin = dp(8);
             card.addView(reason, rlp);
         }
+
         return card;
     }
 
@@ -176,7 +203,9 @@ public class AiCommandPreviewDialog extends DialogFragment {
         if (!cmd.getContent().isEmpty()) sb.append("内容：").append(trimLong(cmd.getContent(), 120)).append("\n");
         if (!cmd.getType().isEmpty()) sb.append("类型：").append(cmd.getType()).append("\n");
         if (!cmd.getShape().isEmpty()) sb.append("形状：").append(cmd.getShape()).append("\n");
-        if (!cmd.getFromNodeId().isEmpty() || !cmd.getToNodeId().isEmpty()) sb.append("连接：").append(cmd.getFromNodeId()).append(" -> ").append(cmd.getToNodeId()).append("\n");
+        if (!cmd.getFromNodeId().isEmpty() || !cmd.getToNodeId().isEmpty()) {
+            sb.append("连接：").append(cmd.getFromNodeId()).append(" -> ").append(cmd.getToNodeId()).append("\n");
+        }
         if (!cmd.getLabel().isEmpty()) sb.append("连线文字：").append(cmd.getLabel()).append("\n");
         if (!cmd.getConnectionType().isEmpty()) sb.append("连线类型：").append(cmd.getConnectionType()).append("\n");
         if (!cmd.getConnectionColorHex().isEmpty()) sb.append("连线颜色：").append(cmd.getConnectionColorHex()).append("\n");
@@ -188,5 +217,8 @@ public class AiCommandPreviewDialog extends DialogFragment {
         return text.isEmpty() ? "无附加详情" : text;
     }
 
-    private String trimLong(String text, int max) { return text == null ? "" : (text.length() <= max ? text : text.substring(0, max - 1) + "…"); }
+    private String trimLong(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max - 1) + "…";
+    }
 }
