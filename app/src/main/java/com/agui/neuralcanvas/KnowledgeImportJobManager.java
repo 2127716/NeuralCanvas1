@@ -9,15 +9,15 @@ import androidx.work.WorkManager;
 public final class KnowledgeImportJobManager {
     private KnowledgeImportJobManager() {}
 
-    public static void enqueue(Context context, String rawText, String extraRule) {
+    public static void enqueue(Context context, String rawText, String extraRule, String[] uriStrings) {
         if (context == null) return;
-        Data data = new Data.Builder()
+        Data.Builder builder = new Data.Builder()
                 .putString("raw_text", rawText == null ? "" : rawText)
-                .putString("extra_rule", extraRule == null ? "" : extraRule)
-                .build();
+                .putString("extra_rule", extraRule == null ? "" : extraRule);
+        if (uriStrings != null) builder.putStringArray("uri_strings", uriStrings);
 
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(BackgroundKnowledgeImportWorker.class)
-                .setInputData(data)
+                .setInputData(builder.build())
                 .build();
 
         WorkManager.getInstance(context).enqueue(request);
