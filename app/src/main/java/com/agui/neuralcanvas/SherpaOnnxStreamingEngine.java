@@ -47,7 +47,7 @@ public class SherpaOnnxStreamingEngine {
 
         try {
             recognizer = createRecognizer(context.getAssets());
-            stream = recognizer.createStream();
+            stream = recognizer.createStream(""); // 1.12.32 需要传入 hotwords 参数，空字符串即可
 
             int minBuffer = AudioRecord.getMinBufferSize(
                     SAMPLE_RATE,
