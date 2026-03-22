@@ -80,7 +80,7 @@ public class KnowledgeImportDialog extends DialogFragment {
         root.addView(header);
 
         TextView desc = new TextView(requireContext());
-        desc.setText("文本、图片 OCR、PDF、DOCX 统一入口。支持后台处理，不用一直卡在这里等。");
+        desc.setText("文本、图片 OCR、PDF、DOCX 统一入口。后台处理现在默认生成待确认改动，减少你等半天还没弹修改框。");
         LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         descLp.topMargin = dp(6);
         root.addView(desc, descLp);
@@ -118,13 +118,19 @@ public class KnowledgeImportDialog extends DialogFragment {
 
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         cardLp.topMargin = dp(14);
-        root.addView(card("文本导入", "文本可直接送给 AI 整理，也可和文件一起合并处理", textInput, extraRuleInput, quickRow, resultView), cardLp);
+        root.addView(card("文本导入", "前台整理会立刻给你预览；后台处理会生成待确认改动", textInput, extraRuleInput, quickRow, resultView), cardLp);
 
         Button docBtn = smallButton("选择文档");
         docBtn.setOnClickListener(v -> pickDocuments());
 
         Button imageBtn = smallButton("选择图片 / OCR");
         imageBtn.setOnClickListener(v -> pickImages());
+
+        Button clearBtn = smallButton("清空已选");
+        clearBtn.setOnClickListener(v -> {
+            selectedUris.clear();
+            refreshSelectedSummary();
+        });
 
         selectedFilesView = new TextView(requireContext());
         selectedFilesView.setTextColor(ThemeManager.getTextSecondary());
@@ -133,8 +139,8 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
 
         TextView ext = MonetDialogStyler.body(requireContext(),
-                "支持：TXT / MD / PDF / DOCX / 图片 OCR。旧版 .doc 目前不解析，建议先转 docx 或 pdf。");
-        root.addView(card("文档与 OCR", "不同文档导入 + 图片 OCR 已合并到同一入口", docBtn, imageBtn, selectedFilesView, ext), cardLp);
+                "支持：TXT / MD / PDF / DOCX / 图片 OCR。后台处理完成后，回到 App 会更稳定地看到待确认改动。");
+        root.addView(card("文档与 OCR", "不同文档导入 + 图片 OCR 已合并到同一入口", docBtn, imageBtn, clearBtn, selectedFilesView, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
@@ -231,7 +237,7 @@ public class KnowledgeImportDialog extends DialogFragment {
                 String[] uriStrings = new String[selectedUris.size()];
                 for (int i = 0; i < selectedUris.size(); i++) uriStrings[i] = selectedUris.get(i).toString();
                 KnowledgeImportJobManager.enqueue(requireContext(), rawText, safe(extraRuleInput.getText().toString()), uriStrings);
-                Toast.makeText(requireContext(), "已转入后台处理，你可以直接退出这个界面", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "已转入后台处理。处理完成后会给你更稳定的待确认改动。", Toast.LENGTH_LONG).show();
                 dismiss();
             });
         });

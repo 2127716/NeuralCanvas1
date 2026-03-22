@@ -122,6 +122,15 @@ public class MoreMenuDialog extends DialogFragment {
         subtitleLp.topMargin = dp(6);
         root.addView(subtitle, subtitleLp);
 
+        TextView hint = new TextView(requireContext());
+        hint.setText("点一下执行，长按看精简说明");
+        hint.setTextColor(ThemeManager.getAccent());
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        LinearLayout.LayoutParams hintLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hintLp.topMargin = dp(6);
+        if ("templates".equals(currentLevel)) root.addView(hint, hintLp);
+
         for (MenuItem item : buildItems()) {
             root.addView(buildCard(item));
         }
@@ -169,7 +178,7 @@ public class MoreMenuDialog extends DialogFragment {
         switch (currentLevel) {
             case "workspace":
                 items.add(new MenuItem("科学工作台", "查看总览", ID_WORKSPACE_DASHBOARD, false));
-                items.add(new MenuItem("项目中心", "项目聚合", ID_WORKSPACE_PROJECTS, false));
+                items.add(new MenuItem("项目巡检", "巡检项目链、KR、触发条件", ID_WORKSPACE_PROJECTS, false));
                 items.add(new MenuItem("Inbox 澄清", "快速分类", ID_WORKSPACE_INBOX, false));
                 items.add(new MenuItem("Weekly Review", "周回顾", ID_WORKSPACE_WEEKLY, false));
                 items.add(new MenuItem("记忆复习", "间隔复习", ID_WORKSPACE_MEMORY, false));
@@ -260,7 +269,87 @@ public class MoreMenuDialog extends DialogFragment {
         card.addView(tail, tailLp);
 
         card.setOnClickListener(v -> handleItem(item));
+        card.setOnLongClickListener(v -> {
+            if (showTemplateHelp(item)) return true;
+            return false;
+        });
         return card;
+    }
+
+    private boolean showTemplateHelp(MenuItem item) {
+        if (!"templates".equals(currentLevel) || item == null || item.nav) return false;
+        String[] info = buildTemplateInfo(item.id);
+        if (info == null) return false;
+        TemplateMethodInfoDialog.newInstance(item.title, info[0], info[1], info[2])
+                .show(requireActivity().getSupportFragmentManager(), "template_method_info");
+        return true;
+    }
+
+    private String[] buildTemplateInfo(int id) {
+        switch (id) {
+            case ID_TEMPLATE_WOOP:
+                return new String[]{
+                        "把‘想要什么’拆成愿望、结果、障碍、计划，避免只有目标没有应对。",
+                        "适合你知道目标，但总拖延、总卡住、总执行不稳的时候。",
+                        "通常会产出：目标、障碍清单、If-Then 应对动作。"
+                };
+            case ID_TEMPLATE_IF_THEN:
+                return new String[]{
+                        "把行为变成‘如果发生X，我就做Y’，让动作更容易自动触发。",
+                        "适合已有任务，但总想不起来做，或者容易中断的时候。",
+                        "通常会产出：触发条件 + 具体动作。"
+                };
+            case ID_TEMPLATE_WEEKLY_REVIEW:
+                return new String[]{
+                        "每周统一检查 inbox、下一步、等待中、受阻项，防止系统变乱。",
+                        "适合一周结束时、任务越来越多时、感觉脑子乱时。",
+                        "通常会产出：清理列表、下一周优先事项、待复盘项。"
+                };
+            case ID_TEMPLATE_PREMORTEM:
+                return new String[]{
+                        "先假设事情已经失败，再倒推最可能的原因。",
+                        "适合项目开始前、重要决定前、你怕踩坑的时候。",
+                        "通常会产出：失败原因、风险节点、预防动作。"
+                };
+            case ID_TEMPLATE_WRAP:
+                return new String[]{
+                        "给决策加护栏，避免只凭感觉做高代价选择。",
+                        "适合做重要决定、方案比较、风险高的时候。",
+                        "通常会产出：备选方案、规则、不能越界的底线。"
+                };
+            case ID_TEMPLATE_BAYES:
+                return new String[]{
+                        "根据新证据更新判断，不是死守旧结论。",
+                        "适合证据不断变化、需要反复校正判断的时候。",
+                        "通常会产出：先验、证据、更新后的判断。"
+                };
+            case ID_TEMPLATE_DSRP:
+                return new String[]{
+                        "从区分、系统、关系、视角四个角度重新看问题。",
+                        "适合问题复杂、你不知道怎么拆的时候。",
+                        "通常会产出：结构拆分、关键关系、不同视角的解释。"
+                };
+            case ID_TEMPLATE_REFERENCE:
+                return new String[]{
+                        "先找相似案例当参考，再估计当前情况，避免拍脑袋预测。",
+                        "适合做时间估计、结果预估、成功率判断时。",
+                        "通常会产出：参考样本、初始估计、校正后的估计。"
+                };
+            case ID_TEMPLATE_RETRIEVAL:
+                return new String[]{
+                        "主动回忆，而不是只看材料。检验自己到底会不会。",
+                        "适合背概念、学知识、准备考试的时候。",
+                        "通常会产出：检索问题、回忆答案、不会的缺口。"
+                };
+            case ID_TEMPLATE_TRANSFER:
+                return new String[]{
+                        "把学到的东西换场景再用一遍，检验是不是真掌握。",
+                        "适合学完一个知识点后，想避免‘会背但不会用’的时候。",
+                        "通常会产出：迁移任务、应用场景、举一反三例子。"
+                };
+            default:
+                return null;
+        }
     }
 
     private void handleItem(MenuItem item) {

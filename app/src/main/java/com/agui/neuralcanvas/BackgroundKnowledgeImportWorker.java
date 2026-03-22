@@ -52,6 +52,7 @@ public class BackgroundKnowledgeImportWorker extends Worker {
             Map<String, Connection> connections = (Map<String, Connection>) saved.get("connections");
 
             String prompt = "请将下面导入内容整理为思维导图/知识网络，节点标题简洁，建立高价值有方向连接，尽量不要重排旧节点。"
+                    + "默认输出可审查的低风险改动，优先给出 create_node / create_connection / update_node。"
                     + ((extraRule == null || extraRule.trim().isEmpty()) ? "" : ("额外要求：" + extraRule.trim() + "。"))
                     + "\n\n导入内容：\n" + mergedText;
 
@@ -83,10 +84,14 @@ public class BackgroundKnowledgeImportWorker extends Worker {
             if (response == null) return Result.retry();
 
             if (response.getCommands() != null && !response.getCommands().isEmpty()) {
-                new AiHeadlessExecutor(nodes, connections).execute(response.getCommands());
-                dataManager.saveMindMap(nodes, connections);
-                SuggestionFeedbackEngine.recordAutoApplied(dataManager, response, "background_import");
-                SuggestionFeedbackEngine.recordEffectiveness(dataManager, response);
+                PendingOperationBundle bundle = new PendingOperationBundle();
+                bundle.createdAt = System.currentTimeMillis();
+                bundle.summary = "后台导入已完成，已生成待确认改动";
+                bundle.responseJson = AiJsonParser.toJson(response);
+                bundle.riskLevel = "LOW";
+                bundle.commandCount = response.getCommands().size();
+                bundle.impactSummary = OperationImpactSummaryEngine.analyze(response).buildSummary();
+                dataManager.savePendingOperationBundle(bundle);
             }
 
             StringBuilder importSummary = new StringBuilder();
@@ -102,10 +107,10 @@ public class BackgroundKnowledgeImportWorker extends Worker {
             guidance.timestamp = System.currentTimeMillis();
             guidance.summary = importSummary + "\n\n"
                     + (response.getAnswer() == null || response.getAnswer().trim().isEmpty()
-                    ? "已自动把导入内容整理进图谱"
+                    ? "已完成提取与结构建议，请回到 App 查看待确认改动"
                     : response.getAnswer());
             guidance.responseJson = AiJsonParser.toJson(response);
-            guidance.autoApplied = response.getCommands() != null && !response.getCommands().isEmpty();
+            guidance.autoApplied = false;
             guidance.riskLevel = "LOW";
             dataManager.savePendingBrainGuidance(guidance);
 
