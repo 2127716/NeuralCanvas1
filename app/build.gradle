@@ -51,7 +51,13 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
-    implementation 'org.apache.commons:commons-compress:1.26.2'
+
+    // 模型按需下载：commons-compress 需要，但把 commons-lang3 锁到 3.12.0，
+    // 避免 GitHub Actions 当前 D8 在 3.14.0 上触发 NPE。
+    implementation('org.apache.commons:commons-compress:1.26.2') {
+        exclude group: 'org.apache.commons', module: 'commons-lang3'
+    }
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
