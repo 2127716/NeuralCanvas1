@@ -1,8 +1,6 @@
-
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -26,24 +24,14 @@ public class ProjectHealthDialog extends DialogFragment {
     }
 
     private int dp(int value) {
-        return (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics()
-        );
+        return MonetDialogStyler.dp(requireContext(), value);
     }
 
-    private android.graphics.drawable.GradientDrawable bg(String color) {
-        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-        gd.setColor(Color.parseColor(color));
-        gd.setCornerRadius(dp(16));
-        gd.setStroke(dp(1), Color.parseColor("#24324A"));
-        return gd;
-    }
-
-    private TextView title(String text, int sizeSp, boolean bold, String color) {
+    private TextView title(String text, int sizeSp, boolean bold, boolean primary) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp);
-        tv.setTextColor(Color.parseColor(color));
+        tv.setTextColor(primary ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary());
         if (bold) tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
         return tv;
     }
@@ -54,18 +42,23 @@ public class ProjectHealthDialog extends DialogFragment {
         return v;
     }
 
-    private LinearLayout card(String title, String subtitle, String color) {
+    private LinearLayout card(String title, String subtitle, int backgroundColor) {
         LinearLayout card = new LinearLayout(requireContext());
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(12), dp(12), dp(12), dp(12));
-        card.setBackground(bg(color));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(backgroundColor);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), ThemeManager.getChipStroke());
+        card.setBackground(bg);
+
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         lp.leftMargin = dp(4);
         lp.rightMargin = dp(4);
         card.setLayoutParams(lp);
-        card.addView(this.title(title, 14, true, "#F8FAFC"));
+        card.addView(this.title(title, 14, true, true));
         card.addView(spacer(4));
-        card.addView(this.title(subtitle, 12, false, "#D6E3F5"));
+        card.addView(this.title(subtitle, 12, false, false));
         return card;
     }
 
@@ -77,10 +70,10 @@ public class ProjectHealthDialog extends DialogFragment {
         String text = "• " + label + " [" + node.getType().label + "]";
         if (!DashboardSectionBuilder.safe(extra).isEmpty()) text += "\n  " + extra;
         tv.setText(text);
-        tv.setTextColor(Color.parseColor("#E2E8F0"));
+        tv.setTextColor(ThemeManager.getTextPrimary());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setPadding(dp(12), dp(10), dp(12), dp(10));
-        tv.setBackground(bg("#111827"));
+        tv.setBackground(MonetDialogStyler.cardBg());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);
         tv.setLayoutParams(lp);
@@ -93,15 +86,15 @@ public class ProjectHealthDialog extends DialogFragment {
     }
 
     private void addSection(LinearLayout root, String sectionTitle, List<Node> nodes, MainActivity activity) {
-        root.addView(title(sectionTitle, 16, true, "#F8FAFC"));
+        root.addView(title(sectionTitle, 16, true, true));
         if (nodes == null || nodes.isEmpty()) {
-            root.addView(title("当前没有内容", 13, false, "#94A3B8"));
+            root.addView(title("当前没有内容", 13, false, false));
             root.addView(spacer(16));
             return;
         }
         int limit = Math.min(nodes.size(), 6);
         for (int i = 0; i < limit; i++) root.addView(nodeRow(nodes.get(i), activity));
-        if (nodes.size() > limit) root.addView(title("还有 " + (nodes.size() - limit) + " 个", 12, false, "#94A3B8"));
+        if (nodes.size() > limit) root.addView(title("还有 " + (nodes.size() - limit) + " 个", 12, false, false));
         root.addView(spacer(16));
     }
 
@@ -117,27 +110,37 @@ public class ProjectHealthDialog extends DialogFragment {
         );
 
         ScrollView sv = new ScrollView(requireContext());
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(18));
-        root.setBackgroundColor(Color.parseColor("#0B1020"));
+        sv.setFillViewport(true);
+        sv.setBackgroundColor(ThemeManager.getDialogBg());
+
+        LinearLayout root = MonetDialogStyler.buildRoot(requireContext());
         sv.addView(root);
 
-        root.addView(title("项目巡检", 20, true, "#F8FAFC"));
-        root.addView(spacer(6));
-        root.addView(title(ProjectHealthEngine.buildSummary(report), 13, false, "#94A3B8"));
-        root.addView(spacer(14));
+        TextView pageTitle = new TextView(requireContext());
+        pageTitle.setText("项目巡检");
+        root.addView(pageTitle);
+
+        TextView sub = new TextView(requireContext());
+        sub.setText(ProjectHealthEngine.buildSummary(report));
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        subLp.topMargin = dp(6);
+        root.addView(sub, subLp);
+        MonetDialogStyler.styleHeader(pageTitle, sub);
 
         HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.addView(card("卡住", String.valueOf(report.stuckProjects.size()), "#7F1D1D"));
-        row.addView(card("缺 KR", String.valueOf(report.projectsWithoutKr.size()), "#1D4ED8"));
-        row.addView(card("缺复盘", String.valueOf(report.projectsWithoutReview.size()), "#92400E"));
-        row.addView(card("无触发", String.valueOf(report.actionsWithoutTrigger.size()), "#0F766E"));
-        row.addView(card("弱证据决策", String.valueOf(report.weakEvidenceDecisions.size()), "#581C87"));
+        row.addView(card("卡住", String.valueOf(report.stuckProjects.size()), 0xFF7F1D1D));
+        row.addView(card("缺 KR", String.valueOf(report.projectsWithoutKr.size()), 0xFF1D4ED8));
+        row.addView(card("缺复盘", String.valueOf(report.projectsWithoutReview.size()), 0xFF92400E));
+        row.addView(card("无触发", String.valueOf(report.actionsWithoutTrigger.size()), 0xFF0F766E));
+        row.addView(card("弱证据", String.valueOf(report.weakEvidenceDecisions.size()), 0xFF581C87));
         hsv.addView(row);
-        root.addView(hsv);
+        LinearLayout.LayoutParams hsvLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hsvLp.topMargin = dp(14);
+        root.addView(hsv, hsvLp);
         root.addView(spacer(18));
 
         addSection(root, "卡住项目", report.stuckProjects, activity);
@@ -164,6 +167,7 @@ public class ProjectHealthDialog extends DialogFragment {
                 .create();
 
         dialog.setOnShowListener(d -> {
+            MonetDialogStyler.apply(dialog, requireContext());
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 dialog.getWindow().setGravity(Gravity.CENTER);

@@ -1,8 +1,6 @@
-
 package com.agui.neuralcanvas;
 
 import android.app.Dialog;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -17,7 +15,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.FragmentActivity;
 
 import java.util.Map;
 
@@ -28,23 +25,13 @@ public class ScientificDashboardDialog extends DialogFragment {
     }
 
     private int dp(int value) {
-        return (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, value, requireContext().getResources().getDisplayMetrics()
-        );
+        return MonetDialogStyler.dp(requireContext(), value);
     }
 
-    private android.graphics.drawable.GradientDrawable rounded(String color) {
-        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-        gd.setColor(Color.parseColor(color));
-        gd.setCornerRadius(dp(16));
-        gd.setStroke(dp(1), Color.parseColor("#24324A"));
-        return gd;
-    }
-
-    private TextView label(String text, int sizeSp, boolean bold, String color) {
+    private TextView label(String text, int sizeSp, boolean bold, boolean primary) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
-        tv.setTextColor(Color.parseColor(color));
+        tv.setTextColor(primary ? ThemeManager.getTextPrimary() : ThemeManager.getTextSecondary());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp);
         if (bold) tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
         return tv;
@@ -59,10 +46,10 @@ public class ScientificDashboardDialog extends DialogFragment {
     private TextView actionChip(String text, Runnable onClick) {
         TextView tv = new TextView(requireContext());
         tv.setText(text);
-        tv.setTextColor(Color.parseColor("#E2E8F0"));
+        tv.setTextColor(ThemeManager.getTextPrimary());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tv.setPadding(dp(14), dp(10), dp(14), dp(10));
-        tv.setBackground(rounded("#111827"));
+        tv.setBackground(MonetDialogStyler.cardBg());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.rightMargin = dp(8);
         tv.setLayoutParams(lp);
@@ -81,10 +68,10 @@ public class ScientificDashboardDialog extends DialogFragment {
         if (!TextUtils.isEmpty(extra)) line += "\n  " + extra;
 
         tv.setText(line);
-        tv.setTextColor(Color.parseColor("#E2E8F0"));
+        tv.setTextColor(ThemeManager.getTextPrimary());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setPadding(dp(12), dp(10), dp(12), dp(10));
-        tv.setBackground(rounded("#111827"));
+        tv.setBackground(MonetDialogStyler.cardBg());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(8);
         tv.setLayoutParams(lp);
@@ -106,15 +93,15 @@ public class ScientificDashboardDialog extends DialogFragment {
     }
 
     private void addSection(LinearLayout root, String title, java.util.List<Node> nodes, MainActivity activity) {
-        root.addView(label(title, 16, true, "#F8FAFC"));
+        root.addView(label(title, 16, true, true));
         if (nodes == null || nodes.isEmpty()) {
-            root.addView(label("当前没有内容", 13, false, "#94A3B8"));
+            root.addView(label("当前没有内容", 13, false, false));
             root.addView(spacer(16));
             return;
         }
         int limit = Math.min(nodes.size(), 6);
         for (int i = 0; i < limit; i++) root.addView(buildNodeRow(nodes.get(i), activity));
-        if (nodes.size() > limit) root.addView(label("还有 " + (nodes.size() - limit) + " 个", 12, false, "#94A3B8"));
+        if (nodes.size() > limit) root.addView(label("还有 " + (nodes.size() - limit) + " 个", 12, false, false));
         root.addView(spacer(16));
     }
 
@@ -138,28 +125,32 @@ public class ScientificDashboardDialog extends DialogFragment {
 
         ScrollView sv = new ScrollView(requireContext());
         sv.setFillViewport(true);
+        sv.setBackgroundColor(ThemeManager.getDialogBg());
 
-        LinearLayout root = new LinearLayout(requireContext());
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(18));
-        root.setBackgroundColor(Color.parseColor("#0B1020"));
+        LinearLayout root = MonetDialogStyler.buildRoot(requireContext());
         sv.addView(root);
 
-        root.addView(label("智能工作台", 20, true, "#F8FAFC"));
-        TextView sub = label("减少按钮，把分析、修复、引导合成一条自动链", 13, false, "#94A3B8");
+        TextView title = new TextView(requireContext());
+        title.setText("智能工作台");
+        root.addView(title);
+
+        TextView sub = new TextView(requireContext());
+        sub.setText("减少按钮，把分析、修复、引导合成一条自动链");
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         subLp.topMargin = dp(6);
         sub.setLayoutParams(subLp);
         root.addView(sub);
-        root.addView(spacer(14));
+        MonetDialogStyler.styleHeader(title, sub);
 
-        TextView brainCard = new TextView(requireContext());
-        brainCard.setText(AutonomousBrainEngine.buildReadableSummary(brain));
-        brainCard.setTextColor(Color.parseColor("#E2E8F0"));
+        TextView brainCard = MonetDialogStyler.body(requireContext(), AutonomousBrainEngine.buildReadableSummary(brain));
+        brainCard.setTextColor(ThemeManager.getTextPrimary());
         brainCard.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         brainCard.setPadding(dp(14), dp(14), dp(14), dp(14));
-        brainCard.setBackground(rounded("#111827"));
-        root.addView(brainCard);
+        brainCard.setBackground(MonetDialogStyler.cardBg());
+        LinearLayout.LayoutParams brainLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        brainLp.topMargin = dp(14);
+        root.addView(brainCard, brainLp);
 
         root.addView(spacer(12));
         HorizontalScrollView hsv = new HorizontalScrollView(requireContext());
@@ -196,6 +187,7 @@ public class ScientificDashboardDialog extends DialogFragment {
                 .create();
 
         dialog.setOnShowListener(d -> {
+            MonetDialogStyler.apply(dialog, requireContext());
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 dialog.getWindow().setGravity(Gravity.CENTER);
