@@ -2,6 +2,9 @@ package com.agui.neuralcanvas;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.media.MediaCodec;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
 import android.net.Uri;
 
 import com.k2fsa.sherpa.onnx.EndpointConfig;
@@ -17,6 +20,10 @@ import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
+import java.util.Locale;
 
 public final class SherpaAudioFileTranscriber {
 
@@ -26,7 +33,7 @@ public final class SherpaAudioFileTranscriber {
         void onError(String message);
     }
 
-    private static final int SAMPLE_RATE = 16000;
+    private static final int TARGET_SAMPLE_RATE = 16000;
 
     private SherpaAudioFileTranscriber() {}
 
@@ -34,21 +41,38 @@ public final class SherpaAudioFileTranscriber {
         new Thread(() -> {
             try {
                 if (callback != null) callback.onProgress("正在读取音频文件…");
-                WavData wav = readWav(context, uri);
-                if (wav.sampleRate != SAMPLE_RATE) {
-                    throw new IllegalStateException("当前第一版仅支持 16kHz WAV，当前文件是 " + wav.sampleRate + "Hz");
-                }
-                if (wav.numChannels != 1) {
-                    throw new IllegalStateException("当前第一版仅支持单声道 WAV，当前文件是 " + wav.numChannels + " 声道");
+                AudioData audio = loadAudio(context, uri, callback);
+
+                if (callback != null) {
+                    callback.onProgress("音频已解析：" + audio.sampleRate + "Hz / "
+                            + audio.numChannels + "声道，正在预处理…");
                 }
 
+                float[] mono16k = normalizeToMono16k(audio.samples, audio.sampleRate, audio.numChannels);
+
                 if (callback != null) callback.onProgress("正在初始化识别器…");
-                String text = transcribeSamples(context, wav.samples, callback);
+                String text = transcribeSamples(context, mono16k, callback);
                 if (callback != null) callback.onSuccess(text == null ? "" : text.trim());
             } catch (Throwable t) {
                 if (callback != null) callback.onError(safe(t.getMessage(), "录音文件转文字失败"));
             }
         }, "sherpa-audio-file-transcriber").start();
+    }
+
+    private static AudioData loadAudio(Context context, Uri uri, Callback callback) throws Exception {
+        String mime = "";
+        try {
+            mime = safe(context.getContentResolver().getType(uri), "").toLowerCase(Locale.ROOT);
+        } catch (Exception ignored) {}
+
+        String uriText = uri == null ? "" : uri.toString().toLowerCase(Locale.ROOT);
+
+        if (mime.contains("wav") || uriText.endsWith(".wav")) {
+            return readWav(context, uri);
+        }
+
+        // 第二版：支持 AAC / M4A / MP3 / 其他系统可解码格式
+        return decodeCompressedAudio(context, uri, callback);
     }
 
     private static String transcribeSamples(Context context, float[] samples, Callback callback) throws Exception {
@@ -71,7 +95,7 @@ public final class SherpaAudioFileTranscriber {
         modelConfig.setProvider("cpu");
         modelConfig.setDebug(false);
 
-        FeatureConfig featureConfig = new FeatureConfig(SAMPLE_RATE, 80, 0.0f);
+        FeatureConfig featureConfig = new FeatureConfig(TARGET_SAMPLE_RATE, 80, 0.0f);
 
         EndpointConfig endpointConfig = new EndpointConfig(
                 new EndpointRule(false, 2.4f, 0.0f),
@@ -97,7 +121,7 @@ public final class SherpaAudioFileTranscriber {
                 int n = Math.min(chunkSize, total - i);
                 float[] chunk = new float[n];
                 System.arraycopy(samples, i, chunk, 0, n);
-                stream.acceptWaveform(chunk, SAMPLE_RATE);
+                stream.acceptWaveform(chunk, TARGET_SAMPLE_RATE);
 
                 while (recognizer.isReady(stream)) {
                     recognizer.decode(stream);
@@ -122,7 +146,131 @@ public final class SherpaAudioFileTranscriber {
         }
     }
 
-    private static WavData readWav(Context context, Uri uri) throws Exception {
+    private static AudioData decodeCompressedAudio(Context context, Uri uri, Callback callback) throws Exception {
+        MediaExtractor extractor = new MediaExtractor();
+        extractor.setDataSource(context, uri, null);
+
+        int trackIndex = -1;
+        MediaFormat format = null;
+
+        for (int i = 0; i < extractor.getTrackCount(); i++) {
+            MediaFormat f = extractor.getTrackFormat(i);
+            String mime = safe(f.getString(MediaFormat.KEY_MIME), "");
+            if (mime.startsWith("audio/")) {
+                trackIndex = i;
+                format = f;
+                break;
+            }
+        }
+
+        if (trackIndex < 0 || format == null) {
+            extractor.release();
+            throw new IllegalStateException("没有找到可解码的音频轨道");
+        }
+
+        extractor.selectTrack(trackIndex);
+
+        String mime = safe(format.getString(MediaFormat.KEY_MIME), "");
+        MediaCodec codec = MediaCodec.createDecoderByType(mime);
+        codec.configure(format, null, null, 0);
+        codec.start();
+
+        int inputEOS = 0;
+        int outputEOS = 0;
+        MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+        ByteArrayOutputStream pcmOut = new ByteArrayOutputStream();
+
+        int sampleRate = format.containsKey(MediaFormat.KEY_SAMPLE_RATE)
+                ? format.getInteger(MediaFormat.KEY_SAMPLE_RATE) : TARGET_SAMPLE_RATE;
+        int channels = format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)
+                ? format.getInteger(MediaFormat.KEY_CHANNEL_COUNT) : 1;
+
+        try {
+            while (outputEOS == 0) {
+                if (inputEOS == 0) {
+                    int inputIndex = codec.dequeueInputBuffer(10000);
+                    if (inputIndex >= 0) {
+                        ByteBuffer inputBuffer = codec.getInputBuffer(inputIndex);
+                        if (inputBuffer != null) inputBuffer.clear();
+
+                        int size = extractor.readSampleData(inputBuffer, 0);
+                        if (size < 0) {
+                            codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                            inputEOS = 1;
+                        } else {
+                            long timeUs = extractor.getSampleTime();
+                            codec.queueInputBuffer(inputIndex, 0, size, timeUs, 0);
+                            extractor.advance();
+                        }
+                    }
+                }
+
+                int outputIndex = codec.dequeueOutputBuffer(info, 10000);
+                if (outputIndex >= 0) {
+                    ByteBuffer outputBuffer = codec.getOutputBuffer(outputIndex);
+                    if (outputBuffer != null && info.size > 0) {
+                        outputBuffer.position(info.offset);
+                        outputBuffer.limit(info.offset + info.size);
+                        byte[] chunk = new byte[info.size];
+                        outputBuffer.get(chunk);
+                        pcmOut.write(chunk, 0, chunk.length);
+                    }
+                    codec.releaseOutputBuffer(outputIndex, false);
+
+                    if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                        outputEOS = 1;
+                    }
+                } else if (outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    MediaFormat outFormat = codec.getOutputFormat();
+                    if (outFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                        sampleRate = outFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                    }
+                    if (outFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                        channels = outFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                    }
+                }
+
+                if (callback != null) {
+                    long dur = format.containsKey(MediaFormat.KEY_DURATION) ? format.getLong(MediaFormat.KEY_DURATION) : -1L;
+                    long cur = extractor.getSampleTime();
+                    if (dur > 0 && cur > 0) {
+                        int percent = (int) Math.min(99, (cur * 100L) / dur);
+                        callback.onProgress("正在解码压缩音频… " + percent + "%");
+                    } else {
+                        callback.onProgress("正在解码压缩音频…");
+                    }
+                }
+            }
+        } finally {
+            try { codec.stop(); } catch (Exception ignored) {}
+            try { codec.release(); } catch (Exception ignored) {}
+            try { extractor.release(); } catch (Exception ignored) {}
+        }
+
+        byte[] pcmBytes = pcmOut.toByteArray();
+        if (pcmBytes.length == 0) {
+            throw new IllegalStateException("音频解码后没有得到 PCM 数据");
+        }
+
+        ShortBuffer shortBuffer = ByteBuffer.wrap(pcmBytes)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .asShortBuffer();
+        short[] shorts = new short[shortBuffer.remaining()];
+        shortBuffer.get(shorts);
+
+        float[] floats = new float[shorts.length];
+        for (int i = 0; i < shorts.length; i++) {
+            floats[i] = shorts[i] / 32768.0f;
+        }
+
+        AudioData out = new AudioData();
+        out.sampleRate = sampleRate;
+        out.numChannels = channels;
+        out.samples = floats;
+        return out;
+    }
+
+    private static AudioData readWav(Context context, Uri uri) throws Exception {
         try (InputStream in = context.getContentResolver().openInputStream(uri)) {
             if (in == null) throw new IllegalStateException("无法打开音频文件");
             byte[] data = readAll(in);
@@ -130,11 +278,11 @@ public final class SherpaAudioFileTranscriber {
         }
     }
 
-    private static WavData parseWav(byte[] data) throws Exception {
+    private static AudioData parseWav(byte[] data) throws Exception {
         if (data.length < 44) throw new IllegalStateException("WAV 文件过小");
         if (!"RIFF".equals(new String(data, 0, 4, "US-ASCII")) ||
                 !"WAVE".equals(new String(data, 8, 4, "US-ASCII"))) {
-            throw new IllegalStateException("当前第一版只支持标准 WAV 文件");
+            throw new IllegalStateException("当前文件不是标准 WAV");
         }
 
         int offset = 12;
@@ -154,7 +302,7 @@ public final class SherpaAudioFileTranscriber {
                 sampleRate = leInt(data, chunkDataStart + 4);
                 bitsPerSample = leShort(data, chunkDataStart + 14);
                 if (audioFormat != 1) {
-                    throw new IllegalStateException("当前第一版只支持 PCM WAV");
+                    throw new IllegalStateException("WAV 第一版只支持 PCM");
                 }
             } else if ("data".equals(chunkId)) {
                 dataStart = chunkDataStart;
@@ -167,7 +315,7 @@ public final class SherpaAudioFileTranscriber {
         }
 
         if (dataStart < 0 || dataSize <= 0) throw new IllegalStateException("WAV 文件缺少 data 区块");
-        if (bitsPerSample != 16) throw new IllegalStateException("当前第一版只支持 16-bit PCM WAV");
+        if (bitsPerSample != 16) throw new IllegalStateException("WAV 第一版只支持 16-bit PCM");
 
         int sampleCount = dataSize / 2;
         float[] samples = new float[sampleCount];
@@ -176,10 +324,46 @@ public final class SherpaAudioFileTranscriber {
             samples[i] = s / 32768.0f;
         }
 
-        WavData out = new WavData();
+        AudioData out = new AudioData();
         out.sampleRate = sampleRate;
         out.numChannels = channels;
         out.samples = samples;
+        return out;
+    }
+
+    private static float[] normalizeToMono16k(float[] samples, int sampleRate, int channels) {
+        if (samples == null) return new float[0];
+        if (channels <= 0) channels = 1;
+        float[] mono = samples;
+
+        if (channels > 1) {
+            int frames = samples.length / channels;
+            mono = new float[frames];
+            for (int i = 0; i < frames; i++) {
+                float sum = 0f;
+                for (int c = 0; c < channels; c++) {
+                    sum += samples[i * channels + c];
+                }
+                mono[i] = sum / channels;
+            }
+        }
+
+        if (sampleRate == TARGET_SAMPLE_RATE) return mono;
+        if (mono.length == 0) return mono;
+
+        int outLen = (int) Math.max(1, ((long) mono.length * TARGET_SAMPLE_RATE) / Math.max(1, sampleRate));
+        float[] out = new float[outLen];
+        double scale = (double) sampleRate / TARGET_SAMPLE_RATE;
+
+        for (int i = 0; i < outLen; i++) {
+            double srcIndex = i * scale;
+            int i0 = (int) Math.floor(srcIndex);
+            int i1 = Math.min(i0 + 1, mono.length - 1);
+            double frac = srcIndex - i0;
+            float v0 = mono[Math.min(i0, mono.length - 1)];
+            float v1 = mono[i1];
+            out[i] = (float) (v0 * (1.0 - frac) + v1 * frac);
+        }
         return out;
     }
 
@@ -206,7 +390,7 @@ public final class SherpaAudioFileTranscriber {
         return s == null || s.trim().isEmpty() ? fallback : s.trim();
     }
 
-    private static final class WavData {
+    private static final class AudioData {
         int sampleRate;
         int numChannels;
         float[] samples;
