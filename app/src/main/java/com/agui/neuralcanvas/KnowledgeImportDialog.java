@@ -25,6 +25,7 @@ public class KnowledgeImportDialog extends DialogFragment {
 
     private static final int REQ_PICK_DOCS = 3101;
     private static final int REQ_PICK_IMAGES = 3102;
+    private static final int REQ_PICK_AUDIO = 3103;
 
     private final ArrayList<Uri> selectedUris = new ArrayList<>();
     private TextView selectedFilesView;
@@ -80,14 +81,14 @@ public class KnowledgeImportDialog extends DialogFragment {
         root.addView(header);
 
         TextView desc = new TextView(requireContext());
-        desc.setText("文本、图片 OCR、PDF、DOCX、实时语音统一入口。语音模型现在支持按需下载，不必继续打进 APK。");
+        desc.setText("文本、图片 OCR、PDF、DOCX、实时语音、录音文件转文字统一入口。语音模型支持按需下载。");
         LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         descLp.topMargin = dp(6);
         root.addView(desc, descLp);
         MonetDialogStyler.styleHeader(header, desc);
 
         textInput = new EditText(requireContext());
-        textInput.setHint("粘贴文本、课堂笔记、项目需求、论文摘要，或把语音结果插进来……");
+        textInput.setHint("粘贴文本、课堂笔记、项目需求、论文摘要，或把语音 / 录音转写结果插进来……");
         textInput.setMinLines(8);
         textInput.setTextColor(ThemeManager.getTextPrimary());
         textInput.setHintTextColor(ThemeManager.getTextSecondary());
@@ -140,6 +141,9 @@ public class KnowledgeImportDialog extends DialogFragment {
                     }
                 }).show(activity.getSupportFragmentManager(), "sherpa_voice_input_dialog"));
 
+        Button audioBtn = smallButton("录音文件转文字");
+        audioBtn.setOnClickListener(v -> pickAudio());
+
         Button clearBtn = smallButton("清空已选");
         clearBtn.setOnClickListener(v -> {
             selectedUris.clear();
@@ -153,8 +157,8 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
 
         TextView ext = MonetDialogStyler.body(requireContext(),
-                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音。语音模型会在首次使用时按需下载并安装。");
-        root.addView(card("文档 / OCR / 语音", "现在可以直接口述成文字，再并入知识导入", docBtn, imageBtn, voiceBtn, clearBtn, selectedFilesView, ext), cardLp);
+                "支持：TXT / MD / PDF / DOCX / 图片 OCR / 中文实时语音 / 录音文件转文字。录音文件转文字第一版优先支持 16k 单声道 PCM WAV。");
+        root.addView(card("文档 / OCR / 语音", "现在可以直接口述成文字，也可以把录音文件转成文字再导入", docBtn, imageBtn, voiceBtn, audioBtn, clearBtn, selectedFilesView, ext), cardLp);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(scrollView)
@@ -297,6 +301,13 @@ public class KnowledgeImportDialog extends DialogFragment {
         startActivityForResult(intent, REQ_PICK_IMAGES);
     }
 
+    private void pickAudio() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("audio/*");
+        startActivityForResult(intent, REQ_PICK_AUDIO);
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -304,6 +315,15 @@ public class KnowledgeImportDialog extends DialogFragment {
 
         final int takeFlags = data.getFlags()
                 & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+        if (requestCode == REQ_PICK_AUDIO) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                addUriWithPermission(uri, takeFlags);
+                transcribeAudioFile(uri);
+            }
+            return;
+        }
 
         if (data.getClipData() != null) {
             for (int i = 0; i < data.getClipData().getItemCount(); i++) {
@@ -316,12 +336,72 @@ public class KnowledgeImportDialog extends DialogFragment {
         refreshSelectedSummary();
     }
 
+    private void transcribeAudioFile(Uri uri) {
+        resultView.setText("准备转写录音文件…");
+        if (SherpaModelManager.isDownloadedModelInstalled(requireContext())) {
+            runTranscribe(uri);
+            return;
+        }
+
+        SherpaModelManager.downloadAndInstall(requireContext(), new SherpaModelManager.DownloadListener() {
+            @Override
+            public void onProgress(String text) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> resultView.setText(text));
+            }
+
+            @Override
+            public void onSuccess() {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    resultView.setText("模型安装完成，开始转写录音文件…");
+                    runTranscribe(uri);
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> resultView.setText(message));
+            }
+        });
+    }
+
+    private void runTranscribe(Uri uri) {
+        SherpaAudioFileTranscriber.transcribeUri(requireContext(), uri, new SherpaAudioFileTranscriber.Callback() {
+            @Override
+            public void onProgress(String text) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> resultView.setText(text));
+            }
+
+            @Override
+            public void onSuccess(String text) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    appendTranscript(text);
+                    resultView.setText(text.isEmpty()
+                            ? "录音文件转写完成，但没有识别出文字"
+                            : "录音文件转写完成，已追加到知识导入文本框");
+                    Toast.makeText(requireContext(), "录音文件转写完成", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                if (getActivity() == null) return;
+                getActivity().runOnUiThread(() -> resultView.setText(message));
+            }
+        });
+    }
+
     private void addUriWithPermission(Uri uri, int takeFlags) {
         if (uri == null) return;
         try {
             requireContext().getContentResolver().takePersistableUriPermission(uri, takeFlags);
         } catch (Exception ignored) {}
         if (!selectedUris.contains(uri)) selectedUris.add(uri);
+        refreshSelectedSummary();
     }
 
     private void refreshSelectedSummary() {
