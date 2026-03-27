@@ -46,11 +46,20 @@
                     android:id="@+id/toolbar_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="双击空白新建 · 单指拖动画布 · 长按编辑"
+                    android:text="点一下下一步，系统直接告诉你先做什么"
                     android:textColor="#A8B3CF"
                     android:textSize="13sp"
                     android:singleLine="true" />
             </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btn_next_step"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_media_play"
+                android:tint="#F8FAFC"
+                android:contentDescription="下一步" />
 
             <ImageButton
                 android:id="@+id/btn_add_node"
