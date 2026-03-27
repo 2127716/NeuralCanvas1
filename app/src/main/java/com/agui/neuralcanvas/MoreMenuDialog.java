@@ -20,6 +20,7 @@ import java.util.List;
 
 public class MoreMenuDialog extends DialogFragment {
 
+    public static final int ID_WORKSPACE_NEXT = 2000;
     public static final int ID_WORKSPACE_DASHBOARD = 2001;
     public static final int ID_WORKSPACE_PROJECTS = 2002;
     public static final int ID_WORKSPACE_INBOX = 2003;
@@ -161,7 +162,7 @@ public class MoreMenuDialog extends DialogFragment {
 
     private String getSubtitleText() {
         switch (currentLevel) {
-            case "workspace": return "减少按钮，把分析、修复、引导合成一条自动链";
+            case "workspace": return "先用下一步教练，再让系统自动决定你该补哪种科学方法";
             case "templates": return "模板统一收纳，不把菜单拉成超长列表";
             case "ai": return "把 AI 相关动作压成一个分类";
             case "import": return "知识导入、矩形框选、多选删除都放这里";
@@ -177,6 +178,7 @@ public class MoreMenuDialog extends DialogFragment {
         }
         switch (currentLevel) {
             case "workspace":
+                items.add(new MenuItem("下一步教练", "直接告诉你现在先做什么", ID_WORKSPACE_NEXT, false));
                 items.add(new MenuItem("科学工作台", "查看总览", ID_WORKSPACE_DASHBOARD, false));
                 items.add(new MenuItem("项目巡检", "巡检项目链、KR、触发条件", ID_WORKSPACE_PROJECTS, false));
                 items.add(new MenuItem("Inbox 澄清", "快速分类", ID_WORKSPACE_INBOX, false));

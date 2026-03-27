@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity
 
     private long lastToastAt = 0L;
     private long lastGuidanceShownAt = 0L;
+    private long lastCoachShownAt = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +53,15 @@ public class MainActivity extends AppCompatActivity
         if (mindMapView != null) mindMapView.setOnDataChangeListener(this);
 
         dataManager = new SimpleDataManager(getApplication());
+
+        ImageButton btnNext = findViewById(R.id.btn_next_step);
+        if (btnNext != null) {
+            btnNext.setOnClickListener(v -> openNextStepCoach());
+            btnNext.setOnLongClickListener(v -> {
+                maybeToast("系统会优先从选中节点出发，否则自动找最值得你现在推进的节点");
+                return true;
+            });
+        }
 
         ImageButton btnAdd = findViewById(R.id.btn_add_node);
         if (btnAdd != null) btnAdd.setOnClickListener(v -> showAddNodeDialog());
@@ -72,6 +82,8 @@ public class MainActivity extends AppCompatActivity
         BrainAutopilotScheduler.requestImmediatePulse(this);
         handleBrainLaunchIntent(getIntent());
         maybeShowPendingBrainGuidance(false);
+        maybeOpenCoachFromIntent(getIntent());
+        maybeShowCoachOnLaunch();
     }
 
     private void handleBrainLaunchIntent(Intent intent) {
@@ -95,12 +107,32 @@ public class MainActivity extends AppCompatActivity
         intent.removeExtra("brain_open_mode");
     }
 
+    private void maybeOpenCoachFromIntent(Intent intent) {
+        if (intent == null) return;
+        if (!intent.getBooleanExtra("brain_open_guidance", false)) return;
+        intent.removeExtra("brain_open_guidance");
+        autoSaveHandler.postDelayed(this::openNextStepCoach, 320);
+    }
+
+    private void maybeShowCoachOnLaunch() {
+        if (dataManager == null || mindMapView == null) return;
+        BrainAutopilotSettings settings = dataManager.loadAutopilotSettings();
+        if (settings == null || !settings.isCoachPopupOnLaunch()) return;
+        autoSaveHandler.postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (mindMapView == null || mindMapView.getNodesInternal() == null || mindMapView.getNodesInternal().isEmpty()) return;
+            if (System.currentTimeMillis() - lastCoachShownAt < 2000L) return;
+            openNextStepCoach();
+        }, 650);
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         handleBrainLaunchIntent(intent);
         maybeShowPendingBrainGuidance(true);
+        maybeOpenCoachFromIntent(intent);
     }
 
     private void maybeShowPendingBrainGuidance(boolean force) {
@@ -168,7 +200,7 @@ public class MainActivity extends AppCompatActivity
         if (subtitle != null) subtitle.setTextColor(ThemeManager.getTextSecondary());
 
         int iconTint = ThemeManager.getTextPrimary();
-        int[] btnIds = {R.id.btn_add_node, R.id.btn_search, R.id.btn_more};
+        int[] btnIds = {R.id.btn_next_step, R.id.btn_add_node, R.id.btn_search, R.id.btn_more};
         for (int id : btnIds) {
             android.widget.ImageButton btn = findViewById(id);
             if (btn != null) btn.setColorFilter(iconTint);
@@ -188,6 +220,60 @@ public class MainActivity extends AppCompatActivity
         if (mindMapView == null) return;
         DialogFragment dialog = SearchDialog.newInstance(mindMapView);
         dialog.show(getSupportFragmentManager(), "search_dialog");
+    }
+
+    public void openNextStepCoach() {
+        if (mindMapView == null) return;
+        Node target = pickNextStepNode();
+        if (target == null) {
+            maybeToast("当前没有可分析节点，先新建一个目标、任务或问题节点");
+            return;
+        }
+        mindMapView.focusNodeById(target.getId());
+        mindMapView.selectOnlyNode(target.getId());
+        lastCoachShownAt = System.currentTimeMillis();
+        NextStepCoachDialog.show(this, target);
+    }
+
+    private Node pickNextStepNode() {
+        Node selected = getSingleSelectedNode();
+        if (selected != null) return selected;
+        if (mindMapView == null || mindMapView.getNodesInternal() == null || mindMapView.getNodesInternal().isEmpty()) return null;
+
+        Node best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (Node node : mindMapView.getNodesInternal().values()) {
+            int score = scoreForCoach(node);
+            if (score > bestScore) {
+                bestScore = score;
+                best = node;
+            }
+        }
+        return best;
+    }
+
+    private int scoreForCoach(Node node) {
+        if (node == null) return Integer.MIN_VALUE / 4;
+        int score = 0;
+        Node.NodeType type = node.getType();
+        Node.NodeStatus status = node.getStatus();
+
+        if (node.isExecutionNode()) score += 110;
+        if (node.isDecisionNode()) score += 95;
+        if (node.isLearningNode()) score += 80;
+        if (type == Node.NodeType.PROJECT || type == Node.NodeType.GOAL) score += 90;
+        if (status == Node.NodeStatus.BLOCKED) score += 45;
+        if (status == Node.NodeStatus.ACTIVE) score += 35;
+        if (status == Node.NodeStatus.REVIEW) score += 30;
+        if (status == Node.NodeStatus.PLANNED) score += 15;
+        if (status == Node.NodeStatus.DONE) score -= 80;
+        if (node.getPriority() >= 4) score += node.getPriority() * 8;
+        if (!WorkflowEngine.isBlank(node.getDueAt())) score += 16;
+        if (!WorkflowEngine.isBlank(node.getReviewAt())) score += 12;
+        if (WorkflowEngine.isBlank(node.getTriggerCondition()) && node.isExecutionNode()) score += 18;
+        if (node.getEvidenceStrength() < 0.35f && node.isDecisionNode()) score += 18;
+        if (WorkflowEngine.isBlank(node.getTitle())) score -= 30;
+        return score;
     }
 
     // rest of methods unchanged from repo runtime expectations

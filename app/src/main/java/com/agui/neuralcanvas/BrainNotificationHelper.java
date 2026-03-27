@@ -48,14 +48,13 @@ public final class BrainNotificationHelper {
         }
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 1001, intent, flags);
 
-        String title = report.autoApplied ? "AI 已自动优化网络" : "AI 建议你先处理一个关键节点";
-        if (report.focusNodeTitle != null && !report.focusNodeTitle.trim().isEmpty()) {
-            title += "：" + report.focusNodeTitle.trim();
-        }
-        String text = (report.summary == null || report.summary.trim().isEmpty())
-                ? "AI 已完成一次自动巡航。"
-                : report.summary.trim();
-        String bigText = text + "\n" + (report.reason == null ? "" : report.reason);
+        String focusTitle = report.focusNodeTitle == null ? "" : report.focusNodeTitle.trim();
+        String title;
+        if (report.autoApplied) title = focusTitle.isEmpty() ? "我先替你补了一步" : "我先替你补了一步：" + focusTitle;
+        else title = focusTitle.isEmpty() ? "该推进一下了" : "轮到你推进：" + focusTitle;
+
+        String text = buildCompactNudge(report);
+        String bigText = text + "\n\n点开后我会直接告诉你现在先做什么。";
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -70,5 +69,19 @@ public final class BrainNotificationHelper {
             NotificationManagerCompat.from(context).notify(1001, builder.build());
         } catch (SecurityException ignored) {
         }
+    }
+
+    private static String buildCompactNudge(BackgroundBrainAnalyzer.BrainPulseReport report) {
+        if (report == null) return "AI 已完成一次自动巡航。";
+        if (report.reason != null && !report.reason.trim().isEmpty()) {
+            return report.reason.trim();
+        }
+        if (report.summary != null && !report.summary.trim().isEmpty()) {
+            String value = report.summary.trim().replace('\n', ' ');
+            return value.length() > 110 ? value.substring(0, 109) + "…" : value;
+        }
+        if ("decision".equalsIgnoreCase(report.suggestedMode)) return "这个节点更像一个未落地的决定，先补证据、风险或方案比较。";
+        if ("learning".equalsIgnoreCase(report.suggestedMode)) return "这个节点更像一个知识点，先做检索或迁移练习。";
+        return "这个节点最缺的是可执行下一步，先补触发条件、障碍和最小动作。";
     }
 }
