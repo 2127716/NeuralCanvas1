@@ -6,6 +6,9 @@ public class MainMenuActionHandler {
         if (activity == null) return false;
 
         switch (id) {
+            case MoreMenuDialog.ID_WORKSPACE_NEXT:
+                activity.openNextStepCoach();
+                return true;
             case MoreMenuDialog.ID_WORKSPACE_DASHBOARD:
                 activity.openScientificDashboard();
                 return true;

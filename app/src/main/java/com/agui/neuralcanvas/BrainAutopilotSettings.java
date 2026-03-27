@@ -8,6 +8,7 @@ public class BrainAutopilotSettings {
     private boolean apiAutopilotEnabled = true;
     private boolean autoApplyLowRiskChanges = true;
     private boolean inAppPulseOnResume = true;
+    private boolean coachPopupOnLaunch = true;
     private String assistantScope = "relevant";
     private String preferredAutopilotAgent = "auto";
     private String autopilotInstruction = "请作为我的第二大脑，自动分析图谱，优先补执行闭环、学习闭环、决策证据和关键连接。保守修改，尽量少但高价值。";
@@ -26,6 +27,8 @@ public class BrainAutopilotSettings {
     public void setAutoApplyLowRiskChanges(boolean autoApplyLowRiskChanges) { this.autoApplyLowRiskChanges = autoApplyLowRiskChanges; }
     public boolean isInAppPulseOnResume() { return inAppPulseOnResume; }
     public void setInAppPulseOnResume(boolean inAppPulseOnResume) { this.inAppPulseOnResume = inAppPulseOnResume; }
+    public boolean isCoachPopupOnLaunch() { return coachPopupOnLaunch; }
+    public void setCoachPopupOnLaunch(boolean coachPopupOnLaunch) { this.coachPopupOnLaunch = coachPopupOnLaunch; }
     public String getAssistantScope() { String v = assistantScope == null ? "relevant" : assistantScope.trim().toLowerCase(); return "full".equals(v) ? "full" : "relevant"; }
     public void setAssistantScope(String assistantScope) { this.assistantScope = assistantScope; }
     public String getPreferredAutopilotAgent() {
